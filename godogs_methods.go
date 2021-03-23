@@ -1,4 +1,4 @@
-package godog
+package gdutils
 
 import (
 	"bytes"
