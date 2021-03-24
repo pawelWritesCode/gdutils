@@ -269,7 +269,7 @@ func (af *ApiFeature) ISaveFromTheLastResponseJSONNodeAs(node, variableName stri
 		return err
 	}
 
-	af.save(variableName, data[node])
+	af.Save(variableName, data[node])
 
 	return nil
 }
@@ -279,7 +279,7 @@ func (af *ApiFeature) IGenerateARandomInt(name string) error {
 	rand.Seed(time.Now().UnixNano())
 	min := 1
 	max := 200000
-	af.save(name, rand.Intn(max-min+1)+min)
+	af.Save(name, rand.Intn(max-min+1)+min)
 
 	return nil
 }
@@ -356,7 +356,7 @@ func (af *ApiFeature) ListElementWithTheIdHasFieldWithStringValue(idTemplate, fi
 
 //IGenerateARandomString generates random string and save it under key
 func (af *ApiFeature) IGenerateARandomString(key string) error {
-	af.save(key, af.stringWithCharset(15, charsetLettersOnly))
+	af.Save(key, af.stringWithCharset(15, charsetLettersOnly))
 
 	return nil
 }
@@ -424,7 +424,7 @@ func (af *ApiFeature) ICreateData(data *godog.DocString) error {
 			return fmt.Errorf("missing _id")
 		}
 
-		af.save(user.Alias+".id", id)
+		af.Save(user.Alias+".id", id)
 
 		_, err = af.iSendInternalRequest("POST", "/auth/login", bytes.NewBuffer(reqBody))
 
@@ -449,9 +449,9 @@ func (af *ApiFeature) ICreateData(data *godog.DocString) error {
 			return fmt.Errorf("missing token")
 		}
 
-		af.save(user.Alias+".token", token)
-		af.save(user.Alias+".username", requestBody.Username)
-		af.save(user.Alias+".password", requestBody.Password)
+		af.Save(user.Alias+".token", token)
+		af.Save(user.Alias+".username", requestBody.Username)
+		af.Save(user.Alias+".password", requestBody.Password)
 	}
 
 	return nil

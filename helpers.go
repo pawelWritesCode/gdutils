@@ -32,13 +32,13 @@ func (af *ApiFeature) ResetApiFeature() {
 	af.baseUrl = ""
 }
 
-//save preserve value under given key.
-func (af *ApiFeature) save(key string, value interface{}) {
+//Save preserve value under given key.
+func (af *ApiFeature) Save(key string, value interface{}) {
 	af.saved[key] = value
 }
 
-//getSaved returns preserved value if present, error otherwise.
-func (af *ApiFeature) getSaved(key string) (interface{}, error) {
+//GetSaved returns preserved value if present, error otherwise.
+func (af *ApiFeature) GetSaved(key string) (interface{}, error) {
 	val, ok := af.saved[key]
 
 	if ok == false {
@@ -48,8 +48,8 @@ func (af *ApiFeature) getSaved(key string) (interface{}, error) {
 	return val, nil
 }
 
-//setBaseUrl sets base url for requests.
-func (af *ApiFeature) setBaseUrl(url string) {
+//SetBaseUrl sets base url for requests.
+func (af *ApiFeature) SetBaseUrl(url string) {
 	af.baseUrl = url
 }
 
@@ -66,7 +66,7 @@ func (af *ApiFeature) replaceTemplatedValue(inputString string) (string, error) 
 		extractedVariableName := element
 		extractedVariableName = strings.Trim(extractedVariableName, "[")
 		extractedVariableName = strings.Trim(extractedVariableName, "]")
-		val, err := af.getSaved(extractedVariableName)
+		val, err := af.GetSaved(extractedVariableName)
 
 		if errors.Is(err, ErrPreservedData) {
 			return "", fmt.Errorf("%w, missing value under key '%s'", err, extractedVariableName)
