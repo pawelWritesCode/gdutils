@@ -1,4 +1,4 @@
-module gdutils
+module github.com/pawelWritesCode/gdutils
 
 go 1.16
 
