@@ -77,6 +77,12 @@ type bodyHeaders struct {
 	Headers map[string]string
 }
 
+//ISendAModifiedRequestToWithBodyAndHeaders sends HTTP request with body and headers.
+//Argument method indices HTTP request method for example: "POST", "GET" etc.
+//Argument urlTemplate should be relative path starting from baseUrl. May include template value.
+//Argument bodyTemplate is string representing json request body from test suite.
+//
+//Response and response body will be saved and available in next steps.
 func (af *ApiFeature) ISendAModifiedRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error {
 	client := &http.Client{}
 	input, err := af.replaceTemplatedValue(bodyTemplate.Content)

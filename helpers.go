@@ -1,6 +1,7 @@
 package gdutils
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 )
 
@@ -85,6 +87,23 @@ func (af *ApiFeature) replaceTemplatedValue(inputString string) (string, error) 
 	}
 
 	return result, nil
+}
+
+//replaceTemplatedValue accept as input string, within which search for values
+//between two square brackets, for example: [anything]
+//and replace them with corresponding preserved values, if they are previously saved.
+//
+//returns input string with replaced values.
+func (af *ApiFeature) replaceTemplatedValue2(inputString string) (string, error) {
+	templ := template.Must(template.New("abc").Parse(inputString))
+	var buff bytes.Buffer
+	err := templ.Execute(&buff, af.saved)
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println(buff.String())
+	return buff.String(), nil
 }
 
 //getJsonSchemaBytes reads json schema from file and returns its bytes.
