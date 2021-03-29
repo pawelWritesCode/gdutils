@@ -72,6 +72,53 @@ func (af *ApiFeature) ISendAModifiedRequestToWithData(method, urlTemplate string
 	return af.saveLastResponseCredentials(resp)
 }
 
+type bodyHeaders struct {
+	Body    string
+	Headers map[string]string
+}
+
+func (af *ApiFeature) ISendAModifiedRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error {
+	client := &http.Client{}
+	input, err := af.replaceTemplatedValue(bodyTemplate.Content)
+
+	if err != nil {
+		return err
+	}
+
+	url, err := af.replaceTemplatedValue(urlTemplate)
+
+	if err != nil {
+		return err
+	}
+
+	var bodyAndHeaders bodyHeaders
+	err = json.Unmarshal([]byte(input), &bodyAndHeaders)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(bodyAndHeaders)
+
+	req, err := http.NewRequest(method, af.baseUrl+url, bytes.NewBuffer([]byte(bodyAndHeaders.Body)))
+
+	if err != nil {
+		return err
+
+	}
+
+	for headerName, headerValue := range bodyAndHeaders.Headers {
+		req.Header.Set(headerName, headerValue)
+	}
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		return err
+	}
+
+	return af.saveLastResponseCredentials(resp)
+}
+
 func (af *ApiFeature) ISendAModifiedRequestWithTokenToWithData(method, tokenTemplated, urlTemplate string, bodyTemplate *godog.DocString) error {
 	client := &http.Client{}
 	reqBody, err := af.replaceTemplatedValue(bodyTemplate.Content)
