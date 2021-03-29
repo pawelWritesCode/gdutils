@@ -73,7 +73,7 @@ func (af *ApiFeature) ISendAModifiedRequestToWithData(method, urlTemplate string
 }
 
 type bodyHeaders struct {
-	Body    string
+	Body    interface{}
 	Headers map[string]string
 }
 
@@ -98,8 +98,12 @@ func (af *ApiFeature) ISendAModifiedRequestToWithBodyAndHeaders(method, urlTempl
 	}
 
 	fmt.Println(bodyAndHeaders)
+	reqBody, err := json.Marshal(bodyAndHeaders.Body)
+	if err != nil {
+		return err
+	}
 
-	req, err := http.NewRequest(method, af.baseUrl+url, bytes.NewBuffer([]byte(bodyAndHeaders.Body)))
+	req, err := http.NewRequest(method, af.baseUrl+url, bytes.NewBuffer(reqBody))
 
 	if err != nil {
 		return err
