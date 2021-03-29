@@ -44,13 +44,13 @@ var ErrPreservedData = errors.New("preserved data error")
 //Response and response body will be saved and available in next steps.
 func (af *ApiFeature) ISendAModifiedRequestToWithData(method, urlTemplate string, bodyTemplate *godog.DocString) error {
 	client := &http.Client{}
-	reqBody, err := af.replaceTemplatedValue(bodyTemplate.Content)
+	reqBody, err := af.replaceTemplatedValue2(bodyTemplate.Content)
 
 	if err != nil {
 		return err
 	}
 
-	url, err := af.replaceTemplatedValue(urlTemplate)
+	url, err := af.replaceTemplatedValue2(urlTemplate)
 
 	if err != nil {
 		return err
@@ -85,13 +85,13 @@ type bodyHeaders struct {
 //Response and response body will be saved and available in next steps.
 func (af *ApiFeature) ISendAModifiedRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error {
 	client := &http.Client{}
-	input, err := af.replaceTemplatedValue(bodyTemplate.Content)
+	input, err := af.replaceTemplatedValue2(bodyTemplate.Content)
 
 	if err != nil {
 		return err
 	}
 
-	url, err := af.replaceTemplatedValue(urlTemplate)
+	url, err := af.replaceTemplatedValue2(urlTemplate)
 
 	if err != nil {
 		return err
@@ -131,13 +131,13 @@ func (af *ApiFeature) ISendAModifiedRequestToWithBodyAndHeaders(method, urlTempl
 
 func (af *ApiFeature) ISendAModifiedRequestWithTokenToWithData(method, tokenTemplated, urlTemplate string, bodyTemplate *godog.DocString) error {
 	client := &http.Client{}
-	reqBody, err := af.replaceTemplatedValue(bodyTemplate.Content)
+	reqBody, err := af.replaceTemplatedValue2(bodyTemplate.Content)
 
 	if err != nil {
 		return err
 	}
 
-	url, err := af.replaceTemplatedValue(urlTemplate)
+	url, err := af.replaceTemplatedValue2(urlTemplate)
 
 	if err != nil {
 		return err
@@ -149,7 +149,7 @@ func (af *ApiFeature) ISendAModifiedRequestWithTokenToWithData(method, tokenTemp
 		return err
 	}
 
-	token, err := af.replaceTemplatedValue(tokenTemplated)
+	token, err := af.replaceTemplatedValue2(tokenTemplated)
 
 	if err != nil {
 		return err
@@ -169,7 +169,7 @@ func (af *ApiFeature) ISendAModifiedRequestWithTokenToWithData(method, tokenTemp
 func (af *ApiFeature) ISendAModifiedRequestWithTokenTo(method, tokenTemplated, urlTemplated string) error {
 	client := &http.Client{}
 
-	url, err := af.replaceTemplatedValue(urlTemplated)
+	url, err := af.replaceTemplatedValue2(urlTemplated)
 
 	if err != nil {
 		return err
@@ -181,7 +181,7 @@ func (af *ApiFeature) ISendAModifiedRequestWithTokenTo(method, tokenTemplated, u
 		return err
 	}
 
-	token, err := af.replaceTemplatedValue(tokenTemplated)
+	token, err := af.replaceTemplatedValue2(tokenTemplated)
 
 	if err != nil {
 		return err
@@ -214,7 +214,7 @@ func (af *ApiFeature) ISendAModifiedRequestTo(method, url string) error {
 func (af *ApiFeature) TheJSONNodeShouldBeIntegerOfValue(nodeName, nodeValue string) error {
 	var data map[string]interface{}
 	var nodeValueReplaced int
-	valueTemp, err := af.replaceTemplatedValue(nodeValue)
+	valueTemp, err := af.replaceTemplatedValue2(nodeValue)
 
 	if err != nil {
 		return err
@@ -245,7 +245,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeIntegerOfValue(nodeName, nodeValue stri
 //TheJSONNodeShouldBeStringOfValue checks if json node is string of given value.
 func (af *ApiFeature) TheJSONNodeShouldBeStringOfValue(nodeName, nodeValue string) error {
 	var data map[string]interface{}
-	nodeValueReplaced, err := af.replaceTemplatedValue(nodeValue)
+	nodeValueReplaced, err := af.replaceTemplatedValue2(nodeValue)
 
 	if err != nil {
 		return err
@@ -343,7 +343,7 @@ func (af *ApiFeature) IGenerateARandomInt(name string) error {
 
 //ListElementWithTheIdHasFieldWithStringValue compare value with those from last HTTP request's response.
 func (af *ApiFeature) ListElementWithTheIdHasFieldWithStringValue(idTemplate, fieldName, valueTemplate string) error {
-	idTemp, err := af.replaceTemplatedValue(idTemplate)
+	idTemp, err := af.replaceTemplatedValue2(idTemplate)
 
 	if err != nil {
 		return err
@@ -355,7 +355,7 @@ func (af *ApiFeature) ListElementWithTheIdHasFieldWithStringValue(idTemplate, fi
 		return err
 	}
 
-	value, err := af.replaceTemplatedValue(valueTemplate)
+	value, err := af.replaceTemplatedValue2(valueTemplate)
 
 	if err != nil {
 		return err
