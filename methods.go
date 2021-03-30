@@ -516,6 +516,19 @@ func (af *ApiFeature) ICreateData(data *godog.DocString) error {
 
 //IPrintLastResponse prints last response from request
 func (af *ApiFeature) IPrintLastResponse() error {
-	fmt.Println(string(af.lastResponseBody))
+	var tmp map[string]interface{}
+	err := json.Unmarshal(af.lastResponseBody, &tmp)
+
+	if err != nil {
+		fmt.Println(string(af.lastResponseBody))
+	}
+
+	indentedRespBody, err := json.MarshalIndent(tmp, "", "\t")
+
+	if err != nil {
+		fmt.Println(string(af.lastResponseBody))
+	}
+
+	fmt.Println(string(indentedRespBody))
 	return nil
 }
