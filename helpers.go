@@ -2,15 +2,11 @@ package gdutils
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"regexp"
-	"strconv"
-	"strings"
 	"text/template"
 	"time"
 )
@@ -56,45 +52,11 @@ func (af *ApiFeature) SetBaseUrl(url string) {
 }
 
 //replaceTemplatedValue accept as input string, within which search for values
-//between two square brackets, for example: [anything]
+//between two brackets {{ }} preceded with dot, for example: {{.NAME}}
 //and replace them with corresponding preserved values, if they are previously saved.
 //
 //returns input string with replaced values.
 func (af *ApiFeature) replaceTemplatedValue(inputString string) (string, error) {
-	result := inputString
-	re := regexp.MustCompile(`\[([^\[\]]*)\]`)
-	submatchall := re.FindAllString(inputString, -1)
-	for _, element := range submatchall {
-		extractedVariableName := element
-		extractedVariableName = strings.Trim(extractedVariableName, "[")
-		extractedVariableName = strings.Trim(extractedVariableName, "]")
-		val, err := af.GetSaved(extractedVariableName)
-
-		if errors.Is(err, ErrPreservedData) {
-			return "", fmt.Errorf("%w, missing value under key '%s'", err, extractedVariableName)
-		}
-
-		switch v := val.(type) {
-		case string:
-			result = strings.Replace(result, element, v, 1)
-		case float64:
-			result = strings.Replace(result, element, strconv.Itoa(int(v)), 1)
-		case int:
-			result = strings.Replace(result, element, strconv.Itoa(v), 1)
-		default:
-			break
-		}
-	}
-
-	return result, nil
-}
-
-//replaceTemplatedValue accept as input string, within which search for values
-//between two square brackets, for example: [anything]
-//and replace them with corresponding preserved values, if they are previously saved.
-//
-//returns input string with replaced values.
-func (af *ApiFeature) replaceTemplatedValue2(inputString string) (string, error) {
 	templ := template.Must(template.New("abc").Parse(inputString))
 	var buff bytes.Buffer
 	err := templ.Execute(&buff, af.saved)

@@ -8,6 +8,7 @@ import (
 	"github.com/cucumber/godog"
 	"math/rand"
 	"net/http"
+	"net/http/httputil"
 	"strconv"
 	"time"
 )
@@ -44,13 +45,13 @@ var ErrPreservedData = errors.New("preserved data error")
 //Response and response body will be saved and available in next steps.
 func (af *ApiFeature) ISendAModifiedRequestToWithData(method, urlTemplate string, bodyTemplate *godog.DocString) error {
 	client := &http.Client{}
-	reqBody, err := af.replaceTemplatedValue2(bodyTemplate.Content)
+	reqBody, err := af.replaceTemplatedValue(bodyTemplate.Content)
 
 	if err != nil {
 		return err
 	}
 
-	url, err := af.replaceTemplatedValue2(urlTemplate)
+	url, err := af.replaceTemplatedValue(urlTemplate)
 
 	if err != nil {
 		return err
@@ -85,13 +86,13 @@ type bodyHeaders struct {
 //Response and response body will be saved and available in next steps.
 func (af *ApiFeature) ISendAModifiedRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error {
 	client := &http.Client{}
-	input, err := af.replaceTemplatedValue2(bodyTemplate.Content)
+	input, err := af.replaceTemplatedValue(bodyTemplate.Content)
 
 	if err != nil {
 		return err
 	}
 
-	url, err := af.replaceTemplatedValue2(urlTemplate)
+	url, err := af.replaceTemplatedValue(urlTemplate)
 
 	if err != nil {
 		return err
@@ -131,13 +132,13 @@ func (af *ApiFeature) ISendAModifiedRequestToWithBodyAndHeaders(method, urlTempl
 
 func (af *ApiFeature) ISendAModifiedRequestWithTokenToWithData(method, tokenTemplated, urlTemplate string, bodyTemplate *godog.DocString) error {
 	client := &http.Client{}
-	reqBody, err := af.replaceTemplatedValue2(bodyTemplate.Content)
+	reqBody, err := af.replaceTemplatedValue(bodyTemplate.Content)
 
 	if err != nil {
 		return err
 	}
 
-	url, err := af.replaceTemplatedValue2(urlTemplate)
+	url, err := af.replaceTemplatedValue(urlTemplate)
 
 	if err != nil {
 		return err
@@ -149,7 +150,7 @@ func (af *ApiFeature) ISendAModifiedRequestWithTokenToWithData(method, tokenTemp
 		return err
 	}
 
-	token, err := af.replaceTemplatedValue2(tokenTemplated)
+	token, err := af.replaceTemplatedValue(tokenTemplated)
 
 	if err != nil {
 		return err
@@ -169,7 +170,7 @@ func (af *ApiFeature) ISendAModifiedRequestWithTokenToWithData(method, tokenTemp
 func (af *ApiFeature) ISendAModifiedRequestWithTokenTo(method, tokenTemplated, urlTemplated string) error {
 	client := &http.Client{}
 
-	url, err := af.replaceTemplatedValue2(urlTemplated)
+	url, err := af.replaceTemplatedValue(urlTemplated)
 
 	if err != nil {
 		return err
@@ -181,7 +182,7 @@ func (af *ApiFeature) ISendAModifiedRequestWithTokenTo(method, tokenTemplated, u
 		return err
 	}
 
-	token, err := af.replaceTemplatedValue2(tokenTemplated)
+	token, err := af.replaceTemplatedValue(tokenTemplated)
 
 	if err != nil {
 		return err
@@ -214,7 +215,7 @@ func (af *ApiFeature) ISendAModifiedRequestTo(method, url string) error {
 func (af *ApiFeature) TheJSONNodeShouldBeIntegerOfValue(nodeName, nodeValue string) error {
 	var data map[string]interface{}
 	var nodeValueReplaced int
-	valueTemp, err := af.replaceTemplatedValue2(nodeValue)
+	valueTemp, err := af.replaceTemplatedValue(nodeValue)
 
 	if err != nil {
 		return err
@@ -245,7 +246,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeIntegerOfValue(nodeName, nodeValue stri
 //TheJSONNodeShouldBeStringOfValue checks if json node is string of given value.
 func (af *ApiFeature) TheJSONNodeShouldBeStringOfValue(nodeName, nodeValue string) error {
 	var data map[string]interface{}
-	nodeValueReplaced, err := af.replaceTemplatedValue2(nodeValue)
+	nodeValueReplaced, err := af.replaceTemplatedValue(nodeValue)
 
 	if err != nil {
 		return err
@@ -343,7 +344,7 @@ func (af *ApiFeature) IGenerateARandomInt(name string) error {
 
 //ListElementWithTheIdHasFieldWithStringValue compare value with those from last HTTP request's response.
 func (af *ApiFeature) ListElementWithTheIdHasFieldWithStringValue(idTemplate, fieldName, valueTemplate string) error {
-	idTemp, err := af.replaceTemplatedValue2(idTemplate)
+	idTemp, err := af.replaceTemplatedValue(idTemplate)
 
 	if err != nil {
 		return err
@@ -355,7 +356,7 @@ func (af *ApiFeature) ListElementWithTheIdHasFieldWithStringValue(idTemplate, fi
 		return err
 	}
 
-	value, err := af.replaceTemplatedValue2(valueTemplate)
+	value, err := af.replaceTemplatedValue(valueTemplate)
 
 	if err != nil {
 		return err
@@ -511,5 +512,16 @@ func (af *ApiFeature) ICreateData(data *godog.DocString) error {
 		af.Save(user.Alias+".password", requestBody.Password)
 	}
 
+	return nil
+}
+
+//IPrintLastResponse prints last response from request
+func (af *ApiFeature) IPrintLastResponse() error {
+	respBody, err := httputil.DumpResponse(af.lastResponse, true)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(respBody))
 	return nil
 }
