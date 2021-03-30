@@ -8,7 +8,6 @@ import (
 	"github.com/cucumber/godog"
 	"math/rand"
 	"net/http"
-	"net/http/httputil"
 	"strconv"
 	"time"
 )
@@ -517,11 +516,6 @@ func (af *ApiFeature) ICreateData(data *godog.DocString) error {
 
 //IPrintLastResponse prints last response from request
 func (af *ApiFeature) IPrintLastResponse() error {
-	respBody, err := httputil.DumpResponse(af.lastResponse, true)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(string(respBody))
+	fmt.Println(string(af.lastResponseBody))
 	return nil
 }
