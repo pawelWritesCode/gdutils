@@ -521,12 +521,14 @@ func (af *ApiFeature) IPrintLastResponse() error {
 
 	if err != nil {
 		fmt.Println(string(af.lastResponseBody))
+		return nil
 	}
 
 	indentedRespBody, err := json.MarshalIndent(tmp, "", "\t")
 
 	if err != nil {
 		fmt.Println(string(af.lastResponseBody))
+		return nil
 	}
 
 	fmt.Println(string(indentedRespBody))
