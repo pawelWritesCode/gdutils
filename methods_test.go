@@ -148,8 +148,8 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 				lastResponseBody: tt.fields.lastResponseBody,
 				baseUrl:          tt.fields.baseUrl,
 			}
-			if err := af.theJSONNodeShouldBeOfValue(tt.args.expr, tt.args.dataType, tt.args.dataValue); (err != nil) != tt.wantErr {
-				t.Errorf("theJSONNodeShouldBeOfValue() error = %v, wantErr %v", err, tt.wantErr)
+			if err := af.TheJSONNodeShouldBeOfValue(tt.args.expr, tt.args.dataType, tt.args.dataValue); (err != nil) != tt.wantErr {
+				t.Errorf("TheJSONNodeShouldBeOfValue() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
