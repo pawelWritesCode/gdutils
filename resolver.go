@@ -37,7 +37,11 @@ func Resolve(expr string, respBody []byte) (interface{}, error) {
 		return result, err
 	}
 
-	exprParts := separate(expr)
+	exprParts, err := separate(expr)
+	if err != nil {
+		return result, err
+	}
+
 	return resolve(tmp, exprParts)
 }
 
@@ -106,7 +110,7 @@ func resolveMapKey(data interface{}, item Item) (interface{}, error) {
 }
 
 //separate separates expression into logic items
-func separate(expr string) []Item {
+func separate(expr string) ([]Item, error) {
 	items := []Item{}
 	objects := strings.Split(expr, ".")
 
@@ -119,7 +123,7 @@ func separate(expr string) []Item {
 			digit, err := strconv.Atoi(betweenBrackets)
 
 			if err != nil {
-				continue
+				return items, fmt.Errorf("string between brackets does not contain digit in %s", obj)
 			}
 
 			items = append(items, Item{
@@ -138,7 +142,7 @@ func separate(expr string) []Item {
 		})
 	}
 
-	return items
+	return items, nil
 }
 
 //isIterable checks whether expression is array or slice
