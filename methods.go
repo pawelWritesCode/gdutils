@@ -554,16 +554,16 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 	case "string":
 		strVal, ok := iValue.(string)
 		if !ok {
-			return fmt.Errorf("expected %v to be %s", iValue, dataType)
+			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
 
 		if strVal != nodeValueReplaced {
-			return fmt.Errorf("node string value: %s is not equal to expected string value: %s", nodeValueReplaced, strVal)
+			return fmt.Errorf("node %s string value: %s is not equal to expected string value: %s", expr, nodeValueReplaced, strVal)
 		}
 	case "int":
 		floatVal, ok := iValue.(float64)
 		if !ok {
-			return fmt.Errorf("expected %v to be %s", iValue, dataType)
+			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
 
 		intVal := int(floatVal)
@@ -571,39 +571,39 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 		intNodeValue, err := strconv.Atoi(nodeValueReplaced)
 
 		if err != nil {
-			return fmt.Errorf("replaced node value %s could not be converted to int", nodeValueReplaced)
+			return fmt.Errorf("replaced node %s value %s could not be converted to int", expr, nodeValueReplaced)
 		}
 
 		if intVal != intNodeValue {
-			return fmt.Errorf("node int value: %d is not equal to expected int value: %d", intNodeValue, intVal)
+			return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intNodeValue, intVal)
 		}
 	case "float":
 		floatVal, ok := iValue.(float64)
 		if !ok {
-			return fmt.Errorf("expected %s to be %s", iValue, dataType)
+			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
 
 		floatNodeValue, err := strconv.ParseFloat(nodeValueReplaced, 64)
 		if err != nil {
-			return fmt.Errorf("replaced node value %s could not be converted to float64", nodeValueReplaced)
+			return fmt.Errorf("replaced node %s value %s could not be converted to float64", expr, nodeValueReplaced)
 		}
 
 		if floatVal != floatNodeValue {
-			return fmt.Errorf("node float value %f is not equal to expected float value %f", floatNodeValue, floatVal)
+			return fmt.Errorf("node %s float value %f is not equal to expected float value %f", expr, floatNodeValue, floatVal)
 		}
 	case "bool":
 		boolVal, ok := iValue.(bool)
 		if !ok {
-			return fmt.Errorf("expected %s to be %s", nodeValueReplaced, dataType)
+			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
 
 		boolNodeValue, err := strconv.ParseBool(nodeValueReplaced)
 		if err != nil {
-			return fmt.Errorf("replaced node value %s could not be converted to bool", nodeValueReplaced)
+			return fmt.Errorf("replaced node %s value %s could not be converted to bool", expr, nodeValueReplaced)
 		}
 
 		if boolVal != boolNodeValue {
-			return fmt.Errorf("node bool value %t is not equal to expected bool value %t", boolNodeValue, boolVal)
+			return fmt.Errorf("node %s bool value %t is not equal to expected bool value %t", expr, boolNodeValue, boolVal)
 		}
 	}
 
