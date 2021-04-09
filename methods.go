@@ -225,15 +225,13 @@ func (af *ApiFeature) TheResponseShouldBeInJSON() error {
 
 //ISaveFromTheLastResponseJSONNodeAs saves from last response json node under given variableName.
 func (af *ApiFeature) ISaveFromTheLastResponseJSONNodeAs(node, variableName string) error {
-	var data map[string]interface{}
-
-	err := json.Unmarshal(af.lastResponseBody, &data)
+	iVal, err := Resolve(node, af.lastResponseBody)
 
 	if err != nil {
 		return err
 	}
 
-	af.Save(variableName, data[node])
+	af.Save(variableName, iVal)
 
 	return nil
 }
