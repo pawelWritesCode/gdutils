@@ -254,16 +254,8 @@ func (af *ApiFeature) IGenerateARandomString(key string) error {
 }
 
 func (af *ApiFeature) TheJSONResponseShouldHaveKey(key string) error {
-	var data map[string]interface{}
-	err := json.Unmarshal(af.lastResponseBody, &data)
-
+	_, err := Resolve(key, af.lastResponseBody)
 	if err != nil {
-		return err
-	}
-
-	_, ok := data[key]
-
-	if !ok {
 		return fmt.Errorf("%v, missing key '%s'", ErrJsonNode, key)
 	}
 
