@@ -370,7 +370,7 @@ func (af *ApiFeature) IPrintLastResponse() error {
 	return nil
 }
 
-//theJSONNodeShouldBeOfValue compares json node value from expression to expected by user dataValue of given by user dataType
+//TheJSONNodeShouldBeOfValue compares json node value from expression to expected by user dataValue of given by user dataType
 //available data types are listed in switch section in each case directive
 func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) error {
 	nodeValueReplaced, err := af.replaceTemplatedValue(dataValue)
