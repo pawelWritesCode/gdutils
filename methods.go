@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -432,6 +433,31 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 		if boolVal != boolNodeValue {
 			return fmt.Errorf("node %s bool value %t is not equal to expected bool value %t", expr, boolNodeValue, boolVal)
 		}
+	}
+
+	return nil
+}
+
+//TheJSONResponseShouldHaveKeys checks whether last request body has keys defined in string separated by comma
+func (af *ApiFeature) TheJSONResponseShouldHaveKeys(keys string) error {
+	keysSlice := strings.Split(keys, ",")
+
+	errs := make([]error, 0, len(keysSlice))
+	for _, key := range keysSlice {
+		_, err := Resolve(key, af.lastResponseBody)
+
+		if err != nil {
+			errs = append(errs, fmt.Errorf("missing key %s", key))
+		}
+	}
+
+	if len(errs) > 0 {
+		var errString string
+		for _, err := range errs {
+			errString += fmt.Sprintf("%s\n", err)
+		}
+
+		return errors.New(errString)
 	}
 
 	return nil
