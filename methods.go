@@ -444,10 +444,11 @@ func (af *ApiFeature) TheJSONResponseShouldHaveKeys(keys string) error {
 
 	errs := make([]error, 0, len(keysSlice))
 	for _, key := range keysSlice {
-		_, err := Resolve(key, af.lastResponseBody)
+		trimmedKey := strings.TrimSpace(key)
+		_, err := Resolve(trimmedKey, af.lastResponseBody)
 
 		if err != nil {
-			errs = append(errs, fmt.Errorf("missing key %s", key))
+			errs = append(errs, fmt.Errorf("missing key %s", trimmedKey))
 		}
 	}
 
