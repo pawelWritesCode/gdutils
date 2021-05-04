@@ -60,6 +60,17 @@ func TestResolve(t *testing.T) {
 	}
 }`),
 		}, want: interface{}("cde"), wantErr: false},
+		{name: "only array", args: args{
+			expr: "root[0].name",
+			respBody: []byte(`[
+	{
+		"name": "xxx"
+	},
+	{
+		"name": "yyy"
+	}
+]`),
+		}, want: interface{}("xxx"), wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

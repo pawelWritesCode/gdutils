@@ -34,7 +34,22 @@ func Resolve(expr string, respBody []byte) (interface{}, error) {
 	var tmp map[string]interface{}
 	err := json.Unmarshal(respBody, &tmp)
 	if err != nil {
-		return result, fmt.Errorf("unmarshaling body error\nbody: %+v\nerr:%w", tmp, err)
+		var tmpSlice []interface{}
+		err = json.Unmarshal(respBody, &tmpSlice)
+
+		if err != nil {
+			return result, fmt.Errorf("unmarshaling body error\nbody: %+v\nerr:%w", tmp, err)
+		}
+
+		newMap := map[string]interface{}{}
+		newMap["root"] = tmpSlice
+
+		exprParts, err := separate(expr)
+		if err != nil {
+			return result, err
+		}
+
+		return resolve(newMap, exprParts)
 	}
 
 	exprParts, err := separate(expr)
