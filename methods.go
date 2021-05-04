@@ -463,3 +463,13 @@ func (af *ApiFeature) TheJSONResponseShouldHaveKeys(keys string) error {
 
 	return nil
 }
+
+//IWait waits for given timeInterval amout of time
+func (af *ApiFeature) IWait(timeInterval string) error {
+	duration, err := time.ParseDuration(timeInterval)
+	if err != nil {
+		return err
+	}
+	time.Sleep(duration)
+	return nil
+}
