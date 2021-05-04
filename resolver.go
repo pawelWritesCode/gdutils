@@ -34,7 +34,7 @@ func Resolve(expr string, respBody []byte) (interface{}, error) {
 	var tmp map[string]interface{}
 	err := json.Unmarshal(respBody, &tmp)
 	if err != nil {
-		return result, err
+		return result, fmt.Errorf("unmarshaling body error\nbody: %+v\nerr:%w", tmp, err)
 	}
 
 	exprParts, err := separate(expr)
