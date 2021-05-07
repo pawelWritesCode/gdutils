@@ -8,6 +8,7 @@ import (
 	"github.com/cucumber/godog"
 	"math/rand"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -361,6 +362,25 @@ func (af *ApiFeature) IPrintLastResponse() error {
 
 	fmt.Println(string(indentedRespBody))
 	return nil
+}
+
+//TheJSONNodeShouldBeSliceOfLength checks whether given key is slice and has given length
+func (af *ApiFeature) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error {
+	iValue, err := Resolve(expr, af.lastResponseBody)
+	if err != nil {
+		return err
+	}
+
+	v := reflect.ValueOf(iValue)
+	if v.Kind() == reflect.Slice {
+		if v.Len() != length {
+			return fmt.Errorf("%s slice has length: %d, expected: %d", expr, v.Len(), length)
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("%s is not slice", expr)
 }
 
 //TheJSONNodeShouldBeOfValue compares json node value from expression to expected by user dataValue of given by user dataType

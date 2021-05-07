@@ -154,3 +154,91 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 		})
 	}
 }
+
+func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
+	type fields struct {
+		saved            map[string]interface{}
+		lastResponse     *http.Response
+		lastResponseBody []byte
+		baseUrl          string
+	}
+	type args struct {
+		expr   string
+		length int
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "no resp body", fields: fields{
+			saved:            nil,
+			lastResponse:     nil,
+			lastResponseBody: nil,
+			baseUrl:          "",
+		}, args: args{
+			expr:   "anykey",
+			length: 0,
+		}, wantErr: true},
+		{name: "key is not slice", fields: fields{
+			saved:        nil,
+			lastResponse: nil,
+			lastResponseBody: []byte(`{
+	"name": "xyz"	
+}`),
+			baseUrl: "",
+		}, args: args{
+			expr:   "name",
+			length: 0,
+		}, wantErr: true},
+		{name: "key is not slice #2", fields: fields{
+			saved:        nil,
+			lastResponse: nil,
+			lastResponseBody: []byte(`{
+	"name": {
+		"details": "xyz"
+	}
+}`),
+			baseUrl: "",
+		}, args: args{
+			expr:   "name",
+			length: 0,
+		}, wantErr: true},
+		{name: "key is slice but length does not match", fields: fields{
+			saved:        nil,
+			lastResponse: nil,
+			lastResponseBody: []byte(`{
+	"names": ["a", "b"]
+}`),
+			baseUrl: "",
+		}, args: args{
+			expr:   "name",
+			length: 0,
+		}, wantErr: true},
+		{name: "key is slice and length match", fields: fields{
+			saved:        nil,
+			lastResponse: nil,
+			lastResponseBody: []byte(`{
+	"names": ["a", "b"]
+}`),
+			baseUrl: "",
+		}, args: args{
+			expr:   "names",
+			length: 2,
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			af := &ApiFeature{
+				saved:            tt.fields.saved,
+				lastResponse:     tt.fields.lastResponse,
+				lastResponseBody: tt.fields.lastResponseBody,
+				baseUrl:          tt.fields.baseUrl,
+			}
+			if err := af.TheJSONNodeShouldBeSliceOfLength(tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
+				t.Errorf("TheJSONNodeShouldBeSliceOfLength() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
