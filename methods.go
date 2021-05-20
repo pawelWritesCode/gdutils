@@ -105,7 +105,6 @@ func (af *ApiFeature) ISendRequestToWithBodyAndHeaders(method, urlTemplate strin
 		return err
 	}
 
-	fmt.Println(bodyAndHeaders)
 	reqBody, err := json.Marshal(bodyAndHeaders.Body)
 	if err != nil {
 		return err

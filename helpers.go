@@ -2,7 +2,6 @@ package gdutils
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -64,7 +63,6 @@ func (af *ApiFeature) replaceTemplatedValue(inputString string) (string, error) 
 		return "", err
 	}
 
-	fmt.Println(buff.String())
 	return buff.String(), nil
 }
 
