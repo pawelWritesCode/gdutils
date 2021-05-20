@@ -22,11 +22,12 @@ var seededRand *rand.Rand = rand.New(
 	rand.NewSource(time.Now().UnixNano()))
 
 //ResetApiFeature resets ApiFeature struct instance to default values.
-func (af *ApiFeature) ResetApiFeature() {
+func (af *ApiFeature) ResetApiFeature(isDebug bool) {
 	af.saved = map[string]interface{}{}
 	af.lastResponseBody = []byte{}
 	af.lastResponse = &http.Response{}
 	af.baseUrl = ""
+	af.isDebug = isDebug
 }
 
 //Save preserve value under given key.
