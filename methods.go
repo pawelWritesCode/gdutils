@@ -24,6 +24,7 @@ type ApiFeature struct {
 	lastResponse     *http.Response
 	lastResponseBody []byte
 	baseUrl          string
+	isDebug          bool
 }
 
 //ErrJson tells that value has invalid JSON format.
@@ -79,7 +80,7 @@ func (af *ApiFeature) ISendRequestToWithData(method, urlTemplate string, bodyTem
 	return af.saveLastResponseCredentials(resp)
 }
 
-//ISendAModifiedRequestToWithBodyAndHeaders sends HTTP request with body and headers.
+//ISendRequestToWithBodyAndHeaders sends HTTP request with body and headers.
 //Argument method indices HTTP request method for example: "POST", "GET" etc.
 //Argument urlTemplate should be relative path starting from baseUrl. May include template value.
 //Argument bodyTemplate is string representing json request body from test suite.
@@ -88,15 +89,17 @@ func (af *ApiFeature) ISendRequestToWithData(method, urlTemplate string, bodyTem
 func (af *ApiFeature) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error {
 	client := &http.Client{}
 	input, err := af.replaceTemplatedValue(bodyTemplate.Content)
-
 	if err != nil {
 		return err
 	}
 
 	url, err := af.replaceTemplatedValue(urlTemplate)
-
 	if err != nil {
 		return err
+	}
+
+	if af.isDebug {
+		fmt.Printf("URL: %s\n", url)
 	}
 
 	var bodyAndHeaders bodyHeaders
@@ -110,11 +113,14 @@ func (af *ApiFeature) ISendRequestToWithBodyAndHeaders(method, urlTemplate strin
 		return err
 	}
 
-	req, err := http.NewRequest(method, af.baseUrl+url, bytes.NewBuffer(reqBody))
+	if af.isDebug {
+		fmt.Printf("Request body:\n\n %s\n\n", string(reqBody))
+		fmt.Printf("Request headers: %v\n", bodyAndHeaders.Headers)
+	}
 
+	req, err := http.NewRequest(method, af.baseUrl+url, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return err
-
 	}
 
 	for headerName, headerValue := range bodyAndHeaders.Headers {
@@ -122,12 +128,18 @@ func (af *ApiFeature) ISendRequestToWithBodyAndHeaders(method, urlTemplate strin
 	}
 
 	resp, err := client.Do(req)
-
 	if err != nil {
 		return err
 	}
 
-	return af.saveLastResponseCredentials(resp)
+	err = af.saveLastResponseCredentials(resp)
+	if af.isDebug {
+		fmt.Printf("Response body:\n\n")
+		_ = af.IPrintLastResponse()
+		fmt.Printf("\n")
+	}
+
+	return err
 }
 
 func (af *ApiFeature) ISendRequestWithTokenToWithData(method, tokenTemplated, urlTemplate string, bodyTemplate *godog.DocString) error {
@@ -202,11 +214,8 @@ func (af *ApiFeature) ISendRequestWithTokenTo(method, tokenTemplated, urlTemplat
 //TheResponseStatusCodeShouldBe compare last response status code with given in argument.
 func (af *ApiFeature) TheResponseStatusCodeShouldBe(code int) error {
 	if af.lastResponse.StatusCode != code {
-		responseBody := map[string]interface{}{}
-
-		json.Unmarshal(af.lastResponseBody, &responseBody)
-		return fmt.Errorf("%w, expected: %d, actual: %d\nResponseBody: %+v",
-			ErrResponseCode, code, af.lastResponse.StatusCode, responseBody)
+		return fmt.Errorf("%w, expected: %d, actual: %d",
+			ErrResponseCode, code, af.lastResponse.StatusCode)
 	}
 
 	return nil
@@ -229,6 +238,10 @@ func (af *ApiFeature) ISaveFromTheLastResponseJSONNodeAs(node, variableName stri
 	iVal, err := Resolve(node, af.lastResponseBody)
 
 	if err != nil {
+		if af.isDebug {
+			_ = af.IPrintLastResponse()
+		}
+
 		return err
 	}
 
@@ -257,6 +270,10 @@ func (af *ApiFeature) IGenerateARandomString(key string) error {
 func (af *ApiFeature) TheJSONResponseShouldHaveKey(key string) error {
 	_, err := Resolve(key, af.lastResponseBody)
 	if err != nil {
+		if af.isDebug {
+			_ = af.IPrintLastResponse()
+		}
+
 		return fmt.Errorf("%v, missing key '%s'", ErrJsonNode, key)
 	}
 
@@ -367,6 +384,10 @@ func (af *ApiFeature) IPrintLastResponse() error {
 func (af *ApiFeature) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error {
 	iValue, err := Resolve(expr, af.lastResponseBody)
 	if err != nil {
+		if af.isDebug {
+			_ = af.IPrintLastResponse()
+		}
+
 		return err
 	}
 
@@ -378,6 +399,9 @@ func (af *ApiFeature) TheJSONNodeShouldBeSliceOfLength(expr string, length int) 
 
 		return nil
 	}
+	if af.isDebug {
+		_ = af.IPrintLastResponse()
+	}
 
 	return fmt.Errorf("%s is not slice", expr)
 }
@@ -386,14 +410,20 @@ func (af *ApiFeature) TheJSONNodeShouldBeSliceOfLength(expr string, length int) 
 //available data types are listed in switch section in each case directive
 func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) error {
 	nodeValueReplaced, err := af.replaceTemplatedValue(dataValue)
-
 	if err != nil {
 		return err
 	}
 
-	iValue, err := Resolve(expr, af.lastResponseBody)
+	if af.isDebug {
+		fmt.Printf("Replaced value: %s\n", nodeValueReplaced)
+	}
 
+	iValue, err := Resolve(expr, af.lastResponseBody)
 	if err != nil {
+		if af.isDebug {
+			_ = af.IPrintLastResponse()
+		}
+
 		return err
 	}
 
@@ -401,15 +431,24 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 	case "string":
 		strVal, ok := iValue.(string)
 		if !ok {
+			if af.isDebug {
+				_ = af.IPrintLastResponse()
+			}
 			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
 
 		if strVal != nodeValueReplaced {
+			if af.isDebug {
+				_ = af.IPrintLastResponse()
+			}
 			return fmt.Errorf("node %s string value: %s is not equal to expected string value: %s", expr, nodeValueReplaced, strVal)
 		}
 	case "int":
 		floatVal, ok := iValue.(float64)
 		if !ok {
+			if af.isDebug {
+				_ = af.IPrintLastResponse()
+			}
 			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
 
@@ -418,38 +457,62 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 		intNodeValue, err := strconv.Atoi(nodeValueReplaced)
 
 		if err != nil {
+			if af.isDebug {
+				_ = af.IPrintLastResponse()
+			}
 			return fmt.Errorf("replaced node %s value %s could not be converted to int", expr, nodeValueReplaced)
 		}
 
 		if intVal != intNodeValue {
+			if af.isDebug {
+				_ = af.IPrintLastResponse()
+			}
 			return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intNodeValue, intVal)
 		}
 	case "float":
 		floatVal, ok := iValue.(float64)
 		if !ok {
+			if af.isDebug {
+				_ = af.IPrintLastResponse()
+			}
 			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
 
 		floatNodeValue, err := strconv.ParseFloat(nodeValueReplaced, 64)
 		if err != nil {
+			if af.isDebug {
+				_ = af.IPrintLastResponse()
+			}
 			return fmt.Errorf("replaced node %s value %s could not be converted to float64", expr, nodeValueReplaced)
 		}
 
 		if floatVal != floatNodeValue {
+			if af.isDebug {
+				_ = af.IPrintLastResponse()
+			}
 			return fmt.Errorf("node %s float value %f is not equal to expected float value %f", expr, floatNodeValue, floatVal)
 		}
 	case "bool":
 		boolVal, ok := iValue.(bool)
 		if !ok {
+			if af.isDebug {
+				_ = af.IPrintLastResponse()
+			}
 			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
 
 		boolNodeValue, err := strconv.ParseBool(nodeValueReplaced)
 		if err != nil {
+			if af.isDebug {
+				_ = af.IPrintLastResponse()
+			}
 			return fmt.Errorf("replaced node %s value %s could not be converted to bool", expr, nodeValueReplaced)
 		}
 
 		if boolVal != boolNodeValue {
+			if af.isDebug {
+				_ = af.IPrintLastResponse()
+			}
 			return fmt.Errorf("node %s bool value %t is not equal to expected bool value %t", expr, boolNodeValue, boolVal)
 		}
 	}
@@ -475,6 +538,10 @@ func (af *ApiFeature) TheJSONResponseShouldHaveKeys(keys string) error {
 		var errString string
 		for _, err := range errs {
 			errString += fmt.Sprintf("%s\n", err)
+		}
+
+		if af.isDebug {
+			_ = af.IPrintLastResponse()
 		}
 
 		return errors.New(errString)
