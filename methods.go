@@ -441,7 +441,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 			if af.isDebug {
 				_ = af.IPrintLastResponse()
 			}
-			return fmt.Errorf("node %s string value: %s is not equal to expected string value: %s", expr, nodeValueReplaced, strVal)
+			return fmt.Errorf("node %s string value: %s is not equal to expected string value: %s", expr, strVal, nodeValueReplaced)
 		}
 	case "int":
 		floatVal, ok := iValue.(float64)
@@ -467,7 +467,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 			if af.isDebug {
 				_ = af.IPrintLastResponse()
 			}
-			return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intNodeValue, intVal)
+			return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intVal, intNodeValue)
 		}
 	case "float":
 		floatVal, ok := iValue.(float64)
@@ -490,7 +490,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 			if af.isDebug {
 				_ = af.IPrintLastResponse()
 			}
-			return fmt.Errorf("node %s float value %f is not equal to expected float value %f", expr, floatNodeValue, floatVal)
+			return fmt.Errorf("node %s float value %f is not equal to expected float value %f", expr, floatVal, floatNodeValue)
 		}
 	case "bool":
 		boolVal, ok := iValue.(bool)
@@ -513,7 +513,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 			if af.isDebug {
 				_ = af.IPrintLastResponse()
 			}
-			return fmt.Errorf("node %s bool value %t is not equal to expected bool value %t", expr, boolNodeValue, boolVal)
+			return fmt.Errorf("node %s bool value %t is not equal to expected bool value %t", expr, boolVal, boolNodeValue)
 		}
 	}
 
