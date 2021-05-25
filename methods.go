@@ -27,6 +27,11 @@ type ApiFeature struct {
 	isDebug          bool
 }
 
+type bodyHeaders struct {
+	Body    interface{}
+	Headers map[string]string
+}
+
 //ErrJson tells that value has invalid JSON format.
 var ErrJson = errors.New("invalid JSON format")
 
@@ -39,12 +44,7 @@ var ErrJsonNode = errors.New("invalid JSON node")
 //ErrPreservedData tells indices that there is some kind of error with feature preserved data.
 var ErrPreservedData = errors.New("preserved data error")
 
-type bodyHeaders struct {
-	Body    interface{}
-	Headers map[string]string
-}
-
-//ISendAModifiedRequestToWithData sends HTTP request with body.
+//ISendRequestToWithData sends HTTP request with body.
 //Argument method indices HTTP request method for example: "POST", "GET" etc.
 //Argument urlTemplate should be relative path starting from baseUrl. May include template value.
 //Argument bodyTemplate is string representing json request body from test suite.
@@ -142,75 +142,6 @@ func (af *ApiFeature) ISendRequestToWithBodyAndHeaders(method, urlTemplate strin
 	return err
 }
 
-func (af *ApiFeature) ISendRequestWithTokenToWithData(method, tokenTemplated, urlTemplate string, bodyTemplate *godog.DocString) error {
-	client := &http.Client{}
-	reqBody, err := af.replaceTemplatedValue(bodyTemplate.Content)
-
-	if err != nil {
-		return err
-	}
-
-	url, err := af.replaceTemplatedValue(urlTemplate)
-
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest(method, af.baseUrl+url, bytes.NewBuffer([]byte(reqBody)))
-
-	if err != nil {
-		return err
-	}
-
-	token, err := af.replaceTemplatedValue(tokenTemplated)
-
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	resp, err := client.Do(req)
-
-	if err != nil {
-		return err
-	}
-
-	return af.saveLastResponseCredentials(resp)
-}
-
-func (af *ApiFeature) ISendRequestWithTokenTo(method, tokenTemplated, urlTemplated string) error {
-	client := &http.Client{}
-
-	url, err := af.replaceTemplatedValue(urlTemplated)
-
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest(method, af.baseUrl+url, bytes.NewBuffer([]byte("")))
-
-	if err != nil {
-		return err
-	}
-
-	token, err := af.replaceTemplatedValue(tokenTemplated)
-
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	resp, err := client.Do(req)
-
-	if err != nil {
-		return err
-	}
-
-	return af.saveLastResponseCredentials(resp)
-}
-
 //TheResponseStatusCodeShouldBe compare last response status code with given in argument.
 func (af *ApiFeature) TheResponseStatusCodeShouldBe(code int) error {
 	if af.lastResponse.StatusCode != code {
@@ -267,6 +198,7 @@ func (af *ApiFeature) IGenerateARandomString(key string) error {
 	return nil
 }
 
+//TheJSONResponseShouldHaveKey checks whether last response body contains given key
 func (af *ApiFeature) TheJSONResponseShouldHaveKey(key string) error {
 	_, err := Resolve(key, af.lastResponseBody)
 	if err != nil {
@@ -280,80 +212,31 @@ func (af *ApiFeature) TheJSONResponseShouldHaveKey(key string) error {
 	return nil
 }
 
-func (af *ApiFeature) ICreateData(data *godog.DocString) error {
-	fakeData := &Data{}
-	err := json.Unmarshal([]byte(data.Content), fakeData)
+//TheJSONResponseShouldHaveKeys checks whether last request body has keys defined in string separated by comma
+func (af *ApiFeature) TheJSONResponseShouldHaveKeys(keys string) error {
+	keysSlice := strings.Split(keys, ",")
 
-	if err != nil {
-		return err
+	errs := make([]error, 0, len(keysSlice))
+	for _, key := range keysSlice {
+		trimmedKey := strings.TrimSpace(key)
+		_, err := Resolve(trimmedKey, af.lastResponseBody)
+
+		if err != nil {
+			errs = append(errs, fmt.Errorf("missing key %s", trimmedKey))
+		}
 	}
 
-	fakeData.Generate(af)
-
-	for _, user := range fakeData.Users {
-		requestBody := struct {
-			Username string `json:"username"`
-			Password string `json:"password"`
-		}{
-			string(user.Username),
-			string(user.Password),
-		}
-		reqBody, err := json.Marshal(requestBody)
-
-		if err != nil {
-			return err
+	if len(errs) > 0 {
+		var errString string
+		for _, err := range errs {
+			errString += fmt.Sprintf("%s\n", err)
 		}
 
-		_, err = af.iSendInternalRequest("POST", "/auth/register", bytes.NewBuffer(reqBody))
-
-		if err != nil {
-			return err
+		if af.isDebug {
+			_ = af.IPrintLastResponse()
 		}
 
-		if af.lastResponse.StatusCode != 201 {
-			return fmt.Errorf("cannot create user %s", reqBody)
-		}
-		var responseContentRegister map[string]interface{}
-		err = json.Unmarshal(af.lastResponseBody, &responseContentRegister)
-
-		if err != nil {
-			return err
-		}
-
-		id, ok := responseContentRegister["_id"]
-
-		if !ok {
-			return fmt.Errorf("missing _id")
-		}
-
-		af.Save(user.Alias+".id", id)
-
-		_, err = af.iSendInternalRequest("POST", "/auth/login", bytes.NewBuffer(reqBody))
-
-		if err != nil {
-			return err
-		}
-
-		if af.lastResponse.StatusCode != 200 {
-			return fmt.Errorf("cannot login user %s, err: %s", reqBody, string(af.lastResponseBody))
-		}
-
-		var responseContent map[string]interface{}
-		err = json.Unmarshal(af.lastResponseBody, &responseContent)
-
-		if err != nil {
-			return err
-		}
-
-		token, ok := responseContent["token"]
-
-		if !ok {
-			return fmt.Errorf("missing token")
-		}
-
-		af.Save(user.Alias+".token", token)
-		af.Save(user.Alias+".username", requestBody.Username)
-		af.Save(user.Alias+".password", requestBody.Password)
+		return errors.New(errString)
 	}
 
 	return nil
@@ -520,37 +403,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 	return nil
 }
 
-//TheJSONResponseShouldHaveKeys checks whether last request body has keys defined in string separated by comma
-func (af *ApiFeature) TheJSONResponseShouldHaveKeys(keys string) error {
-	keysSlice := strings.Split(keys, ",")
-
-	errs := make([]error, 0, len(keysSlice))
-	for _, key := range keysSlice {
-		trimmedKey := strings.TrimSpace(key)
-		_, err := Resolve(trimmedKey, af.lastResponseBody)
-
-		if err != nil {
-			errs = append(errs, fmt.Errorf("missing key %s", trimmedKey))
-		}
-	}
-
-	if len(errs) > 0 {
-		var errString string
-		for _, err := range errs {
-			errString += fmt.Sprintf("%s\n", err)
-		}
-
-		if af.isDebug {
-			_ = af.IPrintLastResponse()
-		}
-
-		return errors.New(errString)
-	}
-
-	return nil
-}
-
-//IWait waits for given timeInterval amout of time
+//IWait waits for given timeInterval amount of time
 func (af *ApiFeature) IWait(timeInterval string) error {
 	duration, err := time.ParseDuration(timeInterval)
 	if err != nil {
