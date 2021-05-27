@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cucumber/godog"
+	"github.com/pawelWritesCode/qjson"
 	"math/rand"
 	"net/http"
 	"reflect"
@@ -26,23 +27,6 @@ type ApiFeature struct {
 	baseUrl          string
 	isDebug          bool
 }
-
-type bodyHeaders struct {
-	Body    interface{}
-	Headers map[string]string
-}
-
-//ErrJson tells that value has invalid JSON format.
-var ErrJson = errors.New("invalid JSON format")
-
-//ErrResponseCode tells that response had invalid response code.
-var ErrResponseCode = errors.New("invalid response code")
-
-//ErrJsonNode tells that there is some kind of error with json node.
-var ErrJsonNode = errors.New("invalid JSON node")
-
-//ErrPreservedData tells indices that there is some kind of error with feature preserved data.
-var ErrPreservedData = errors.New("preserved data error")
 
 //ISendRequestToWithData sends HTTP request with body.
 //Argument method indices HTTP request method for example: "POST", "GET" etc.
@@ -166,7 +150,7 @@ func (af *ApiFeature) TheResponseShouldBeInJSON() error {
 
 //ISaveFromTheLastResponseJSONNodeAs saves from last response json node under given variableName.
 func (af *ApiFeature) ISaveFromTheLastResponseJSONNodeAs(node, variableName string) error {
-	iVal, err := Resolve(node, af.lastResponseBody)
+	iVal, err := qjson.Resolve(node, af.lastResponseBody)
 
 	if err != nil {
 		if af.isDebug {
@@ -200,7 +184,7 @@ func (af *ApiFeature) IGenerateARandomString(key string) error {
 
 //TheJSONResponseShouldHaveKey checks whether last response body contains given key
 func (af *ApiFeature) TheJSONResponseShouldHaveKey(key string) error {
-	_, err := Resolve(key, af.lastResponseBody)
+	_, err := qjson.Resolve(key, af.lastResponseBody)
 	if err != nil {
 		if af.isDebug {
 			_ = af.IPrintLastResponse()
@@ -219,7 +203,7 @@ func (af *ApiFeature) TheJSONResponseShouldHaveKeys(keys string) error {
 	errs := make([]error, 0, len(keysSlice))
 	for _, key := range keysSlice {
 		trimmedKey := strings.TrimSpace(key)
-		_, err := Resolve(trimmedKey, af.lastResponseBody)
+		_, err := qjson.Resolve(trimmedKey, af.lastResponseBody)
 
 		if err != nil {
 			errs = append(errs, fmt.Errorf("missing key %s", trimmedKey))
@@ -265,7 +249,7 @@ func (af *ApiFeature) IPrintLastResponse() error {
 
 //TheJSONNodeShouldBeSliceOfLength checks whether given key is slice and has given length
 func (af *ApiFeature) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error {
-	iValue, err := Resolve(expr, af.lastResponseBody)
+	iValue, err := qjson.Resolve(expr, af.lastResponseBody)
 	if err != nil {
 		if af.isDebug {
 			_ = af.IPrintLastResponse()
@@ -301,7 +285,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 		fmt.Printf("Replaced value: %s\n", nodeValueReplaced)
 	}
 
-	iValue, err := Resolve(expr, af.lastResponseBody)
+	iValue, err := qjson.Resolve(expr, af.lastResponseBody)
 	if err != nil {
 		if af.isDebug {
 			_ = af.IPrintLastResponse()

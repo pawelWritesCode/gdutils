@@ -2,7 +2,6 @@ package gdutils
 
 import (
 	"bytes"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -10,13 +9,19 @@ import (
 	"time"
 )
 
-//charset represents set of string characters of letters and numbers
-const charset = "abcdefghijklmnopqrstuvwxyz" +
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+type bodyHeaders struct {
+	Body    interface{}
+	Headers map[string]string
+}
 
-//charsetLettersOnly represents set of string characters including only letters
-const charsetLettersOnly = "abcdefghijklmnopqrstuvwxyz" +
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const (
+	//charset represents set of string characters of letters and numbers
+	charset = "abcdefghijklmnopqrstuvwxyz" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+	//charsetLettersOnly represents set of string characters including only letters
+	charsetLettersOnly = "abcdefghijklmnopqrstuvwxyz" +
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+)
 
 var seededRand *rand.Rand = rand.New(
 	rand.NewSource(time.Now().UnixNano()))
@@ -67,15 +72,6 @@ func (af *ApiFeature) replaceTemplatedValue(inputString string) (string, error) 
 	return buff.String(), nil
 }
 
-//getJsonSchemaBytes reads json schema from file and returns its bytes.
-//Argument should be relative path starting from documentation/redoc/ folder.
-//file path should NOT finish with .json
-//
-//example: getJsonSchemaBytes(response/city)
-func (af *ApiFeature) getJsonSchemaBytes(name string) ([]byte, error) {
-	return ioutil.ReadFile("../documentation/redoc/" + name + ".json")
-}
-
 //stringWithCharset returns random string of given length.
 //Argument length indices length of output string.
 //Argument charset indices input charset from which output string will be composed
@@ -100,28 +96,4 @@ func (af *ApiFeature) saveLastResponseCredentials(resp *http.Response) error {
 	af.lastResponseBody = body
 
 	return err
-}
-
-func (af *ApiFeature) iSendInternalRequest(method, url string, reader io.Reader) (*http.Response, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest(method, af.baseUrl+url, reader)
-	req.Header.Set("Content-Type", "application/json")
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	af.lastResponse = resp
-	af.lastResponseBody = body
-
-	return resp, err
 }
