@@ -3,6 +3,7 @@ package gdutils
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -394,4 +395,10 @@ func (af *ApiFeature) IWait(timeInterval string) error {
 	}
 	time.Sleep(duration)
 	return nil
+}
+
+//TheResponseShouldBeInXML checks whether last respone body is in XML format
+func (af *ApiFeature) TheResponseShouldBeInXML() error {
+	var data interface{}
+	return xml.Unmarshal(af.lastResponseBody, &data)
 }

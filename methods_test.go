@@ -240,3 +240,53 @@ func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 		})
 	}
 }
+
+func TestApiFeature_TheResponseShouldBeInXML(t *testing.T) {
+	type fields struct {
+		saved            map[string]interface{}
+		lastResponse     *http.Response
+		lastResponseBody []byte
+		isDebug          bool
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{name: "no data", fields: fields{
+			lastResponseBody: nil,
+		}, wantErr: true},
+		{name: "no data", fields: fields{
+			lastResponseBody: []byte(""),
+		}, wantErr: true},
+		{name: "json data", fields: fields{
+			lastResponseBody: []byte(`{"user": "pawel"}`),
+		}, wantErr: true},
+		{name: "raw text data", fields: fields{
+			lastResponseBody: []byte(`abc`),
+		}, wantErr: true},
+		{name: "xml data #1", fields: fields{
+			lastResponseBody: []byte(`<data> xxx </data>`),
+		}, wantErr: false},
+		{name: "xml data #2", fields: fields{
+			lastResponseBody: []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<Data>
+	<Id>1</Id>
+</Data>
+`),
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			af := &ApiFeature{
+				saved:            tt.fields.saved,
+				lastResponse:     tt.fields.lastResponse,
+				lastResponseBody: tt.fields.lastResponseBody,
+				isDebug:          tt.fields.isDebug,
+			}
+			if err := af.TheResponseShouldBeInXML(); (err != nil) != tt.wantErr {
+				t.Errorf("TheResponseShouldBeInXML() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
