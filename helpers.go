@@ -50,6 +50,11 @@ func (af *ApiFeature) GetSaved(key string) (interface{}, error) {
 	return val, nil
 }
 
+//GetLastResponseBody is returns bytes of last response body
+func (af *ApiFeature) GetLastResponseBody() []byte {
+	return af.lastResponseBody
+}
+
 //replaceTemplatedValue accept as input string, within which search for values
 //between two brackets {{ }} preceded with dot, for example: {{.NAME}}
 //and replace them with corresponding preserved values, if they are previously saved.
