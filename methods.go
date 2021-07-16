@@ -5,32 +5,31 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cucumber/godog"
-	"github.com/pawelWritesCode/qjson"
 	"math/rand"
 	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cucumber/godog"
+	"github.com/pawelWritesCode/qjson"
 )
 
 //ApiFeature struct represents data shared across one feature.
 //Field saved holds preserved values,
 //Field lastResponse holds last HTTP response,
 //Field lastResponseBody holds last HTTP's response body
-//Field baseUrl indices url for HTTP requests.
 type ApiFeature struct {
 	saved            map[string]interface{}
 	lastResponse     *http.Response
 	lastResponseBody []byte
-	baseUrl          string
 	isDebug          bool
 }
 
 //ISendRequestToWithData sends HTTP request with body.
 //Argument method indices HTTP request method for example: "POST", "GET" etc.
-//Argument urlTemplate should be relative path starting from baseUrl. May include template value.
+//Argument urlTemplate should be full url path. May include template value.
 //Argument bodyTemplate is string representing json request body from test suite.
 //
 //Response and response body will be saved and available in next steps.
@@ -48,7 +47,7 @@ func (af *ApiFeature) ISendRequestToWithData(method, urlTemplate string, bodyTem
 		return err
 	}
 
-	req, err := http.NewRequest(method, af.baseUrl+url, bytes.NewBuffer([]byte(reqBody)))
+	req, err := http.NewRequest(method, url, bytes.NewBuffer([]byte(reqBody)))
 
 	if err != nil {
 		return err
@@ -66,7 +65,7 @@ func (af *ApiFeature) ISendRequestToWithData(method, urlTemplate string, bodyTem
 
 //ISendRequestToWithBodyAndHeaders sends HTTP request with body and headers.
 //Argument method indices HTTP request method for example: "POST", "GET" etc.
-//Argument urlTemplate should be relative path starting from baseUrl. May include template value.
+//Argument urlTemplate should be full url path. May include template value.
 //Argument bodyTemplate is string representing json request body from test suite.
 //
 //Response and response body will be saved and available in next steps.
@@ -102,7 +101,7 @@ func (af *ApiFeature) ISendRequestToWithBodyAndHeaders(method, urlTemplate strin
 		fmt.Printf("Request headers: %v\n", bodyAndHeaders.Headers)
 	}
 
-	req, err := http.NewRequest(method, af.baseUrl+url, bytes.NewBuffer(reqBody))
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return err
 	}

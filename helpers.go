@@ -31,7 +31,6 @@ func (af *ApiFeature) ResetApiFeature(isDebug bool) {
 	af.saved = map[string]interface{}{}
 	af.lastResponseBody = []byte{}
 	af.lastResponse = &http.Response{}
-	af.baseUrl = ""
 	af.isDebug = isDebug
 }
 
@@ -49,11 +48,6 @@ func (af *ApiFeature) GetSaved(key string) (interface{}, error) {
 	}
 
 	return val, nil
-}
-
-//SetBaseUrl sets base url for requests.
-func (af *ApiFeature) SetBaseUrl(url string) {
-	af.baseUrl = url
 }
 
 //replaceTemplatedValue accept as input string, within which search for values

@@ -146,7 +146,6 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 				saved:            tt.fields.saved,
 				lastResponse:     tt.fields.lastResponse,
 				lastResponseBody: tt.fields.lastResponseBody,
-				baseUrl:          tt.fields.baseUrl,
 			}
 			if err := af.TheJSONNodeShouldBeOfValue(tt.args.expr, tt.args.dataType, tt.args.dataValue); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBeOfValue() error = %v, wantErr %v", err, tt.wantErr)
@@ -234,7 +233,6 @@ func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 				saved:            tt.fields.saved,
 				lastResponse:     tt.fields.lastResponse,
 				lastResponseBody: tt.fields.lastResponseBody,
-				baseUrl:          tt.fields.baseUrl,
 			}
 			if err := af.TheJSONNodeShouldBeSliceOfLength(tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBeSliceOfLength() error = %v, wantErr %v", err, tt.wantErr)
