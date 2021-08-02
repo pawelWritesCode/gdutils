@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
+	"github.com/moul/http2curl"
 	"github.com/pawelWritesCode/qjson"
 )
 
@@ -55,6 +56,12 @@ func (af *ApiFeature) ISendRequestToWithData(method, urlTemplate string, bodyTem
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+
+	if af.isDebug {
+		command, _ := http2curl.GetCurlCommand(req)
+		fmt.Println(command)
+	}
+
 	resp, err := client.Do(req)
 
 	if err != nil {
@@ -82,10 +89,6 @@ func (af *ApiFeature) ISendRequestToWithBodyAndHeaders(method, urlTemplate strin
 		return err
 	}
 
-	if af.isDebug {
-		fmt.Printf("URL: %s\n", url)
-	}
-
 	var bodyAndHeaders bodyHeaders
 	err = json.Unmarshal([]byte(input), &bodyAndHeaders)
 	if err != nil {
@@ -97,11 +100,6 @@ func (af *ApiFeature) ISendRequestToWithBodyAndHeaders(method, urlTemplate strin
 		return err
 	}
 
-	if af.isDebug {
-		fmt.Printf("Request body:\n\n %s\n\n", string(reqBody))
-		fmt.Printf("Request headers: %v\n", bodyAndHeaders.Headers)
-	}
-
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return err
@@ -109,6 +107,11 @@ func (af *ApiFeature) ISendRequestToWithBodyAndHeaders(method, urlTemplate strin
 
 	for headerName, headerValue := range bodyAndHeaders.Headers {
 		req.Header.Set(headerName, headerValue)
+	}
+
+	if af.isDebug {
+		command, _ := http2curl.GetCurlCommand(req)
+		fmt.Println(command)
 	}
 
 	resp, err := client.Do(req)
