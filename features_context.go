@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"reflect"
@@ -27,48 +28,6 @@ type ApiFeature struct {
 	lastResponse     *http.Response
 	lastResponseBody []byte
 	isDebug          bool
-}
-
-//ISendRequestToWithData sends HTTP request with body.
-//Argument method indices HTTP request method for example: "POST", "GET" etc.
-//Argument urlTemplate should be full url path. May include template value.
-//Argument bodyTemplate is string representing json request body from test suite.
-//
-//Response and response body will be saved and available in next steps.
-func (af *ApiFeature) ISendRequestToWithData(method, urlTemplate string, bodyTemplate *godog.DocString) error {
-	client := &http.Client{}
-	reqBody, err := af.replaceTemplatedValue(bodyTemplate.Content)
-
-	if err != nil {
-		return err
-	}
-
-	url, err := af.replaceTemplatedValue(urlTemplate)
-
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest(method, url, bytes.NewBuffer([]byte(reqBody)))
-
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	if af.isDebug {
-		command, _ := http2curl.GetCurlCommand(req)
-		fmt.Println(command)
-	}
-
-	resp, err := client.Do(req)
-
-	if err != nil {
-		return err
-	}
-
-	return af.saveLastResponseCredentials(resp)
 }
 
 //ISendRequestToWithBodyAndHeaders sends HTTP request with body and headers.
@@ -122,7 +81,7 @@ func (af *ApiFeature) ISendRequestToWithBodyAndHeaders(method, urlTemplate strin
 	err = af.saveLastResponseCredentials(resp)
 	if af.isDebug {
 		fmt.Printf("Response body:\n\n")
-		_ = af.IPrintLastResponse()
+		_ = af.IPrintLastResponseBody()
 		fmt.Printf("\n")
 	}
 
@@ -157,7 +116,7 @@ func (af *ApiFeature) ISaveFromTheLastResponseJSONNodeAs(node, variableName stri
 
 	if err != nil {
 		if af.isDebug {
-			_ = af.IPrintLastResponse()
+			_ = af.IPrintLastResponseBody()
 		}
 
 		return err
@@ -169,11 +128,49 @@ func (af *ApiFeature) ISaveFromTheLastResponseJSONNodeAs(node, variableName stri
 }
 
 //IGenerateARandomInt generates random integer and preserve it under given name.
+//internally it picks random integer from <1, 200000)
 func (af *ApiFeature) IGenerateARandomInt(name string) error {
-	rand.Seed(time.Now().UnixNano())
-	min := 1
-	max := 200000
-	af.Save(name, rand.Intn(max-min+1)+min)
+	af.Save(name, randomInt(1, 200000))
+
+	return nil
+}
+
+//IGenerateARandomIntInTheRangeToAndSaveItAs generates random integer from provided range and preserve it under given name
+func (af *ApiFeature) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, name string) error {
+	af.Save(name, randomInt(from, to))
+
+	return nil
+}
+
+//IGenerateARandomFloat generates random float and preserve it under given name.
+//internally it picks random float from <1, 200000) and round it to 2 decimal points
+func (af *ApiFeature) IGenerateARandomFloat(name string) error {
+	randInt := randomInt(1, 200000)
+	float01 := rand.Float64()
+
+	strFloat := fmt.Sprintf("%.2f", float01*float64(randInt))
+	floatVal, err := strconv.ParseFloat(strFloat, 64)
+	if err != nil {
+		return err
+	}
+
+	af.Save(name, floatVal)
+
+	return nil
+}
+
+//IGenerateARandomFloatInTheRangeToAndSaveItAs generates random float from provided range and preserve it under given name
+func (af *ApiFeature) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, name string) error {
+	randInt := randomInt(from, to)
+	float01 := rand.Float64()
+
+	strFloat := fmt.Sprintf("%.2f", float01*float64(randInt))
+	floatVal, err := strconv.ParseFloat(strFloat, 64)
+	if err != nil {
+		return err
+	}
+
+	af.Save(name, floatVal)
 
 	return nil
 }
@@ -190,7 +187,7 @@ func (af *ApiFeature) TheJSONResponseShouldHaveKey(key string) error {
 	_, err := qjson.Resolve(key, af.lastResponseBody)
 	if err != nil {
 		if af.isDebug {
-			_ = af.IPrintLastResponse()
+			_ = af.IPrintLastResponseBody()
 		}
 
 		return fmt.Errorf("%v, missing key '%s'", ErrJsonNode, key)
@@ -220,7 +217,7 @@ func (af *ApiFeature) TheJSONResponseShouldHaveKeys(keys string) error {
 		}
 
 		if af.isDebug {
-			_ = af.IPrintLastResponse()
+			_ = af.IPrintLastResponseBody()
 		}
 
 		return errors.New(errString)
@@ -229,8 +226,8 @@ func (af *ApiFeature) TheJSONResponseShouldHaveKeys(keys string) error {
 	return nil
 }
 
-//IPrintLastResponse prints last response from request
-func (af *ApiFeature) IPrintLastResponse() error {
+//IPrintLastResponseBody prints last response from request
+func (af *ApiFeature) IPrintLastResponseBody() error {
 	var tmp map[string]interface{}
 	err := json.Unmarshal(af.lastResponseBody, &tmp)
 
@@ -255,7 +252,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeSliceOfLength(expr string, length int) 
 	iValue, err := qjson.Resolve(expr, af.lastResponseBody)
 	if err != nil {
 		if af.isDebug {
-			_ = af.IPrintLastResponse()
+			_ = af.IPrintLastResponseBody()
 		}
 
 		return err
@@ -270,7 +267,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeSliceOfLength(expr string, length int) 
 		return nil
 	}
 	if af.isDebug {
-		_ = af.IPrintLastResponse()
+		_ = af.IPrintLastResponseBody()
 	}
 
 	return fmt.Errorf("%s is not slice", expr)
@@ -291,7 +288,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 	iValue, err := qjson.Resolve(expr, af.lastResponseBody)
 	if err != nil {
 		if af.isDebug {
-			_ = af.IPrintLastResponse()
+			_ = af.IPrintLastResponseBody()
 		}
 
 		return err
@@ -302,14 +299,14 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 		strVal, ok := iValue.(string)
 		if !ok {
 			if af.isDebug {
-				_ = af.IPrintLastResponse()
+				_ = af.IPrintLastResponseBody()
 			}
 			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
 
 		if strVal != nodeValueReplaced {
 			if af.isDebug {
-				_ = af.IPrintLastResponse()
+				_ = af.IPrintLastResponseBody()
 			}
 			return fmt.Errorf("node %s string value: %s is not equal to expected string value: %s", expr, strVal, nodeValueReplaced)
 		}
@@ -317,7 +314,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 		floatVal, ok := iValue.(float64)
 		if !ok {
 			if af.isDebug {
-				_ = af.IPrintLastResponse()
+				_ = af.IPrintLastResponseBody()
 			}
 			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
@@ -328,14 +325,14 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 
 		if err != nil {
 			if af.isDebug {
-				_ = af.IPrintLastResponse()
+				_ = af.IPrintLastResponseBody()
 			}
 			return fmt.Errorf("replaced node %s value %s could not be converted to int", expr, nodeValueReplaced)
 		}
 
 		if intVal != intNodeValue {
 			if af.isDebug {
-				_ = af.IPrintLastResponse()
+				_ = af.IPrintLastResponseBody()
 			}
 			return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intVal, intNodeValue)
 		}
@@ -343,7 +340,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 		floatVal, ok := iValue.(float64)
 		if !ok {
 			if af.isDebug {
-				_ = af.IPrintLastResponse()
+				_ = af.IPrintLastResponseBody()
 			}
 			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
@@ -351,14 +348,14 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 		floatNodeValue, err := strconv.ParseFloat(nodeValueReplaced, 64)
 		if err != nil {
 			if af.isDebug {
-				_ = af.IPrintLastResponse()
+				_ = af.IPrintLastResponseBody()
 			}
 			return fmt.Errorf("replaced node %s value %s could not be converted to float64", expr, nodeValueReplaced)
 		}
 
 		if floatVal != floatNodeValue {
 			if af.isDebug {
-				_ = af.IPrintLastResponse()
+				_ = af.IPrintLastResponseBody()
 			}
 			return fmt.Errorf("node %s float value %f is not equal to expected float value %f", expr, floatVal, floatNodeValue)
 		}
@@ -366,7 +363,7 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 		boolVal, ok := iValue.(bool)
 		if !ok {
 			if af.isDebug {
-				_ = af.IPrintLastResponse()
+				_ = af.IPrintLastResponseBody()
 			}
 			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
@@ -374,14 +371,14 @@ func (af *ApiFeature) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue strin
 		boolNodeValue, err := strconv.ParseBool(nodeValueReplaced)
 		if err != nil {
 			if af.isDebug {
-				_ = af.IPrintLastResponse()
+				_ = af.IPrintLastResponseBody()
 			}
 			return fmt.Errorf("replaced node %s value %s could not be converted to bool", expr, nodeValueReplaced)
 		}
 
 		if boolVal != boolNodeValue {
 			if af.isDebug {
-				_ = af.IPrintLastResponse()
+				_ = af.IPrintLastResponseBody()
 			}
 			return fmt.Errorf("node %s bool value %t is not equal to expected bool value %t", expr, boolVal, boolNodeValue)
 		}
@@ -404,4 +401,96 @@ func (af *ApiFeature) IWait(timeInterval string) error {
 func (af *ApiFeature) TheResponseShouldBeInXML() error {
 	var data interface{}
 	return xml.Unmarshal(af.lastResponseBody, &data)
+}
+
+//TheJSONNodeShouldNotBe checks whether JSON node from last response body is not of provided type
+//goType may be one of: nil, string, int, float, bool, map, slice
+//node should be expression acceptable by qjson package against JSON node from last response body
+func (af *ApiFeature) TheJSONNodeShouldNotBe(node string, goType string) error {
+	iNodeVal, err := qjson.Resolve(node, af.GetLastResponseBody())
+	if err != nil {
+		return err
+	}
+
+	vNodeVal := reflect.ValueOf(iNodeVal)
+	errInvalidType := fmt.Errorf("%s value is \"%s\", but expected not to be", node, goType)
+	switch goType {
+	case "nil":
+		if !vNodeVal.IsValid() || valueIsNil(vNodeVal) {
+			return errInvalidType
+		}
+
+		return nil
+	case "string":
+		if vNodeVal.Kind() == reflect.String {
+			return errInvalidType
+		}
+
+		return nil
+	case "int":
+		if vNodeVal.Kind() == reflect.Int64 || vNodeVal.Kind() == reflect.Int32 || vNodeVal.Kind() == reflect.Int16 ||
+			vNodeVal.Kind() == reflect.Int8 || vNodeVal.Kind() == reflect.Int || vNodeVal.Kind() == reflect.Uint ||
+			vNodeVal.Kind() == reflect.Uint8 || vNodeVal.Kind() == reflect.Uint16 || vNodeVal.Kind() == reflect.Uint32 ||
+			vNodeVal.Kind() == reflect.Uint64 {
+			return errInvalidType
+		}
+
+		if vNodeVal.Kind() == reflect.Float64 {
+			_, frac := math.Modf(vNodeVal.Float())
+			if frac == 0 {
+				return errInvalidType
+			}
+		}
+
+		return nil
+	case "float":
+		if vNodeVal.Kind() == reflect.Float64 || vNodeVal.Kind() == reflect.Float32 {
+			_, frac := math.Modf(vNodeVal.Float())
+			if frac == 0 {
+				return nil
+			}
+
+			return errInvalidType
+		}
+
+		return nil
+	case "bool":
+		if vNodeVal.Kind() == reflect.Bool {
+			return errInvalidType
+		}
+
+		return nil
+	case "map":
+		if vNodeVal.Kind() == reflect.Map {
+			return errInvalidType
+		}
+
+		return nil
+	case "slice":
+		if vNodeVal.Kind() == reflect.Slice {
+			return errInvalidType
+		}
+
+		return nil
+	default:
+		return fmt.Errorf("%s is unknown type for this step", goType)
+	}
+}
+
+//TheJSONNodeShouldBe checks whether JSON node from last response body is of provided type
+//goType may be one of: nil, string, int, float, bool, map, slice
+//node should be expression acceptable by qjson package against JSON node from last response body
+func (af *ApiFeature) TheJSONNodeShouldBe(node string, goType string) error {
+	errInvalidType := fmt.Errorf("%s value is not \"%s\", but expected to be", node, goType)
+
+	switch goType {
+	case "nil", "string", "int", "float", "bool", "map", "slice":
+		if err := af.TheJSONNodeShouldNotBe(node, goType); err == nil {
+			return errInvalidType
+		}
+
+		return nil
+	default:
+		return fmt.Errorf("%s is unknown type for this step", goType)
+	}
 }

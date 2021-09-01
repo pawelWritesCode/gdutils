@@ -2,9 +2,11 @@ package gdutils
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"reflect"
 	"text/template"
 	"time"
 )
@@ -95,4 +97,26 @@ func (af *ApiFeature) saveLastResponseCredentials(resp *http.Response) error {
 	af.lastResponseBody = body
 
 	return err
+}
+
+//randomInt returns random int from provided range
+//"from" should be less or equal than "to" otherwise func will panic
+func randomInt(from, to int) int {
+	if to < from {
+		panic(fmt.Sprintf("could not generate random int because %d is less than %d", from, to))
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(to-from+1) + from
+}
+
+//valueIsNil checks whether provided Value is nil
+func valueIsNil(v reflect.Value) bool {
+	nodeKind := v.Kind()
+	if nodeKind == reflect.Ptr || nodeKind == reflect.Map || nodeKind == reflect.Array ||
+		nodeKind == reflect.Chan || nodeKind == reflect.Slice {
+		return v.IsNil()
+	}
+
+	return false
 }
