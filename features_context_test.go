@@ -142,10 +142,9 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &ApiFeature{
-				saved:            tt.fields.saved,
-				lastResponse:     tt.fields.lastResponse,
-				lastResponseBody: tt.fields.lastResponseBody,
+			af := &Scenario{
+				cache:        tt.fields.saved,
+				lastResponse: tt.fields.lastResponse,
 			}
 			if err := af.TheJSONNodeShouldBeOfValue(tt.args.expr, tt.args.dataType, tt.args.dataValue); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBeOfValue() error = %v, wantErr %v", err, tt.wantErr)
@@ -229,10 +228,9 @@ func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &ApiFeature{
-				saved:            tt.fields.saved,
-				lastResponse:     tt.fields.lastResponse,
-				lastResponseBody: tt.fields.lastResponseBody,
+			af := &Scenario{
+				cache:        tt.fields.saved,
+				lastResponse: tt.fields.lastResponse,
 			}
 			if err := af.TheJSONNodeShouldBeSliceOfLength(tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBeSliceOfLength() error = %v, wantErr %v", err, tt.wantErr)
@@ -278,11 +276,10 @@ func TestApiFeature_TheResponseShouldBeInXML(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &ApiFeature{
-				saved:            tt.fields.saved,
-				lastResponse:     tt.fields.lastResponse,
-				lastResponseBody: tt.fields.lastResponseBody,
-				isDebug:          tt.fields.isDebug,
+			af := &Scenario{
+				cache:        tt.fields.saved,
+				lastResponse: tt.fields.lastResponse,
+				isDebug:      tt.fields.isDebug,
 			}
 			if err := af.TheResponseShouldBeInXML(); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseShouldBeInXML() error = %v, wantErr %v", err, tt.wantErr)
@@ -441,11 +438,10 @@ func TestApiFeature_TheJSONNodeShouldNotBe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &ApiFeature{
-				saved:            tt.fields.saved,
-				lastResponse:     tt.fields.lastResponse,
-				lastResponseBody: tt.fields.lastResponseBody,
-				isDebug:          tt.fields.isDebug,
+			af := &Scenario{
+				cache:        tt.fields.saved,
+				lastResponse: tt.fields.lastResponse,
+				isDebug:      tt.fields.isDebug,
 			}
 			if err := af.TheJSONNodeShouldNotBe(tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldNotBe() error = %v, wantErr %v", err, tt.wantErr)
@@ -604,11 +600,10 @@ func TestApiFeature_TheJSONNodeShouldBe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &ApiFeature{
-				saved:            tt.fields.saved,
-				lastResponse:     tt.fields.lastResponse,
-				lastResponseBody: tt.fields.lastResponseBody,
-				isDebug:          tt.fields.isDebug,
+			af := &Scenario{
+				cache:        tt.fields.saved,
+				lastResponse: tt.fields.lastResponse,
+				isDebug:      tt.fields.isDebug,
 			}
 			if err := af.TheJSONNodeShouldBe(tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBe() error = %v, wantErr %v", err, tt.wantErr)
