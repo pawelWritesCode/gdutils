@@ -1,16 +1,17 @@
 package gdutils
 
 import (
+	"bytes"
+	"io/ioutil"
 	"net/http"
 	"testing"
 )
 
 func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 	type fields struct {
-		saved            map[string]interface{}
-		lastResponse     *http.Response
-		lastResponseBody []byte
-		baseUrl          string
+		saved        map[string]interface{}
+		lastResponse *http.Response
+		baseUrl      string
 	}
 	type args struct {
 		expr      string
@@ -24,22 +25,20 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "empty json", fields: fields{
-			saved:            nil,
-			lastResponse:     nil,
-			lastResponseBody: nil,
-			baseUrl:          "",
+			saved:        nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(``))},
+			baseUrl:      "",
 		}, args: args{
 			expr:      "name",
 			dataType:  "string",
 			dataValue: "ivo",
 		}, wantErr: true},
 		{name: "json with first level field with string data type", fields: fields{
-			saved:        nil,
-			lastResponse: nil,
-			lastResponseBody: []byte(`
+			saved: nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"name": "ivo"
-}`),
+}`))},
 			baseUrl: "",
 		}, args: args{
 			expr:      "name",
@@ -47,12 +46,11 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 			dataValue: "ivo",
 		}, wantErr: false},
 		{name: "json with first level field with int data type", fields: fields{
-			saved:        nil,
-			lastResponse: nil,
-			lastResponseBody: []byte(`
+			saved: nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"number": 10
-}`),
+}`))},
 			baseUrl: "",
 		}, args: args{
 			expr:      "number",
@@ -60,12 +58,11 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 			dataValue: "10",
 		}, wantErr: false},
 		{name: "json with first level field with float64 data type", fields: fields{
-			saved:        nil,
-			lastResponse: nil,
-			lastResponseBody: []byte(`
+			saved: nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"number": 10.1
-}`),
+}`))},
 			baseUrl: "",
 		}, args: args{
 			expr:      "number",
@@ -73,12 +70,11 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 			dataValue: "10.1",
 		}, wantErr: false},
 		{name: "json with first level field with bool data type", fields: fields{
-			saved:        nil,
-			lastResponse: nil,
-			lastResponseBody: []byte(`
+			saved: nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"is": true
-}`),
+}`))},
 			baseUrl: "",
 		}, args: args{
 			expr:      "is",
@@ -86,15 +82,14 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 			dataValue: "true",
 		}, wantErr: false},
 		{name: "json with second level field with bool data type", fields: fields{
-			saved:        nil,
-			lastResponse: nil,
-			lastResponseBody: []byte(`
+			saved: nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"data": {
 		"name": "Is empty",
 		"value": true
 	}
-}`),
+}`))},
 			baseUrl: "",
 		}, args: args{
 			expr:      "data.value",
@@ -102,9 +97,8 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 			dataValue: "true",
 		}, wantErr: false},
 		{name: "json with second level field with bool data type", fields: fields{
-			saved:        nil,
-			lastResponse: nil,
-			lastResponseBody: []byte(`
+			saved: nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"data":	[
 			{
@@ -116,7 +110,7 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 				"value": false
 			}
 		]
-}`),
+}`))},
 			baseUrl: "",
 		}, args: args{
 			expr:      "data[1].value",
@@ -124,15 +118,14 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 			dataValue: "false",
 		}, wantErr: false},
 		{name: "json with second level field with bool data type", fields: fields{
-			saved:        nil,
-			lastResponse: nil,
-			lastResponseBody: []byte(`
+			saved: nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"data":	[
 			true,
 			false
 		]
-}`),
+}`))},
 			baseUrl: "",
 		}, args: args{
 			expr:      "data[1]",
@@ -155,10 +148,9 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 
 func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 	type fields struct {
-		saved            map[string]interface{}
-		lastResponse     *http.Response
-		lastResponseBody []byte
-		baseUrl          string
+		saved        map[string]interface{}
+		lastResponse *http.Response
+		baseUrl      string
 	}
 	type args struct {
 		expr   string
@@ -171,55 +163,50 @@ func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "no resp body", fields: fields{
-			saved:            nil,
-			lastResponse:     nil,
-			lastResponseBody: nil,
-			baseUrl:          "",
+			saved:        nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(""))},
+			baseUrl:      "",
 		}, args: args{
 			expr:   "anykey",
 			length: 0,
 		}, wantErr: true},
 		{name: "key is not slice", fields: fields{
-			saved:        nil,
-			lastResponse: nil,
-			lastResponseBody: []byte(`{
+			saved: nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"name": "xyz"	
-}`),
+}`))},
 			baseUrl: "",
 		}, args: args{
 			expr:   "name",
 			length: 0,
 		}, wantErr: true},
 		{name: "key is not slice #2", fields: fields{
-			saved:        nil,
-			lastResponse: nil,
-			lastResponseBody: []byte(`{
+			saved: nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"name": {
 		"details": "xyz"
 	}
-}`),
+}`))},
 			baseUrl: "",
 		}, args: args{
 			expr:   "name",
 			length: 0,
 		}, wantErr: true},
 		{name: "key is slice but length does not match", fields: fields{
-			saved:        nil,
-			lastResponse: nil,
-			lastResponseBody: []byte(`{
+			saved: nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"names": ["a", "b"]
-}`),
+}`))},
 			baseUrl: "",
 		}, args: args{
 			expr:   "name",
 			length: 0,
 		}, wantErr: true},
 		{name: "key is slice and length match", fields: fields{
-			saved:        nil,
-			lastResponse: nil,
-			lastResponseBody: []byte(`{
+			saved: nil,
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"names": ["a", "b"]
-}`),
+}`))},
 			baseUrl: "",
 		}, args: args{
 			expr:   "names",
@@ -239,61 +226,11 @@ func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 	}
 }
 
-func TestApiFeature_TheResponseShouldBeInXML(t *testing.T) {
-	type fields struct {
-		saved            map[string]interface{}
-		lastResponse     *http.Response
-		lastResponseBody []byte
-		isDebug          bool
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
-	}{
-		{name: "no data", fields: fields{
-			lastResponseBody: nil,
-		}, wantErr: true},
-		{name: "no data", fields: fields{
-			lastResponseBody: []byte(""),
-		}, wantErr: true},
-		{name: "json data", fields: fields{
-			lastResponseBody: []byte(`{"user": "pawel"}`),
-		}, wantErr: true},
-		{name: "raw text data", fields: fields{
-			lastResponseBody: []byte(`abc`),
-		}, wantErr: true},
-		{name: "xml data #1", fields: fields{
-			lastResponseBody: []byte(`<data> xxx </data>`),
-		}, wantErr: false},
-		{name: "xml data #2", fields: fields{
-			lastResponseBody: []byte(`<?xml version="1.0" encoding="UTF-8"?>
-<Data>
-	<Id>1</Id>
-</Data>
-`),
-		}, wantErr: false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			af := &Scenario{
-				cache:        tt.fields.saved,
-				lastResponse: tt.fields.lastResponse,
-				isDebug:      tt.fields.isDebug,
-			}
-			if err := af.TheResponseShouldBeInXML(); (err != nil) != tt.wantErr {
-				t.Errorf("TheResponseShouldBeInXML() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestApiFeature_TheJSONNodeShouldNotBe(t *testing.T) {
 	type fields struct {
-		saved            map[string]interface{}
-		lastResponse     *http.Response
-		lastResponseBody []byte
-		isDebug          bool
+		saved        map[string]interface{}
+		lastResponse *http.Response
+		isDebug      bool
 	}
 	type args struct {
 		node   string
@@ -306,134 +243,134 @@ func TestApiFeature_TheJSONNodeShouldNotBe(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "is not nil value", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "abc"
-}`),
+}`))},
 		}, args: args{node: "user", goType: "nil"}, wantErr: false},
 		{name: "is nil value", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": nil
-}`),
+}`))},
 		}, args: args{node: "user", goType: "nil"}, wantErr: true},
 		{name: "is null value", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "nil"}, wantErr: true},
 		{name: "is not string #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "string"}, wantErr: false},
 		{name: "is not string #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": 2
-}`),
+}`))},
 		}, args: args{node: "user", goType: "string"}, wantErr: false},
 		{name: "is string", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "abc"
-}`),
+}`))},
 		}, args: args{node: "user", goType: "string"}, wantErr: true},
 		{name: "is not int #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "int"}, wantErr: false},
 		{name: "is not int #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": 2.1
-}`),
+}`))},
 		}, args: args{node: "user", goType: "int"}, wantErr: false},
 		{name: "is int #1 <- special case", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": 2.0
-}`),
+}`))},
 		}, args: args{node: "user", goType: "int"}, wantErr: true},
 		{name: "is int #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": -1
-}`),
+}`))},
 		}, args: args{node: "user", goType: "int"}, wantErr: true},
 		{name: "is float", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": -1.0
-}`),
+}`))},
 		}, args: args{node: "user", goType: "int"}, wantErr: true},
 		{name: "is not float #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": -1
-}`),
+}`))},
 		}, args: args{node: "user", goType: "float"}, wantErr: false},
 		{name: "is not float #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "float"}, wantErr: false},
 		{name: "is not float #3", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": true
-}`),
+}`))},
 		}, args: args{node: "user", goType: "float"}, wantErr: false},
 		{name: "is bool", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": true
-}`),
+}`))},
 		}, args: args{node: "user", goType: "bool"}, wantErr: true},
 		{name: "is not bool #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "bool"}, wantErr: false},
 		{name: "is not bool #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "false"
-}`),
+}`))},
 		}, args: args{node: "user", goType: "bool"}, wantErr: false},
 		{name: "is map #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {}
-}`),
+}`))},
 		}, args: args{node: "user", goType: "map"}, wantErr: true},
 		{name: "is map #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {"name": "pawel"}
-}`),
+}`))},
 		}, args: args{node: "user", goType: "map"}, wantErr: true},
 		{name: "is not map #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "map"}, wantErr: false},
 		{name: "is not map #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "pawel"
-}`),
+}`))},
 		}, args: args{node: "user", goType: "map"}, wantErr: false},
 		{name: "is slice #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": []
-}`),
+}`))},
 		}, args: args{node: "user", goType: "slice"}, wantErr: true},
 		{name: "is slice #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": ["1"]
-}`),
+}`))},
 		}, args: args{node: "user", goType: "slice"}, wantErr: true},
 		{name: "is not slice #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "xxx"
-}`),
+}`))},
 		}, args: args{node: "user", goType: "slice"}, wantErr: false},
 		{name: "is not slice #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {}
-}`),
+}`))},
 		}, args: args{node: "user", goType: "slice"}, wantErr: false},
 		{name: "unknown type", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {}
-}`),
+}`))},
 		}, args: args{node: "user", goType: "xxx"}, wantErr: true},
 	}
 	for _, tt := range tests {
@@ -452,10 +389,9 @@ func TestApiFeature_TheJSONNodeShouldNotBe(t *testing.T) {
 
 func TestApiFeature_TheJSONNodeShouldBe(t *testing.T) {
 	type fields struct {
-		saved            map[string]interface{}
-		lastResponse     *http.Response
-		lastResponseBody []byte
-		isDebug          bool
+		saved        map[string]interface{}
+		lastResponse *http.Response
+		isDebug      bool
 	}
 	type args struct {
 		node   string
@@ -468,134 +404,134 @@ func TestApiFeature_TheJSONNodeShouldBe(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "is not nil value", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "abc"
-}`),
+}`))},
 		}, args: args{node: "user", goType: "nil"}, wantErr: true},
 		{name: "is nil value", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": nil
-}`),
+}`))},
 		}, args: args{node: "user", goType: "nil"}, wantErr: false},
 		{name: "is null value", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "nil"}, wantErr: false},
 		{name: "is not string #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "string"}, wantErr: true},
 		{name: "is not string #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": 2
-}`),
+}`))},
 		}, args: args{node: "user", goType: "string"}, wantErr: true},
 		{name: "is string", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "abc"
-}`),
+}`))},
 		}, args: args{node: "user", goType: "string"}, wantErr: false},
 		{name: "is not int #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "int"}, wantErr: true},
 		{name: "is not int #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": 2.1
-}`),
+}`))},
 		}, args: args{node: "user", goType: "int"}, wantErr: true},
 		{name: "is int #1 <- special case", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": 2.0
-}`),
+}`))},
 		}, args: args{node: "user", goType: "int"}, wantErr: false},
 		{name: "is int #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": -1
-}`),
+}`))},
 		}, args: args{node: "user", goType: "int"}, wantErr: false},
 		{name: "is float", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": -1.0
-}`),
+}`))},
 		}, args: args{node: "user", goType: "int"}, wantErr: false},
 		{name: "is not float #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": -1
-}`),
+}`))},
 		}, args: args{node: "user", goType: "float"}, wantErr: true},
 		{name: "is not float #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "float"}, wantErr: true},
 		{name: "is not float #3", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": true
-}`),
+}`))},
 		}, args: args{node: "user", goType: "float"}, wantErr: true},
 		{name: "is bool", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": true
-}`),
+}`))},
 		}, args: args{node: "user", goType: "bool"}, wantErr: false},
 		{name: "is not bool #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "bool"}, wantErr: true},
 		{name: "is not bool #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "false"
-}`),
+}`))},
 		}, args: args{node: "user", goType: "bool"}, wantErr: true},
 		{name: "is map #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {}
-}`),
+}`))},
 		}, args: args{node: "user", goType: "map"}, wantErr: false},
 		{name: "is map #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {"name": "pawel"}
-}`),
+}`))},
 		}, args: args{node: "user", goType: "map"}, wantErr: false},
 		{name: "is not map #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": null
-}`),
+}`))},
 		}, args: args{node: "user", goType: "map"}, wantErr: true},
 		{name: "is not map #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "pawel"
-}`),
+}`))},
 		}, args: args{node: "user", goType: "map"}, wantErr: true},
 		{name: "is slice #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": []
-}`),
+}`))},
 		}, args: args{node: "user", goType: "slice"}, wantErr: false},
 		{name: "is slice #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": ["1"]
-}`),
+}`))},
 		}, args: args{node: "user", goType: "slice"}, wantErr: false},
 		{name: "is not slice #1", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "xxx"
-}`),
+}`))},
 		}, args: args{node: "user", goType: "slice"}, wantErr: true},
 		{name: "is not slice #2", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {}
-}`),
+}`))},
 		}, args: args{node: "user", goType: "slice"}, wantErr: true},
 		{name: "unknown type", fields: fields{
-			lastResponseBody: []byte(`{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {}
-}`),
+}`))},
 		}, args: args{node: "user", goType: "xxx"}, wantErr: true},
 	}
 	for _, tt := range tests {
@@ -609,5 +545,141 @@ func TestApiFeature_TheJSONNodeShouldBe(t *testing.T) {
 				t.Errorf("TheJSONNodeShouldBe() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestScenario_TheResponseStatusCodeShouldBe(t *testing.T) {
+	type fields struct {
+		cache        map[string]interface{}
+		lastResponse *http.Response
+		isDebug      bool
+	}
+	type args struct {
+		code uint16
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "invalid code #1, code less than 200", fields: fields{lastResponse: &http.Response{StatusCode: 200}}, args: args{code: 1}, wantErr: true},
+		{name: "invalid code #2, code over 599", fields: fields{lastResponse: &http.Response{StatusCode: 200}}, args: args{code: 600}, wantErr: true},
+		{name: "invalid code #3", fields: fields{lastResponse: &http.Response{StatusCode: 200}}, args: args{code: 400}, wantErr: true},
+		{name: "valid code #1", fields: fields{lastResponse: &http.Response{StatusCode: 200}}, args: args{code: 200}, wantErr: false},
+		{name: "valid code #1", fields: fields{lastResponse: &http.Response{StatusCode: 400}}, args: args{code: 400}, wantErr: false},
+		{name: "valid code #1", fields: fields{lastResponse: &http.Response{StatusCode: 511}}, args: args{code: 511}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Scenario{
+				cache:        tt.fields.cache,
+				lastResponse: tt.fields.lastResponse,
+				isDebug:      tt.fields.isDebug,
+			}
+			if err := s.TheResponseStatusCodeShouldBe(tt.args.code); (err != nil) != tt.wantErr {
+				t.Errorf("TheResponseStatusCodeShouldBe() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
+	type fields struct {
+		cache        map[string]interface{}
+		lastResponse *http.Response
+		isDebug      bool
+	}
+	type args struct {
+		node         string
+		variableName string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "invalid node #1", fields: fields{
+			cache: map[string]interface{}{},
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
+	"user": "abc"
+}`))},
+		}, args: args{node: "token", variableName: "TOKEN"}, wantErr: true},
+		{name: "invalid node #2", fields: fields{
+			cache: map[string]interface{}{},
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
+	"user": {
+		"name": "a",
+		"last_name": "b"
+	}
+}`))},
+		}, args: args{node: "last_name", variableName: "LAST_NAME"}, wantErr: true},
+		{name: "valid node #1", fields: fields{
+			cache: map[string]interface{}{},
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
+	"user": {
+		"name": "a",
+		"last_name": "b"
+	}
+}`))},
+		}, args: args{node: "user.last_name", variableName: "LAST_NAME"}, wantErr: false},
+		{name: "valid node #2", fields: fields{
+			cache: map[string]interface{}{},
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
+	"user": {
+		"name": "a",
+		"last_name": "b"
+	}
+}`))},
+		}, args: args{node: "user", variableName: "USER"}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Scenario{
+				cache:        tt.fields.cache,
+				lastResponse: tt.fields.lastResponse,
+				isDebug:      tt.fields.isDebug,
+			}
+
+			err := s.ISaveFromTheLastResponseJSONNodeAs(tt.args.node, tt.args.variableName)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ISaveFromTheLastResponseJSONNodeAs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if err == nil {
+				if _, err := s.GetSaved(tt.args.variableName); err != nil {
+					t.Errorf("%s was not saved to cache", tt.args.node)
+				}
+			}
+		})
+	}
+}
+
+func TestScenario_IGenerateARandomIntInTheRangeToAndSaveItAs(t *testing.T) {
+	s := &Scenario{
+		cache:        map[string]interface{}{},
+		lastResponse: nil,
+		isDebug:      false,
+	}
+	for i := 0; i < 100; i++ {
+		if err := s.IGenerateARandomIntInTheRangeToAndSaveItAs(0, 100000, "RANDOM_INT"); (err != nil) != false {
+			t.Errorf("IGenerateARandomIntInTheRangeToAndSaveItAs() error = %v, wantErr %v", err, false)
+		}
+
+		randomInteger, err := s.GetSaved("RANDOM_INT")
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		randomInt := randomInteger.(int)
+		if randomInt < 0 {
+			t.Errorf("randomInt should not be less than 0")
+		}
+
+		if randomInt > 100000 {
+			t.Errorf("randomInt should not be greater than 100000")
+		}
 	}
 }

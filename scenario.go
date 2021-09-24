@@ -42,9 +42,13 @@ func (s *Scenario) GetSaved(key string) (interface{}, error) {
 //GetLastResponseBody returns last HTTP response body as slice of bytes
 //method is safe for multiple use
 func (s *Scenario) GetLastResponseBody() []byte {
-	bodyBytes, _ := ioutil.ReadAll(s.lastResponse.Body)
-	defer s.lastResponse.Body.Close()
-	s.lastResponse.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	var bodyBytes []byte
+
+	if s.lastResponse != nil {
+		bodyBytes, _ = ioutil.ReadAll(s.lastResponse.Body)
+		defer s.lastResponse.Body.Close()
+		s.lastResponse.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	}
 
 	return bodyBytes
 }

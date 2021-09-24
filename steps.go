@@ -91,8 +91,8 @@ func (s *Scenario) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, 
 }
 
 //TheResponseStatusCodeShouldBe compare last response status code with given in argument.
-func (s *Scenario) TheResponseStatusCodeShouldBe(code int) error {
-	if s.lastResponse.StatusCode != code {
+func (s *Scenario) TheResponseStatusCodeShouldBe(code uint16) error {
+	if s.lastResponse.StatusCode != int(code) {
 		return fmt.Errorf("%w, expected: %d, actual: %d",
 			ErrResponseCode, code, s.lastResponse.StatusCode)
 	}

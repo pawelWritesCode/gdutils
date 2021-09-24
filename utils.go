@@ -13,7 +13,7 @@ import (
 const (
 	//charset represents set of string characters of letters and numbers
 	charsetUnicodeCharacters = "abcdefghijklmnopqrstuvwxyz" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-		"0123456789" + "🤡🤖🧟🏋🥇☟💄🐲🌓🌪🇵🇱⚥❄☠⌘©®💵⓵ "
+		"0123456789" + "🤡🤖🧟🏋🥇☟💄🐲🌓🌪🇵🇱⚥❄☠⌘©®💵⓵ " + "ęśćżźłóń"
 
 	//charsetLettersOnly represents set of string characters including only letters
 	charsetLettersOnly = "abcdefghijklmnopqrstuvwxyz" +
