@@ -683,3 +683,101 @@ func TestScenario_IGenerateARandomIntInTheRangeToAndSaveItAs(t *testing.T) {
 		}
 	}
 }
+
+func TestScenario_TheResponseShouldHaveHeader(t *testing.T) {
+	type fields struct {
+		cache        map[string]interface{}
+		lastResponse *http.Response
+		isDebug      bool
+	}
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "no headers in request", fields: fields{lastResponse: &http.Response{Header: map[string][]string{}}}, args: args{name: "Content-Type"}, wantErr: true},
+		{name: "empty string provided as header name", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+		}, args: args{name: ""}, wantErr: true},
+		{name: "matching header #1 - case insensitive", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+		}, args: args{name: "content-type"}, wantErr: false},
+		{name: "matching header #2 - case sensitive", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+		}, args: args{name: "Content-Type"}, wantErr: false},
+		{name: "matching header #3", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{
+				"Content-Length": []string{"30"},
+				"Content-Type":   []string{"application/json"},
+			},
+		},
+		}, args: args{name: "Content-Type"}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Scenario{
+				cache:        tt.fields.cache,
+				lastResponse: tt.fields.lastResponse,
+				isDebug:      tt.fields.isDebug,
+			}
+			if err := s.TheResponseShouldHaveHeader(tt.args.name); (err != nil) != tt.wantErr {
+				t.Errorf("TheResponseShouldHaveHeader() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestScenario_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
+	type fields struct {
+		cache        map[string]interface{}
+		lastResponse *http.Response
+		isDebug      bool
+	}
+	type args struct {
+		name  string
+		value string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "no headers in request", fields: fields{lastResponse: &http.Response{Header: map[string][]string{}}}, args: args{name: "Content-Type", value: "application/json"}, wantErr: true},
+		{name: "empty string provided as header name", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+		}, args: args{name: "", value: "application/json"}, wantErr: true},
+		{name: "matching header but improper value", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+		}, args: args{name: "content-type", value: "application/xml"}, wantErr: true},
+		{name: "matching header #1 - case insensitive", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+		}, args: args{name: "content-type", value: "application/json"}, wantErr: false},
+		{name: "matching header #2 - case sensitive", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+		}, args: args{name: "Content-Type", value: "application/json"}, wantErr: false},
+		{name: "matching header #3", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{
+				"Content-Length": []string{"30"},
+				"Content-Type":   []string{"application/json"},
+			},
+		},
+		}, args: args{name: "Content-Type", value: "application/json"}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Scenario{
+				cache:        tt.fields.cache,
+				lastResponse: tt.fields.lastResponse,
+				isDebug:      tt.fields.isDebug,
+			}
+			if err := s.TheResponseShouldHaveHeaderOfValue(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("TheResponseShouldHaveHeaderOfValue() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

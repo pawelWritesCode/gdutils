@@ -80,7 +80,7 @@ func (s *Scenario) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, 
 	}
 
 	s.lastResponse = resp
-	//err = s.saveLastResponseCredentials(resp)
+
 	if s.isDebug {
 		fmt.Printf("Response body:\n\n")
 		_ = s.IPrintLastResponseBody()
@@ -129,8 +129,8 @@ func (s *Scenario) ISaveFromTheLastResponseJSONNodeAs(node, variableName string)
 }
 
 //IGenerateARandomIntInTheRangeToAndSaveItAs generates random integer from provided range and preserve it under given name in cache
-func (s *Scenario) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, name string) error {
-	s.Save(name, randomInt(from, to))
+func (s *Scenario) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
+	s.Save(cacheKey, randomInt(from, to))
 
 	return nil
 }
