@@ -6,8 +6,8 @@ import (
 	"net/http"
 )
 
-//Scenario struct represents data shared across one scenario.
-type Scenario struct {
+//State struct represents data shared across one scenario.
+type State struct {
 	//cache is storage for scenario data. It may hold any value from scenario steps or globally available environment variables
 	cache map[string]interface{}
 	//lastResponse holds last HTTP response
@@ -16,20 +16,20 @@ type Scenario struct {
 	isDebug bool
 }
 
-//ResetScenario resets Scenario struct instance to default values.
-func (s *Scenario) ResetScenario(isDebug bool) {
+//ResetScenario resets State struct instance to default values.
+func (s *State) ResetScenario(isDebug bool) {
 	s.cache = map[string]interface{}{}
 	s.lastResponse = &http.Response{}
 	s.isDebug = isDebug
 }
 
 //Save preserve value under given key in cache.
-func (s *Scenario) Save(key string, value interface{}) {
+func (s *State) Save(key string, value interface{}) {
 	s.cache[key] = value
 }
 
 //GetSaved returns preserved value from cache if present, error otherwise.
-func (s *Scenario) GetSaved(key string) (interface{}, error) {
+func (s *State) GetSaved(key string) (interface{}, error) {
 	val, ok := s.cache[key]
 
 	if ok == false {
@@ -41,7 +41,7 @@ func (s *Scenario) GetSaved(key string) (interface{}, error) {
 
 //GetLastResponseBody returns last HTTP response body as slice of bytes
 //method is safe for multiple use
-func (s *Scenario) GetLastResponseBody() []byte {
+func (s *State) GetLastResponseBody() []byte {
 	var bodyBytes []byte
 
 	if s.lastResponse != nil {

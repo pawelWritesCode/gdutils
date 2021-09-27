@@ -33,7 +33,7 @@ type bodyHeaders struct {
 //Argument method indices HTTP request method for example: "POST", "GET" etc.
 //Argument urlTemplate should be full url path. May include template values.
 //Argument bodyTemplate should be slice of bytes marshallable on bodyHeaders struct
-func (s *Scenario) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error {
+func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -91,7 +91,7 @@ func (s *Scenario) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, 
 }
 
 //TheResponseStatusCodeShouldBe compare last response status code with given in argument.
-func (s *Scenario) TheResponseStatusCodeShouldBe(code uint16) error {
+func (s *State) TheResponseStatusCodeShouldBe(code uint16) error {
 	if s.lastResponse.StatusCode != int(code) {
 		return fmt.Errorf("%w, expected: %d, actual: %d",
 			ErrResponseCode, code, s.lastResponse.StatusCode)
@@ -102,7 +102,7 @@ func (s *Scenario) TheResponseStatusCodeShouldBe(code uint16) error {
 
 //TheResponseShouldBeIn checks whether last response body has given data type
 //available data types are listed in switch section
-func (s *Scenario) TheResponseShouldBeIn(dataType string) error {
+func (s *State) TheResponseShouldBeIn(dataType string) error {
 	switch dataType {
 	case typeJSON:
 		return s.theResponseShouldBeInJSON()
@@ -112,7 +112,7 @@ func (s *Scenario) TheResponseShouldBeIn(dataType string) error {
 }
 
 //ISaveFromTheLastResponseJSONNodeAs saves from last response json node under given variableName.
-func (s *Scenario) ISaveFromTheLastResponseJSONNodeAs(node, variableName string) error {
+func (s *State) ISaveFromTheLastResponseJSONNodeAs(node, variableName string) error {
 	iVal, err := qjson.Resolve(node, s.GetLastResponseBody())
 
 	if err != nil {
@@ -129,14 +129,14 @@ func (s *Scenario) ISaveFromTheLastResponseJSONNodeAs(node, variableName string)
 }
 
 //IGenerateARandomIntInTheRangeToAndSaveItAs generates random integer from provided range and preserve it under given name in cache
-func (s *Scenario) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
+func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
 	s.Save(cacheKey, randomInt(from, to))
 
 	return nil
 }
 
 //IGenerateARandomFloatInTheRangeToAndSaveItAs generates random float from provided range and preserve it under given name in cache
-func (s *Scenario) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, name string) error {
+func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, name string) error {
 	randInt := randomInt(from, to)
 	float01 := rand.Float64()
 
@@ -152,7 +152,7 @@ func (s *Scenario) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, na
 }
 
 //IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItAs generates random string of given length without unicode characters
-func (s *Scenario) IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItAs(strLength int, key string) error {
+func (s *State) IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItAs(strLength int, key string) error {
 	if strLength <= 0 {
 		return fmt.Errorf("provided string length %d can't be less than 1", strLength)
 	}
@@ -163,7 +163,7 @@ func (s *Scenario) IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSave
 }
 
 //IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs generates random string of given length with unicode characters
-func (s *Scenario) IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs(strLength int, key string) error {
+func (s *State) IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs(strLength int, key string) error {
 	if strLength <= 0 {
 		return fmt.Errorf("provided string length %d can't be less than 1", strLength)
 	}
@@ -174,7 +174,7 @@ func (s *Scenario) IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItA
 }
 
 //TheJSONResponseShouldHaveKey checks whether last response body contains given key
-func (s *Scenario) TheJSONResponseShouldHaveKey(key string) error {
+func (s *State) TheJSONResponseShouldHaveKey(key string) error {
 	_, err := qjson.Resolve(key, s.GetLastResponseBody())
 	if err != nil {
 		if s.isDebug {
@@ -190,7 +190,7 @@ func (s *Scenario) TheJSONResponseShouldHaveKey(key string) error {
 //TheJSONNodeShouldNotBe checks whether JSON node from last response body is not of provided type
 //goType may be one of: nil, string, int, float, bool, map, slice
 //node should be expression acceptable by qjson package against JSON node from last response body
-func (s *Scenario) TheJSONNodeShouldNotBe(node string, goType string) error {
+func (s *State) TheJSONNodeShouldNotBe(node string, goType string) error {
 	iNodeVal, err := qjson.Resolve(node, s.GetLastResponseBody())
 	if err != nil {
 		return err
@@ -264,7 +264,7 @@ func (s *Scenario) TheJSONNodeShouldNotBe(node string, goType string) error {
 //TheJSONNodeShouldBe checks whether JSON node from last response body is of provided type
 //goType may be one of: nil, string, int, float, bool, map, slice
 //node should be expression acceptable by qjson package against JSON node from last response body
-func (s *Scenario) TheJSONNodeShouldBe(node string, goType string) error {
+func (s *State) TheJSONNodeShouldBe(node string, goType string) error {
 	errInvalidType := fmt.Errorf("%s value is not \"%s\", but expected to be", node, goType)
 
 	switch goType {
@@ -280,7 +280,7 @@ func (s *Scenario) TheJSONNodeShouldBe(node string, goType string) error {
 }
 
 //TheJSONResponseShouldHaveKeys checks whether last request body has keys defined in string separated by comma
-func (s *Scenario) TheJSONResponseShouldHaveKeys(keys string) error {
+func (s *State) TheJSONResponseShouldHaveKeys(keys string) error {
 	keysSlice := strings.Split(keys, ",")
 
 	errs := make([]error, 0, len(keysSlice))
@@ -310,7 +310,7 @@ func (s *Scenario) TheJSONResponseShouldHaveKeys(keys string) error {
 }
 
 //IPrintLastResponseBody prints last response from request
-func (s *Scenario) IPrintLastResponseBody() error {
+func (s *State) IPrintLastResponseBody() error {
 	var tmp map[string]interface{}
 	err := json.Unmarshal(s.GetLastResponseBody(), &tmp)
 
@@ -331,7 +331,7 @@ func (s *Scenario) IPrintLastResponseBody() error {
 }
 
 //TheJSONNodeShouldBeSliceOfLength checks whether given key is slice and has given length
-func (s *Scenario) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error {
+func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error {
 	iValue, err := qjson.Resolve(expr, s.GetLastResponseBody())
 	if err != nil {
 		if s.isDebug {
@@ -358,7 +358,7 @@ func (s *Scenario) TheJSONNodeShouldBeSliceOfLength(expr string, length int) err
 
 //TheJSONNodeShouldBeOfValue compares json node value from expression to expected by user dataValue of given by user dataType
 //available data types are listed in switch section in each case directive
-func (s *Scenario) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) error {
+func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) error {
 	nodeValueReplaced, err := s.replaceTemplatedValue(dataValue)
 	if err != nil {
 		return err
@@ -472,7 +472,7 @@ func (s *Scenario) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) 
 
 //IWait waits for given timeInterval amount of time
 //timeInterval should be string valid for time.ParseDuration func
-func (s *Scenario) IWait(timeInterval string) error {
+func (s *State) IWait(timeInterval string) error {
 	duration, err := time.ParseDuration(timeInterval)
 	if err != nil {
 		return err
@@ -482,7 +482,7 @@ func (s *Scenario) IWait(timeInterval string) error {
 }
 
 // TheResponseShouldHaveHeader checks whether last HTTP response has given header
-func (s *Scenario) TheResponseShouldHaveHeader(name string) error {
+func (s *State) TheResponseShouldHaveHeader(name string) error {
 	headers := s.lastResponse.Header
 
 	header := headers.Get(name)
@@ -498,7 +498,7 @@ func (s *Scenario) TheResponseShouldHaveHeader(name string) error {
 }
 
 // TheResponseShouldHaveHeaderOfValue checks whether last HTTP response has given header with provided value
-func (s *Scenario) TheResponseShouldHaveHeaderOfValue(name, value string) error {
+func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
 	headers := s.lastResponse.Header
 
 	header := headers.Get(name)

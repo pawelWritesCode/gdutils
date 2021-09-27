@@ -135,7 +135,7 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &Scenario{
+			af := &State{
 				cache:        tt.fields.saved,
 				lastResponse: tt.fields.lastResponse,
 			}
@@ -215,7 +215,7 @@ func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &Scenario{
+			af := &State{
 				cache:        tt.fields.saved,
 				lastResponse: tt.fields.lastResponse,
 			}
@@ -375,7 +375,7 @@ func TestApiFeature_TheJSONNodeShouldNotBe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &Scenario{
+			af := &State{
 				cache:        tt.fields.saved,
 				lastResponse: tt.fields.lastResponse,
 				isDebug:      tt.fields.isDebug,
@@ -536,7 +536,7 @@ func TestApiFeature_TheJSONNodeShouldBe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &Scenario{
+			af := &State{
 				cache:        tt.fields.saved,
 				lastResponse: tt.fields.lastResponse,
 				isDebug:      tt.fields.isDebug,
@@ -572,7 +572,7 @@ func TestScenario_TheResponseStatusCodeShouldBe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &Scenario{
+			s := &State{
 				cache:        tt.fields.cache,
 				lastResponse: tt.fields.lastResponse,
 				isDebug:      tt.fields.isDebug,
@@ -636,7 +636,7 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &Scenario{
+			s := &State{
 				cache:        tt.fields.cache,
 				lastResponse: tt.fields.lastResponse,
 				isDebug:      tt.fields.isDebug,
@@ -658,7 +658,7 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 }
 
 func TestScenario_IGenerateARandomIntInTheRangeToAndSaveItAs(t *testing.T) {
-	s := &Scenario{
+	s := &State{
 		cache:        map[string]interface{}{},
 		lastResponse: nil,
 		isDebug:      false,
@@ -719,7 +719,7 @@ func TestScenario_TheResponseShouldHaveHeader(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &Scenario{
+			s := &State{
 				cache:        tt.fields.cache,
 				lastResponse: tt.fields.lastResponse,
 				isDebug:      tt.fields.isDebug,
@@ -770,7 +770,7 @@ func TestScenario_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &Scenario{
+			s := &State{
 				cache:        tt.fields.cache,
 				lastResponse: tt.fields.lastResponse,
 				isDebug:      tt.fields.isDebug,

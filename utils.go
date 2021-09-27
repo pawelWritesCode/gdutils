@@ -28,7 +28,7 @@ var seededRand *rand.Rand = rand.New(
 //and replace them with corresponding preserved values, if they are previously cache.
 //
 //returns input string with replaced values.
-func (s *Scenario) replaceTemplatedValue(inputString string) (string, error) {
+func (s *State) replaceTemplatedValue(inputString string) (string, error) {
 	templ := template.Must(template.New("abc").Parse(inputString))
 	var buff bytes.Buffer
 	err := templ.Execute(&buff, s.cache)
@@ -42,7 +42,7 @@ func (s *Scenario) replaceTemplatedValue(inputString string) (string, error) {
 //stringWithCharset returns random string of given length.
 //Argument length indices length of output string.
 //Argument charset indices input charset from which output string will be composed
-func (s *Scenario) stringWithCharset(length int, charset string) string {
+func (s *State) stringWithCharset(length int, charset string) string {
 	b := make([]byte, length)
 	for i := range b {
 		b[i] = charset[seededRand.Intn(len(charset))]
@@ -73,7 +73,7 @@ func valueIsNil(v reflect.Value) bool {
 }
 
 //theResponseShouldBeInJSON checks if last response body is in JSON format.
-func (s *Scenario) theResponseShouldBeInJSON() error {
+func (s *State) theResponseShouldBeInJSON() error {
 	var js map[string]interface{}
 	var js2 []map[string]interface{}
 
