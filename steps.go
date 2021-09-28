@@ -23,6 +23,8 @@ const (
 	typePlainText = "plain text"
 )
 
+const lastResponseKey = "LAST_HTTP_RESPONSE"
+
 //bodyHeaders is entity that holds information about request body and request headers
 type bodyHeaders struct {
 	Body    interface{}
@@ -74,7 +76,7 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 		return err
 	}
 
-	s.lastResponse = resp
+	s.Cache.Save(lastResponseKey, resp)
 
 	if s.IsDebug {
 		fmt.Printf("Response body:\n\n")
@@ -87,9 +89,14 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 
 //TheResponseStatusCodeShouldBe compare last response status code with given in argument.
 func (s *State) TheResponseStatusCodeShouldBe(code int) error {
-	if s.lastResponse.StatusCode != code {
+	lastResponse, err := s.GetLastResponse()
+	if err != nil {
+		return err
+	}
+
+	if lastResponse.StatusCode != code {
 		return fmt.Errorf("%w, expected: %d, actual: %d",
-			ErrResponseCode, code, s.lastResponse.StatusCode)
+			ErrResponseCode, code, lastResponse.StatusCode)
 	}
 
 	return nil

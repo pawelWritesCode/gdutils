@@ -118,9 +118,11 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			af := &State{
-				Cache:        NewDefaultCache(),
-				lastResponse: tt.fields.lastResponse,
+				Cache: NewDefaultCache(),
 			}
+
+			af.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+
 			if err := af.TheJSONNodeShouldBeOfValue(tt.args.expr, tt.args.dataType, tt.args.dataValue); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBeOfValue() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -185,9 +187,9 @@ func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &State{
-				lastResponse: tt.fields.lastResponse,
-			}
+			af := &State{Cache: NewDefaultCache()}
+
+			af.Cache.Save(lastResponseKey, tt.fields.lastResponse)
 			if err := af.TheJSONNodeShouldBeSliceOfLength(tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBeSliceOfLength() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -345,9 +347,12 @@ func TestApiFeature_TheJSONNodeShouldNotBe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			af := &State{
-				lastResponse: tt.fields.lastResponse,
-				IsDebug:      tt.fields.isDebug,
+				Cache:   NewDefaultCache(),
+				IsDebug: tt.fields.isDebug,
 			}
+
+			af.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+
 			if err := af.TheJSONNodeShouldNotBe(tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldNotBe() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -505,9 +510,12 @@ func TestApiFeature_TheJSONNodeShouldBe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			af := &State{
-				lastResponse: tt.fields.lastResponse,
-				IsDebug:      tt.fields.isDebug,
+				Cache:   NewDefaultCache(),
+				IsDebug: tt.fields.isDebug,
 			}
+
+			af.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+
 			if err := af.TheJSONNodeShouldBe(tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBe() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -540,9 +548,12 @@ func TestScenario_TheResponseStatusCodeShouldBe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &State{
-				lastResponse: tt.fields.lastResponse,
-				IsDebug:      tt.fields.isDebug,
+				Cache:   NewDefaultCache(),
+				IsDebug: tt.fields.isDebug,
 			}
+
+			s.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+
 			if err := s.TheResponseStatusCodeShouldBe(tt.args.code); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseStatusCodeShouldBe() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -603,10 +614,11 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &State{
-				Cache:        tt.fields.cache,
-				lastResponse: tt.fields.lastResponse,
-				IsDebug:      tt.fields.isDebug,
+				Cache:   tt.fields.cache,
+				IsDebug: tt.fields.isDebug,
 			}
+
+			s.Cache.Save(lastResponseKey, tt.fields.lastResponse)
 
 			err := s.ISaveFromTheLastResponseJSONNodeAs(tt.args.node, tt.args.variableName)
 
@@ -625,9 +637,8 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 
 func TestScenario_IGenerateARandomIntInTheRangeToAndSaveItAs(t *testing.T) {
 	s := &State{
-		Cache:        NewDefaultCache(),
-		lastResponse: nil,
-		IsDebug:      false,
+		Cache:   NewDefaultCache(),
+		IsDebug: false,
 	}
 	for i := 0; i < 100; i++ {
 		if err := s.IGenerateARandomIntInTheRangeToAndSaveItAs(0, 100000, "RANDOM_INT"); (err != nil) != false {
@@ -667,18 +678,18 @@ func TestScenario_TheResponseShouldHaveHeader(t *testing.T) {
 	}{
 		{name: "no headers in request", fields: fields{lastResponse: &http.Response{Header: map[string][]string{}}}, args: args{name: "Content-Type"}, wantErr: true},
 		{name: "empty string provided as header name", fields: fields{lastResponse: &http.Response{
-			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+			Header: map[string][]string{"Content-Type": {"application/json"}}},
 		}, args: args{name: ""}, wantErr: true},
 		{name: "matching header #1 - case insensitive", fields: fields{lastResponse: &http.Response{
-			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+			Header: map[string][]string{"Content-Type": {"application/json"}}},
 		}, args: args{name: "content-type"}, wantErr: false},
 		{name: "matching header #2 - case sensitive", fields: fields{lastResponse: &http.Response{
-			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+			Header: map[string][]string{"Content-Type": {"application/json"}}},
 		}, args: args{name: "Content-Type"}, wantErr: false},
 		{name: "matching header #3", fields: fields{lastResponse: &http.Response{
 			Header: map[string][]string{
-				"Content-Length": []string{"30"},
-				"Content-Type":   []string{"application/json"},
+				"Content-Length": {"30"},
+				"Content-Type":   {"application/json"},
 			},
 		},
 		}, args: args{name: "Content-Type"}, wantErr: false},
@@ -686,9 +697,12 @@ func TestScenario_TheResponseShouldHaveHeader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &State{
-				lastResponse: tt.fields.lastResponse,
-				IsDebug:      tt.fields.isDebug,
+				Cache:   NewDefaultCache(),
+				IsDebug: tt.fields.isDebug,
 			}
+
+			s.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+
 			if err := s.TheResponseShouldHaveHeader(tt.args.name); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseShouldHaveHeader() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -714,21 +728,21 @@ func TestScenario_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 	}{
 		{name: "no headers in request", fields: fields{lastResponse: &http.Response{Header: map[string][]string{}}}, args: args{name: "Content-Type", value: "application/json"}, wantErr: true},
 		{name: "empty string provided as header name", fields: fields{lastResponse: &http.Response{
-			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+			Header: map[string][]string{"Content-Type": {"application/json"}}},
 		}, args: args{name: "", value: "application/json"}, wantErr: true},
 		{name: "matching header but improper value", fields: fields{lastResponse: &http.Response{
-			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+			Header: map[string][]string{"Content-Type": {"application/json"}}},
 		}, args: args{name: "content-type", value: "application/xml"}, wantErr: true},
 		{name: "matching header #1 - case insensitive", fields: fields{lastResponse: &http.Response{
-			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+			Header: map[string][]string{"Content-Type": {"application/json"}}},
 		}, args: args{name: "content-type", value: "application/json"}, wantErr: false},
 		{name: "matching header #2 - case sensitive", fields: fields{lastResponse: &http.Response{
-			Header: map[string][]string{"Content-Type": []string{"application/json"}}},
+			Header: map[string][]string{"Content-Type": {"application/json"}}},
 		}, args: args{name: "Content-Type", value: "application/json"}, wantErr: false},
 		{name: "matching header #3", fields: fields{lastResponse: &http.Response{
 			Header: map[string][]string{
-				"Content-Length": []string{"30"},
-				"Content-Type":   []string{"application/json"},
+				"Content-Length": {"30"},
+				"Content-Type":   {"application/json"},
 			},
 		},
 		}, args: args{name: "Content-Type", value: "application/json"}, wantErr: false},
@@ -736,9 +750,12 @@ func TestScenario_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &State{
-				lastResponse: tt.fields.lastResponse,
-				IsDebug:      tt.fields.isDebug,
+				Cache:   NewDefaultCache(),
+				IsDebug: tt.fields.isDebug,
 			}
+
+			s.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+
 			if err := s.TheResponseShouldHaveHeaderOfValue(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseShouldHaveHeaderOfValue() error = %v, wantErr %v", err, tt.wantErr)
 			}
