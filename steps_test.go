@@ -9,9 +9,7 @@ import (
 
 func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 	type fields struct {
-		saved        map[string]interface{}
 		lastResponse *http.Response
-		baseUrl      string
 	}
 	type args struct {
 		expr      string
@@ -25,64 +23,53 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "empty json", fields: fields{
-			saved:        nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(``))},
-			baseUrl:      "",
 		}, args: args{
 			expr:      "name",
 			dataType:  "string",
 			dataValue: "ivo",
 		}, wantErr: true},
 		{name: "json with first level field with string data type", fields: fields{
-			saved: nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"name": "ivo"
 }`))},
-			baseUrl: "",
 		}, args: args{
 			expr:      "name",
 			dataType:  "string",
 			dataValue: "ivo",
 		}, wantErr: false},
 		{name: "json with first level field with int data type", fields: fields{
-			saved: nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"number": 10
 }`))},
-			baseUrl: "",
 		}, args: args{
 			expr:      "number",
 			dataType:  "int",
 			dataValue: "10",
 		}, wantErr: false},
 		{name: "json with first level field with float64 data type", fields: fields{
-			saved: nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"number": 10.1
 }`))},
-			baseUrl: "",
 		}, args: args{
 			expr:      "number",
 			dataType:  "float",
 			dataValue: "10.1",
 		}, wantErr: false},
 		{name: "json with first level field with bool data type", fields: fields{
-			saved: nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"is": true
 }`))},
-			baseUrl: "",
 		}, args: args{
 			expr:      "is",
 			dataType:  "bool",
 			dataValue: "true",
 		}, wantErr: false},
 		{name: "json with second level field with bool data type", fields: fields{
-			saved: nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"data": {
@@ -90,14 +77,12 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 		"value": true
 	}
 }`))},
-			baseUrl: "",
 		}, args: args{
 			expr:      "data.value",
 			dataType:  "bool",
 			dataValue: "true",
 		}, wantErr: false},
 		{name: "json with second level field with bool data type", fields: fields{
-			saved: nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"data":	[
@@ -111,14 +96,12 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 			}
 		]
 }`))},
-			baseUrl: "",
 		}, args: args{
 			expr:      "data[1].value",
 			dataType:  "bool",
 			dataValue: "false",
 		}, wantErr: false},
 		{name: "json with second level field with bool data type", fields: fields{
-			saved: nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
 {
 	"data":	[
@@ -126,7 +109,6 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 			false
 		]
 }`))},
-			baseUrl: "",
 		}, args: args{
 			expr:      "data[1]",
 			dataType:  "bool",
@@ -136,7 +118,7 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			af := &State{
-				cache:        tt.fields.saved,
+				Cache:        NewDefaultCache(),
 				lastResponse: tt.fields.lastResponse,
 			}
 			if err := af.TheJSONNodeShouldBeOfValue(tt.args.expr, tt.args.dataType, tt.args.dataValue); (err != nil) != tt.wantErr {
@@ -148,9 +130,7 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 
 func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 	type fields struct {
-		saved        map[string]interface{}
 		lastResponse *http.Response
-		baseUrl      string
 	}
 	type args struct {
 		expr   string
@@ -163,51 +143,41 @@ func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "no resp body", fields: fields{
-			saved:        nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(""))},
-			baseUrl:      "",
 		}, args: args{
 			expr:   "anykey",
 			length: 0,
 		}, wantErr: true},
 		{name: "key is not slice", fields: fields{
-			saved: nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"name": "xyz"	
 }`))},
-			baseUrl: "",
 		}, args: args{
 			expr:   "name",
 			length: 0,
 		}, wantErr: true},
 		{name: "key is not slice #2", fields: fields{
-			saved: nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"name": {
 		"details": "xyz"
 	}
 }`))},
-			baseUrl: "",
 		}, args: args{
 			expr:   "name",
 			length: 0,
 		}, wantErr: true},
 		{name: "key is slice but length does not match", fields: fields{
-			saved: nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"names": ["a", "b"]
 }`))},
-			baseUrl: "",
 		}, args: args{
 			expr:   "name",
 			length: 0,
 		}, wantErr: true},
 		{name: "key is slice and length match", fields: fields{
-			saved: nil,
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"names": ["a", "b"]
 }`))},
-			baseUrl: "",
 		}, args: args{
 			expr:   "names",
 			length: 2,
@@ -216,7 +186,6 @@ func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			af := &State{
-				cache:        tt.fields.saved,
 				lastResponse: tt.fields.lastResponse,
 			}
 			if err := af.TheJSONNodeShouldBeSliceOfLength(tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
@@ -376,9 +345,8 @@ func TestApiFeature_TheJSONNodeShouldNotBe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			af := &State{
-				cache:        tt.fields.saved,
 				lastResponse: tt.fields.lastResponse,
-				isDebug:      tt.fields.isDebug,
+				IsDebug:      tt.fields.isDebug,
 			}
 			if err := af.TheJSONNodeShouldNotBe(tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldNotBe() error = %v, wantErr %v", err, tt.wantErr)
@@ -537,9 +505,8 @@ func TestApiFeature_TheJSONNodeShouldBe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			af := &State{
-				cache:        tt.fields.saved,
 				lastResponse: tt.fields.lastResponse,
-				isDebug:      tt.fields.isDebug,
+				IsDebug:      tt.fields.isDebug,
 			}
 			if err := af.TheJSONNodeShouldBe(tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBe() error = %v, wantErr %v", err, tt.wantErr)
@@ -555,7 +522,7 @@ func TestScenario_TheResponseStatusCodeShouldBe(t *testing.T) {
 		isDebug      bool
 	}
 	type args struct {
-		code uint16
+		code int
 	}
 	tests := []struct {
 		name    string
@@ -573,9 +540,8 @@ func TestScenario_TheResponseStatusCodeShouldBe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &State{
-				cache:        tt.fields.cache,
 				lastResponse: tt.fields.lastResponse,
-				isDebug:      tt.fields.isDebug,
+				IsDebug:      tt.fields.isDebug,
 			}
 			if err := s.TheResponseStatusCodeShouldBe(tt.args.code); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseStatusCodeShouldBe() error = %v, wantErr %v", err, tt.wantErr)
@@ -586,7 +552,7 @@ func TestScenario_TheResponseStatusCodeShouldBe(t *testing.T) {
 
 func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 	type fields struct {
-		cache        map[string]interface{}
+		cache        Cache
 		lastResponse *http.Response
 		isDebug      bool
 	}
@@ -601,13 +567,13 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "invalid node #1", fields: fields{
-			cache: map[string]interface{}{},
+			cache: NewDefaultCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "abc"
 }`))},
 		}, args: args{node: "token", variableName: "TOKEN"}, wantErr: true},
 		{name: "invalid node #2", fields: fields{
-			cache: map[string]interface{}{},
+			cache: NewDefaultCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {
 		"name": "a",
@@ -616,7 +582,7 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 }`))},
 		}, args: args{node: "last_name", variableName: "LAST_NAME"}, wantErr: true},
 		{name: "valid node #1", fields: fields{
-			cache: map[string]interface{}{},
+			cache: NewDefaultCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {
 		"name": "a",
@@ -625,7 +591,7 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 }`))},
 		}, args: args{node: "user.last_name", variableName: "LAST_NAME"}, wantErr: false},
 		{name: "valid node #2", fields: fields{
-			cache: map[string]interface{}{},
+			cache: NewDefaultCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {
 		"name": "a",
@@ -637,9 +603,9 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &State{
-				cache:        tt.fields.cache,
+				Cache:        tt.fields.cache,
 				lastResponse: tt.fields.lastResponse,
-				isDebug:      tt.fields.isDebug,
+				IsDebug:      tt.fields.isDebug,
 			}
 
 			err := s.ISaveFromTheLastResponseJSONNodeAs(tt.args.node, tt.args.variableName)
@@ -649,8 +615,8 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 			}
 
 			if err == nil {
-				if _, err := s.GetSaved(tt.args.variableName); err != nil {
-					t.Errorf("%s was not saved to cache", tt.args.node)
+				if _, err := s.Cache.GetSaved(tt.args.variableName); err != nil {
+					t.Errorf("%s was not saved to Cache", tt.args.node)
 				}
 			}
 		})
@@ -659,16 +625,16 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 
 func TestScenario_IGenerateARandomIntInTheRangeToAndSaveItAs(t *testing.T) {
 	s := &State{
-		cache:        map[string]interface{}{},
+		Cache:        NewDefaultCache(),
 		lastResponse: nil,
-		isDebug:      false,
+		IsDebug:      false,
 	}
 	for i := 0; i < 100; i++ {
 		if err := s.IGenerateARandomIntInTheRangeToAndSaveItAs(0, 100000, "RANDOM_INT"); (err != nil) != false {
 			t.Errorf("IGenerateARandomIntInTheRangeToAndSaveItAs() error = %v, wantErr %v", err, false)
 		}
 
-		randomInteger, err := s.GetSaved("RANDOM_INT")
+		randomInteger, err := s.Cache.GetSaved("RANDOM_INT")
 		if err != nil {
 			t.Errorf("%v", err)
 		}
@@ -720,9 +686,8 @@ func TestScenario_TheResponseShouldHaveHeader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &State{
-				cache:        tt.fields.cache,
 				lastResponse: tt.fields.lastResponse,
-				isDebug:      tt.fields.isDebug,
+				IsDebug:      tt.fields.isDebug,
 			}
 			if err := s.TheResponseShouldHaveHeader(tt.args.name); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseShouldHaveHeader() error = %v, wantErr %v", err, tt.wantErr)
@@ -771,9 +736,8 @@ func TestScenario_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &State{
-				cache:        tt.fields.cache,
 				lastResponse: tt.fields.lastResponse,
-				isDebug:      tt.fields.isDebug,
+				IsDebug:      tt.fields.isDebug,
 			}
 			if err := s.TheResponseShouldHaveHeaderOfValue(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseShouldHaveHeaderOfValue() error = %v, wantErr %v", err, tt.wantErr)

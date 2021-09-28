@@ -25,13 +25,13 @@ var seededRand *rand.Rand = rand.New(
 
 //replaceTemplatedValue accept as input string, within which search for values
 //between two brackets {{ }} preceded with dot, for example: {{.NAME}}
-//and replace them with corresponding preserved values, if they are previously cache.
+//and replace them with corresponding preserved values, if they are previously DefaultCache.
 //
 //returns input string with replaced values.
 func (s *State) replaceTemplatedValue(inputString string) (string, error) {
 	templ := template.Must(template.New("abc").Parse(inputString))
 	var buff bytes.Buffer
-	err := templ.Execute(&buff, s.cache)
+	err := templ.Execute(&buff, s.Cache.All())
 	if err != nil {
 		return "", err
 	}

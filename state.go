@@ -2,41 +2,46 @@ package gdutils
 
 import (
 	"bytes"
+	"crypto/tls"
 	"io/ioutil"
 	"net/http"
 )
 
 //State struct represents data shared across one scenario.
 type State struct {
-	//cache is storage for scenario data. It may hold any value from scenario steps or globally available environment variables
-	cache map[string]interface{}
+	//IsDebug determine whether scenario is in debug mode
+	IsDebug bool
+	//Cache is storage for scenario data.
+	//It may hold any value from scenario steps or globally available environment variables
+	Cache Cache
 	//lastResponse holds last HTTP response
 	lastResponse *http.Response
-	//isDebug determine whether scenario should be run under debug mode
-	isDebug bool
+	//httpClient is cli that will send HTTP request
+	httpClient *http.Client
 }
 
-//ResetScenario resets State struct instance to default values.
-func (s *State) ResetScenario(isDebug bool) {
-	s.cache = map[string]interface{}{}
-	s.lastResponse = &http.Response{}
-	s.isDebug = isDebug
-}
-
-//Save preserve value under given key in cache.
-func (s *State) Save(key string, value interface{}) {
-	s.cache[key] = value
-}
-
-//GetSaved returns preserved value from cache if present, error otherwise.
-func (s *State) GetSaved(key string) (interface{}, error) {
-	val, ok := s.cache[key]
-
-	if ok == false {
-		return val, ErrPreservedData
+//NewDefault returns *State with default httpClient, DefaultCache and provided debug mode
+func NewDefault(isDebug bool) *State {
+	return &State{
+		IsDebug:      isDebug,
+		Cache:        NewDefaultCache(),
+		lastResponse: nil,
+		httpClient: &http.Client{Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}},
 	}
+}
 
-	return val, nil
+//New returns *State with provided httpClient, DefaultCache and debug mode
+func New(httpClient *http.Client, cache Cache, isDebug bool) *State {
+	return &State{IsDebug: isDebug, Cache: cache, lastResponse: nil, httpClient: httpClient}
+}
+
+//ResetState resets State struct instance to default values.
+func (s *State) ResetState(isDebug bool) {
+	s.Cache.Reset()
+	s.lastResponse = nil
+	s.IsDebug = isDebug
 }
 
 //GetLastResponseBody returns last HTTP response body as slice of bytes
@@ -51,4 +56,9 @@ func (s *State) GetLastResponseBody() []byte {
 	}
 
 	return bodyBytes
+}
+
+//GetLastResponseHeaders returns last HTTP response headers
+func (s *State) GetLastResponseHeaders() http.Header {
+	return s.lastResponse.Header
 }
