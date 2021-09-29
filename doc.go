@@ -10,8 +10,9 @@
 //
 // Struct State contains of
 //
-//* cache with arbitrary values - State.Cache,
-//* info whether scenario is in debug mode - State.IsDebug
+//* cache with arbitrary values - State.Cache.
+//
+//* info whether scenario is in debug mode - State.IsDebug.
 //
 //	Useful State methods are
 //

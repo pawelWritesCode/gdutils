@@ -6,9 +6,9 @@ type Cache interface {
 	Save(key string, value interface{})
 	//GetSaved retrieve value under given key
 	GetSaved(key string) (interface{}, error)
-	//Reset turns DefaultCache into init state
+	//Reset turns cache into init state
 	Reset()
-	//All returns all DefaultCache entries
+	//All returns all cache entries
 	All() map[string]interface{}
 }
 
