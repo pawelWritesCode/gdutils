@@ -19,7 +19,7 @@ type State struct {
 	httpClient *http.Client
 }
 
-//NewDefaultState returns *State with default httpClient, DefaultCache and provided debug mode
+//NewDefaultState returns *State with default http.Client, DefaultCache and provided debug mode
 func NewDefaultState(isDebug bool) *State {
 	return &State{
 		IsDebug: isDebug,

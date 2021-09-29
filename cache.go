@@ -2,7 +2,7 @@ package gdutils
 
 //Cache is entity that has ability to store/retrieve arbitrary values
 type Cache interface {
-	//Save saves provided value under given key
+	//Save preserve provided value under given key
 	Save(key string, value interface{})
 	//GetSaved retrieve value under given key
 	GetSaved(key string) (interface{}, error)
