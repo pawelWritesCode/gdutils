@@ -48,17 +48,17 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 	var bodyAndHeaders bodyHeaders
 	err = json.Unmarshal([]byte(input), &bodyAndHeaders)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrJson, err.Error())
 	}
 
 	reqBody, err := json.Marshal(bodyAndHeaders.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrJson, err.Error())
 	}
 
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
 	}
 
 	for headerName, headerValue := range bodyAndHeaders.Headers {
@@ -72,7 +72,7 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
 	}
 
 	s.Cache.Save(lastResponseKey, resp)
@@ -83,7 +83,7 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 		fmt.Printf("\n")
 	}
 
-	return err
+	return nil
 }
 
 //TheResponseStatusCodeShouldBe compare last response status code with given in argument.
@@ -94,8 +94,7 @@ func (s *State) TheResponseStatusCodeShouldBe(code int) error {
 	}
 
 	if lastResponse.StatusCode != code {
-		return fmt.Errorf("%w, expected: %d, actual: %d",
-			ErrResponseCode, code, lastResponse.StatusCode)
+		return fmt.Errorf("%w: expected status code %d, but got %d", ErrHTTPReqRes, code, lastResponse.StatusCode)
 	}
 
 	return nil
@@ -114,9 +113,9 @@ func (s *State) TheResponseBodyShouldHaveType(dataType string) error {
 			return nil
 		}
 
-		return fmt.Errorf("last response body has type %s", typeJSON)
+		return fmt.Errorf("%w: last response body has type %s", ErrHTTPReqRes, typeJSON)
 	default:
-		return fmt.Errorf("unknown data type, available values: %s", typeJSON)
+		return fmt.Errorf("%w: unknown last response body data type, available values: %s, %s", ErrHTTPReqRes, typeJSON, typePlainText)
 	}
 }
 
@@ -130,7 +129,7 @@ func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error 
 			_ = s.IPrintLastResponseBody()
 		}
 
-		return err
+		return fmt.Errorf("%w, err: %s", ErrQJSON, err.Error())
 	}
 
 	s.Cache.Save(cacheKey, iVal)
@@ -153,7 +152,7 @@ func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cache
 	strFloat := fmt.Sprintf("%.2f", float01*float64(randInt))
 	floatVal, err := strconv.ParseFloat(strFloat, 64)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: error during parsing float, err: %s", ErrGdutils, err.Error())
 	}
 
 	s.Cache.Save(cacheKey, floatVal)
@@ -165,7 +164,7 @@ func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cache
 //and preserve it under given DefaultCache key
 func (s *State) IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItAs(strLength int, cacheKey string) error {
 	if strLength <= 0 {
-		return fmt.Errorf("provided string length %d can't be less than 1", strLength)
+		return fmt.Errorf("%w: provided string length %d can't be less than 1", ErrGdutils, strLength)
 	}
 
 	s.Cache.Save(cacheKey, s.stringWithCharset(strLength, charsetLettersOnly))
@@ -177,7 +176,7 @@ func (s *State) IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItA
 //and preserve it under given DefaultCache key
 func (s *State) IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs(strLength int, cacheKey string) error {
 	if strLength <= 0 {
-		return fmt.Errorf("provided string length %d can't be less than 1", strLength)
+		return fmt.Errorf("%w: provided string length %d can't be less than 1", ErrGdutils, strLength)
 	}
 
 	s.Cache.Save(cacheKey, s.stringWithCharset(strLength, charsetUnicodeCharacters))
@@ -193,7 +192,7 @@ func (s *State) TheJSONResponseShouldHaveNode(expr string) error {
 			_ = s.IPrintLastResponseBody()
 		}
 
-		return fmt.Errorf("%w: missing node '%s'", ErrJsonNode, expr)
+		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
 	}
 
 	return nil
@@ -205,11 +204,11 @@ func (s *State) TheJSONResponseShouldHaveNode(expr string) error {
 func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
 	iNodeVal, err := qjson.Resolve(expr, s.GetLastResponseBody())
 	if err != nil {
-		return err
+		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
 	}
 
 	vNodeVal := reflect.ValueOf(iNodeVal)
-	errInvalidType := fmt.Errorf("%s value is \"%s\", but expected not to be", expr, goType)
+	errInvalidType := fmt.Errorf("%w: %s value is \"%s\", but expected not to be", ErrGdutils, expr, goType)
 	switch goType {
 	case "nil":
 		if !vNodeVal.IsValid() || valueIsNil(vNodeVal) {
@@ -269,7 +268,7 @@ func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
 
 		return nil
 	default:
-		return fmt.Errorf("%s is unknown type for this step", goType)
+		return fmt.Errorf("%w: %s is unknown type for this step", ErrGdutils, goType)
 	}
 }
 
@@ -277,7 +276,7 @@ func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
 //goType may be one of: nil, string, int, float, bool, map, slice
 //expr should be valid according to qjson library
 func (s *State) TheJSONNodeShouldBe(expr string, goType string) error {
-	errInvalidType := fmt.Errorf("%s value is not \"%s\", but expected to be", expr, goType)
+	errInvalidType := fmt.Errorf("%w: %s value is not \"%s\", but expected to be", ErrGdutils, expr, goType)
 
 	switch goType {
 	case "nil", "string", "int", "float", "bool", "map", "slice":
@@ -287,7 +286,7 @@ func (s *State) TheJSONNodeShouldBe(expr string, goType string) error {
 
 		return nil
 	default:
-		return fmt.Errorf("%s is unknown type for this step", goType)
+		return fmt.Errorf("%w: %s is unknown type for this step", ErrGdutils, goType)
 	}
 }
 
@@ -302,7 +301,7 @@ func (s *State) TheJSONResponseShouldHaveNodes(nodeExprs string) error {
 		_, err := qjson.Resolve(trimmedKey, s.GetLastResponseBody())
 
 		if err != nil {
-			errs = append(errs, fmt.Errorf("missing key %s", trimmedKey))
+			errs = append(errs, fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, trimmedKey, err.Error()))
 		}
 	}
 
@@ -331,13 +330,13 @@ func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error 
 			_ = s.IPrintLastResponseBody()
 		}
 
-		return err
+		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
 	}
 
 	v := reflect.ValueOf(iValue)
 	if v.Kind() == reflect.Slice {
 		if v.Len() != length {
-			return fmt.Errorf("%s slice has length: %d, expected: %d", expr, v.Len(), length)
+			return fmt.Errorf("%w: %s slice has length: %d, expected: %d", ErrGdutils, expr, v.Len(), length)
 		}
 
 		return nil
@@ -346,7 +345,7 @@ func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error 
 		_ = s.IPrintLastResponseBody()
 	}
 
-	return fmt.Errorf("%s is not slice", expr)
+	return fmt.Errorf("%w: %s does not point at slice(array) in last HTTP(s) response JSON body", ErrGdutils, expr)
 }
 
 //TheJSONNodeShouldBeOfValue compares json node value from expression to expected by user dataValue of given by user dataType
@@ -368,7 +367,7 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 			_ = s.IPrintLastResponseBody()
 		}
 
-		return err
+		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
 	}
 
 	switch dataType {
@@ -378,14 +377,14 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 			if s.IsDebug {
 				_ = s.IPrintLastResponseBody()
 			}
-			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
+			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
 		}
 
 		if strVal != nodeValueReplaced {
 			if s.IsDebug {
 				_ = s.IPrintLastResponseBody()
 			}
-			return fmt.Errorf("node %s string value: %s is not equal to expected string value: %s", expr, strVal, nodeValueReplaced)
+			return fmt.Errorf("%w: node %s string value: %s is not equal to expected string value: %s", ErrGdutils, expr, strVal, nodeValueReplaced)
 		}
 	case "int":
 		floatVal, ok := iValue.(float64)
@@ -393,7 +392,7 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 			if s.IsDebug {
 				_ = s.IPrintLastResponseBody()
 			}
-			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
+			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
 		}
 
 		intVal := int(floatVal)
@@ -404,14 +403,14 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 			if s.IsDebug {
 				_ = s.IPrintLastResponseBody()
 			}
-			return fmt.Errorf("replaced node %s value %s could not be converted to int", expr, nodeValueReplaced)
+			return fmt.Errorf("%w: replaced node %s value %s could not be converted to int", ErrGdutils, expr, nodeValueReplaced)
 		}
 
 		if intVal != intNodeValue {
 			if s.IsDebug {
 				_ = s.IPrintLastResponseBody()
 			}
-			return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intVal, intNodeValue)
+			return fmt.Errorf("%w: node %s int value: %d is not equal to expected int value: %d", ErrGdutils, expr, intVal, intNodeValue)
 		}
 	case "float":
 		floatVal, ok := iValue.(float64)
@@ -419,7 +418,7 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 			if s.IsDebug {
 				_ = s.IPrintLastResponseBody()
 			}
-			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
+			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
 		}
 
 		floatNodeValue, err := strconv.ParseFloat(nodeValueReplaced, 64)
@@ -427,14 +426,14 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 			if s.IsDebug {
 				_ = s.IPrintLastResponseBody()
 			}
-			return fmt.Errorf("replaced node %s value %s could not be converted to float64", expr, nodeValueReplaced)
+			return fmt.Errorf("%w: replaced node %s value %s could not be converted to float64", ErrGdutils, expr, nodeValueReplaced)
 		}
 
 		if floatVal != floatNodeValue {
 			if s.IsDebug {
 				_ = s.IPrintLastResponseBody()
 			}
-			return fmt.Errorf("node %s float value %f is not equal to expected float value %f", expr, floatVal, floatNodeValue)
+			return fmt.Errorf("%w: node %s float value %f is not equal to expected float value %f", ErrGdutils, expr, floatVal, floatNodeValue)
 		}
 	case "bool":
 		boolVal, ok := iValue.(bool)
@@ -442,7 +441,7 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 			if s.IsDebug {
 				_ = s.IPrintLastResponseBody()
 			}
-			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
+			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
 		}
 
 		boolNodeValue, err := strconv.ParseBool(nodeValueReplaced)
@@ -450,14 +449,14 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 			if s.IsDebug {
 				_ = s.IPrintLastResponseBody()
 			}
-			return fmt.Errorf("replaced node %s value %s could not be converted to bool", expr, nodeValueReplaced)
+			return fmt.Errorf("%w: replaced node %s value %s could not be converted to bool", ErrGdutils, expr, nodeValueReplaced)
 		}
 
 		if boolVal != boolNodeValue {
 			if s.IsDebug {
 				_ = s.IPrintLastResponseBody()
 			}
-			return fmt.Errorf("node %s bool value %t is not equal to expected bool value %t", expr, boolVal, boolNodeValue)
+			return fmt.Errorf("%w: node %s bool value %t is not equal to expected bool value %t", ErrGdutils, expr, boolVal, boolNodeValue)
 		}
 	}
 
@@ -477,7 +476,7 @@ func (s *State) TheResponseShouldHaveHeader(name string) error {
 		fmt.Printf("last HTTP response headers: %+v", headers)
 	}
 
-	return fmt.Errorf("could not find header %s in last HTTP response", name)
+	return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
 }
 
 // TheResponseShouldHaveHeaderOfValue checks whether last HTTP response has given header with provided value
@@ -487,7 +486,7 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
 	header := headers.Get(name)
 
 	if header == "" && value == "" {
-		return fmt.Errorf("could not find header %s", name)
+		return fmt.Errorf("%w: could not find header %s", ErrHTTPReqRes, name)
 	}
 
 	if header == value {
@@ -498,7 +497,7 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
 		fmt.Printf("last HTTP response headers: %+v", headers)
 	}
 
-	return fmt.Errorf("could not find header %s in last HTTP response", name)
+	return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
 }
 
 //IWait waits for given timeInterval amount of time
@@ -506,8 +505,9 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
 func (s *State) IWait(timeInterval string) error {
 	duration, err := time.ParseDuration(timeInterval)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: something wrong with provided time interval %s, err: %s", ErrGdutils, timeInterval, err.Error())
 	}
+
 	time.Sleep(duration)
 	return nil
 }

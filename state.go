@@ -45,7 +45,7 @@ func (s *State) ResetState(isDebug bool) {
 func (s *State) GetLastResponse() (*http.Response, error) {
 	respInterface, err := s.Cache.GetSaved(lastResponseKey)
 	if err != nil {
-		return nil, fmt.Errorf("missing last response")
+		return nil, fmt.Errorf("%w: missing last HTTP(s) response, err: %s", ErrHTTPReqRes, err.Error())
 	}
 
 	lastResp, ok := respInterface.(*http.Response)
@@ -54,7 +54,7 @@ func (s *State) GetLastResponse() (*http.Response, error) {
 			fmt.Println()
 		}
 
-		return nil, fmt.Errorf("last response is not type *http.Response")
+		return nil, fmt.Errorf("%w: last HTTP(s) response data structure is not type *http.Response", ErrHTTPReqRes)
 	}
 
 	return lastResp, nil

@@ -75,5 +75,10 @@ func valueIsNil(v reflect.Value) bool {
 //theResponseShouldBeInJSON checks if last response body is in JSON format.
 func (s *State) theResponseShouldBeInJSON() error {
 	var js json.RawMessage
-	return json.Unmarshal(s.GetLastResponseBody(), &js)
+	err := json.Unmarshal(s.GetLastResponseBody(), &js)
+	if err != nil {
+		return fmt.Errorf("%w: expected last HTTP(s) response body to be JSON, err: %s", ErrJson, err.Error())
+	}
+
+	return nil
 }

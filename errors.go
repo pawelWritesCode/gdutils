@@ -1,15 +1,21 @@
 package gdutils
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
-//ErrJson tells that value has invalid JSON format.
-var ErrJson = errors.New("invalid JSON format")
+//ErrGdutils is general package error and can be tested against
+var ErrGdutils = errors.New("gdutils")
 
-//ErrResponseCode tells that response had invalid response code.
-var ErrResponseCode = errors.New("invalid response code")
+//ErrJson tells that there is problem with JSON
+var ErrJson = fmt.Errorf("%w: something wrong with JSON", ErrGdutils)
 
-//ErrJsonNode tells that there is some kind of error with json node.
-var ErrJsonNode = errors.New("invalid JSON node")
+//ErrHTTPReqRes tells that there is problem with last HTTP(s) request/response
+var ErrHTTPReqRes = fmt.Errorf("%w: something wrong with HTTP(s) request/response", ErrGdutils)
+
+//ErrQJSON occurs when value could not be obtained from JSON
+var ErrQJSON = fmt.Errorf("%w: could not obtain value from JSON", ErrJson)
 
 //ErrPreservedData tells indices that there is some kind of error with scenario preserved data.
 var ErrPreservedData = errors.New("preserved data error")
