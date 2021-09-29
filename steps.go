@@ -19,11 +19,10 @@ import (
 )
 
 const (
-	typeJSON      = "JSON"
-	typePlainText = "plain text"
+	typeJSON        = "JSON"
+	typePlainText   = "plain text"
+	lastResponseKey = "LAST_HTTP_RESPONSE"
 )
-
-const lastResponseKey = "LAST_HTTP_RESPONSE"
 
 //bodyHeaders is entity that holds information about request body and request headers
 type bodyHeaders struct {
