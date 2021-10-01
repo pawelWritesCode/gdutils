@@ -498,14 +498,14 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
 	header := headers.Get(name)
 
 	if header == "" && value == "" {
-		return fmt.Errorf("%w: could not find header %s", ErrHTTPReqRes, name)
+		return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
 	}
 
 	if header == value {
 		return nil
 	}
 
-	return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
+	return fmt.Errorf("%w: %s header exists but, expected value: %s, is not equal to actual: %s", ErrHTTPReqRes, name, value, header)
 }
 
 //IWait waits for given timeInterval amount of time
