@@ -465,6 +465,12 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 
 // TheResponseShouldHaveHeader checks whether last HTTP response has given header
 func (s *State) TheResponseShouldHaveHeader(name string) error {
+	defer func() {
+		if s.IsDebug {
+			fmt.Printf("last HTTP response headers: %+v", s.GetLastResponseHeaders())
+		}
+	}()
+
 	headers := s.GetLastResponseHeaders()
 
 	header := headers.Get(name)
@@ -481,6 +487,12 @@ func (s *State) TheResponseShouldHaveHeader(name string) error {
 
 // TheResponseShouldHaveHeaderOfValue checks whether last HTTP response has given header with provided value
 func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
+	defer func() {
+		if s.IsDebug {
+			fmt.Printf("last HTTP response headers: %+v", s.GetLastResponseHeaders())
+		}
+	}()
+
 	headers := s.GetLastResponseHeaders()
 
 	header := headers.Get(name)
@@ -491,10 +503,6 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
 
 	if header == value {
 		return nil
-	}
-
-	if s.IsDebug {
-		fmt.Printf("last HTTP response headers: %+v", headers)
 	}
 
 	return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
