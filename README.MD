@@ -1,4 +1,4 @@
-[![GitHubActions](https://github.com/pawelWritesCode/ships/workflows/ships/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions)
+[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions)
 
 # GDUTILS
 
