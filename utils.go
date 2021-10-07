@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"reflect"
 	"text/template"
 	"time"
+
+	"github.com/moul/http2curl"
 )
 
 const (
@@ -81,4 +84,42 @@ func (s *State) theResponseShouldBeInJSON() error {
 	}
 
 	return nil
+}
+
+//sendRequest sends request using state http client
+func (s *State) sendRequest(req *http.Request) error {
+	if s.IsDebug {
+		command, _ := http2curl.GetCurlCommand(req)
+		fmt.Println(command)
+	}
+
+	resp, err := s.HttpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+	}
+
+	s.Cache.Save(lastResponseKey, resp)
+
+	if s.IsDebug {
+		fmt.Printf("Response body:\n\n")
+		_ = s.IPrintLastResponseBody()
+		fmt.Printf("\n")
+	}
+
+	return nil
+}
+
+//getPreparedRequest returns prepared request from cache or error if failed
+func (s *State) getPreparedRequest(cacheKey string) (*http.Request, error) {
+	reqInterface, err := s.Cache.GetSaved(cacheKey)
+	if err != nil {
+		return &http.Request{}, err
+	}
+
+	req, ok := reqInterface.(*http.Request)
+	if !ok {
+		return &http.Request{}, fmt.Errorf("%w: value under key %s in cache doesn't contain *http.Request", ErrPreservedData, cacheKey)
+	}
+
+	return req, nil
 }

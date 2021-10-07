@@ -8,6 +8,11 @@ import (
 	"net/http"
 )
 
+//HttpClient describes ability to send HTTP requests
+type HttpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 //State struct represents data shared across one scenario.
 type State struct {
 	//IsDebug determine whether scenario is in debug mode
@@ -15,8 +20,8 @@ type State struct {
 	//Cache is storage for scenario data.
 	//It may hold any value from scenario steps or globally available environment variables
 	Cache Cache
-	//httpClient is cli that will send HTTP request
-	httpClient *http.Client
+	//HttpClient is entity that has ability to send HTTP(s) requests
+	HttpClient HttpClient
 }
 
 //NewDefaultState returns *State with default http.Client, DefaultCache and provided debug mode
@@ -24,15 +29,15 @@ func NewDefaultState(isDebug bool) *State {
 	return &State{
 		IsDebug: isDebug,
 		Cache:   NewDefaultCache(),
-		httpClient: &http.Client{Transport: &http.Transport{
+		HttpClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}},
 	}
 }
 
-//NewState returns *State with provided httpClient, cache and debug mode
-func NewState(httpClient *http.Client, cache Cache, isDebug bool) *State {
-	return &State{IsDebug: isDebug, Cache: cache, httpClient: httpClient}
+//NewState returns *State with provided HttpClient, cache and debug mode
+func NewState(httpClient HttpClient, cache Cache, isDebug bool) *State {
+	return &State{IsDebug: isDebug, Cache: cache, HttpClient: httpClient}
 }
 
 //ResetState resets State struct instance to default values.

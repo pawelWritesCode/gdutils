@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+
+	"github.com/cucumber/godog"
 )
 
 func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
@@ -758,6 +760,177 @@ func TestScenario_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 
 			if err := s.TheResponseShouldHaveHeaderOfValue(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseShouldHaveHeaderOfValue() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_IPrepareNewRequestToAndSaveItAs(t *testing.T) {
+	type fields struct {
+		IsDebug    bool
+		Cache      Cache
+		httpClient HttpClient
+	}
+	type args struct {
+		method      string
+		urlTemplate string
+		cacheKey    string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "success",
+			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil},
+			args:    args{method: http.MethodGet, urlTemplate: "/", cacheKey: "MY_GET_REQUEST"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &State{
+				IsDebug:    tt.fields.IsDebug,
+				Cache:      tt.fields.Cache,
+				HttpClient: tt.fields.httpClient,
+			}
+			if err := s.IPrepareNewRequestToAndSaveItAs(tt.args.method, tt.args.urlTemplate, tt.args.cacheKey); (err != nil) != tt.wantErr {
+				t.Errorf("IPrepareNewRequestToAndSaveItAs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !tt.wantErr {
+				req, err := s.getPreparedRequest(tt.args.cacheKey)
+				if err != nil {
+					t.Errorf("%v", err)
+				}
+
+				if req.Method != tt.args.method {
+					t.Errorf("obtained request has different method: %s, expected: %s", req.Method, tt.args.method)
+				}
+			}
+		})
+	}
+}
+
+func TestState_ISetFollowingHeadersForPreparedRequest(t *testing.T) {
+	type fields struct {
+		IsDebug    bool
+		Cache      Cache
+		httpClient HttpClient
+		reqMethod  string
+		reqUri     string
+		cacheKey   string
+	}
+	type args struct {
+		cacheKey        string
+		headersTemplate *godog.DocString
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "invalid headers",
+			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil},
+			args:    args{cacheKey: "", headersTemplate: &godog.DocString{Content: "abc"}},
+			wantErr: true,
+		},
+		{
+			name:    "no request",
+			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil},
+			args:    args{cacheKey: "abc", headersTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
+			wantErr: true,
+		},
+		{
+			name:    "cache key does not point at request",
+			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
+			args:    args{cacheKey: "xxx", headersTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
+			wantErr: true,
+		},
+		{
+			name:    "successfully set request header",
+			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
+			args:    args{cacheKey: "abc", headersTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &State{
+				IsDebug:    tt.fields.IsDebug,
+				Cache:      tt.fields.Cache,
+				HttpClient: tt.fields.httpClient,
+			}
+
+			err := s.IPrepareNewRequestToAndSaveItAs(tt.fields.reqMethod, tt.fields.reqUri, tt.fields.cacheKey)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+
+			if err = s.ISetFollowingHeadersForPreparedRequest(tt.args.cacheKey, tt.args.headersTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("ISetFollowingHeadersForPreparedRequest() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_ISetFollowingBodyForPreparedRequest(t *testing.T) {
+	type fields struct {
+		IsDebug    bool
+		Cache      Cache
+		httpClient HttpClient
+		reqMethod  string
+		reqUri     string
+		cacheKey   string
+	}
+	type args struct {
+		cacheKey     string
+		bodyTemplate *godog.DocString
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "no request",
+			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil},
+			args:    args{cacheKey: "abc", bodyTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
+			wantErr: true,
+		},
+		{
+			name:    "cache key does not point at request",
+			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
+			args:    args{cacheKey: "xxx", bodyTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
+			wantErr: true,
+		},
+		{
+			name:    "successfully set request body",
+			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
+			args:    args{cacheKey: "abc", bodyTemplate: &godog.DocString{Content: `{"a": "b"}`}},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &State{
+				IsDebug:    tt.fields.IsDebug,
+				Cache:      tt.fields.Cache,
+				HttpClient: tt.fields.httpClient,
+			}
+
+			err := s.IPrepareNewRequestToAndSaveItAs(tt.fields.reqMethod, tt.fields.reqUri, tt.fields.cacheKey)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+
+			if err := s.ISetFollowingBodyForPreparedRequest(tt.args.cacheKey, tt.args.bodyTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("ISetFollowingBodyForPreparedRequest() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

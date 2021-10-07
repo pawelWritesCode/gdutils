@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"math/rand"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
-	"github.com/moul/http2curl"
 	"github.com/pawelWritesCode/qjson"
 )
 
@@ -51,12 +51,7 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 		return fmt.Errorf("%w: %s", ErrJson, err.Error())
 	}
 
-	reqBody, err := json.Marshal(bodyAndHeaders.Body)
-	if err != nil {
-		return fmt.Errorf("%w: %s", ErrJson, err.Error())
-	}
-
-	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(bodyAndHeaders.Body.([]byte)))
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
 	}
@@ -65,25 +60,80 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 		req.Header.Set(headerName, headerValue)
 	}
 
-	if s.IsDebug {
-		command, _ := http2curl.GetCurlCommand(req)
-		fmt.Println(command)
-	}
+	return s.sendRequest(req)
+}
 
-	resp, err := s.httpClient.Do(req)
+//IPrepareNewRequestToAndSaveItAs prepares new request and saves it in cache under cacheKey
+func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error {
+	url, err := s.replaceTemplatedValue(urlTemplate)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+		return err
 	}
 
-	s.Cache.Save(lastResponseKey, resp)
-
-	if s.IsDebug {
-		fmt.Printf("Response body:\n\n")
-		_ = s.IPrintLastResponseBody()
-		fmt.Printf("\n")
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return fmt.Errorf("%w: could not create new request, reason: %s", ErrHTTPReqRes, err.Error())
 	}
+
+	s.Cache.Save(cacheKey, req)
 
 	return nil
+}
+
+//ISetFollowingHeadersForPreparedRequest sets provided headers for previously prepared request
+func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersTemplate *godog.DocString) error {
+	headers, err := s.replaceTemplatedValue(headersTemplate.Content)
+	if err != nil {
+		return err
+	}
+
+	var headersMap map[string]string
+	if err = json.Unmarshal([]byte(headers), &headersMap); err != nil {
+		return fmt.Errorf("%w: could not parse provided headers: \n\n%s\n\nerr: %s", ErrGdutils, headers, err.Error())
+	}
+
+	req, err := s.getPreparedRequest(cacheKey)
+	if err != nil {
+		return err
+	}
+
+	for hName, hValue := range headersMap {
+		req.Header.Set(hName, hValue)
+	}
+
+	s.Cache.Save(cacheKey, req)
+
+	return nil
+}
+
+//ISetFollowingBodyForPreparedRequest sets body for previously prepared request
+//bodyTemplate may be in any format and accepts template values
+func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate *godog.DocString) error {
+	body, err := s.replaceTemplatedValue(bodyTemplate.Content)
+	if err != nil {
+		return err
+	}
+
+	req, err := s.getPreparedRequest(cacheKey)
+	if err != nil {
+		return err
+	}
+
+	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(body)))
+
+	s.Cache.Save(cacheKey, req)
+
+	return nil
+}
+
+//ISendRequest sends previously prepared HTTP(s) request
+func (s *State) ISendRequest(cacheKey string) error {
+	req, err := s.getPreparedRequest(cacheKey)
+	if err != nil {
+		return err
+	}
+
+	return s.sendRequest(req)
 }
 
 //TheResponseStatusCodeShouldBe compare last response status code with given in argument.

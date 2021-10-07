@@ -6,7 +6,7 @@
 //	func NewDefaultState(isDebug bool) *State
 //
 // Second, returns *State with provided http.Client, Cache and debug mode:
-//	func NewState(httpClient *http.Client, cache Cache, isDebug bool) *State
+//	func NewState(HttpClient HttpClient, cache Cache, isDebug bool) *State
 //
 // Struct State contains of
 //
@@ -32,6 +32,13 @@
 // * Sending HTTP(s) requests:
 //
 //	func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error
+//
+// or
+//
+//	func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error
+//	func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersTemplate *godog.DocString) error
+//	func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate *godog.DocString) error
+//	func (s *State) ISendRequest(cacheKey string) error
 //
 // * Assertions:
 //
