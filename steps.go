@@ -57,7 +57,12 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 		return fmt.Errorf("%w: %s", ErrJson, err.Error())
 	}
 
-	req, err := http.NewRequest(method, url, bytes.NewBuffer(bodyAndHeaders.Body.([]byte)))
+	reqBody, err := json.Marshal(bodyAndHeaders.Body)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrJson, err.Error())
+	}
+
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
 	}
