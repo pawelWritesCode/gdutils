@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"reflect"
 	"testing"
+
+	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 )
 
 func TestState_ResetState(t *testing.T) {
@@ -14,7 +16,7 @@ func TestState_ResetState(t *testing.T) {
 
 	s.ResetState(false)
 
-	if s.IsDebug {
+	if s.Debugger.IsOn() != false {
 		t.Errorf("IsDebug property did not change")
 	}
 
@@ -28,9 +30,9 @@ func TestState_GetLastResponse(t *testing.T) {
 
 	resp := &http.Response{Header: map[string][]string{"Content-Type": []string{"application/json"}}}
 
-	s.Cache.Save(lastResponseKey, resp)
+	s.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
 
-	obtainedResp, err := s.GetLastResponse()
+	obtainedResp, err := s.HttpContext.GetLastResponse()
 	if err != nil {
 		t.Errorf("could not get last response, err: %v", err)
 	}
@@ -48,9 +50,12 @@ func TestState_GetLastResponseBody(t *testing.T) {
 		Body: ioutil.NopCloser(bytes.NewBuffer(body)),
 	}
 
-	s.Cache.Save(lastResponseKey, resp)
+	s.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
 
-	obtainedRespBody := s.GetLastResponseBody()
+	obtainedRespBody, err := s.HttpContext.GetLastResponseBody()
+	if err != nil {
+		t.Errorf("could not get last response, err: %v", err)
+	}
 
 	if !reflect.DeepEqual(body, obtainedRespBody) {
 		t.Errorf("obtained response body is not equal to saved one")

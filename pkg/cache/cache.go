@@ -1,4 +1,11 @@
-package gdutils
+package cache
+
+import (
+	"errors"
+	"fmt"
+)
+
+var ErrMissingKey = errors.New("missing key")
 
 //Cache is entity that has ability to store/retrieve arbitrary values
 type Cache interface {
@@ -17,7 +24,7 @@ type DefaultCache struct {
 	buff map[string]interface{}
 }
 
-func NewDefaultCache() *DefaultCache {
+func New() *DefaultCache {
 	return &DefaultCache{buff: map[string]interface{}{}}
 }
 
@@ -31,7 +38,7 @@ func (c *DefaultCache) GetSaved(key string) (interface{}, error) {
 	val, ok := c.buff[key]
 
 	if ok == false {
-		return val, ErrPreservedData
+		return val, fmt.Errorf("%w: %s", ErrMissingKey, key)
 	}
 
 	return val, nil

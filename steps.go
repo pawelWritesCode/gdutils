@@ -15,13 +15,19 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
+	"github.com/moul/http2curl"
 	"github.com/pawelWritesCode/qjson"
+
+	"github.com/pawelWritesCode/gdutils/internal/datatype"
+	"github.com/pawelWritesCode/gdutils/internal/mathutils"
+	"github.com/pawelWritesCode/gdutils/internal/reflectutils"
+	"github.com/pawelWritesCode/gdutils/internal/stringutils"
+	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 )
 
 const (
-	typeJSON        = "JSON"
-	typePlainText   = "plain text"
-	lastResponseKey = "LAST_HTTP_RESPONSE"
+	typeJSON      = "JSON"
+	typePlainText = "plain text"
 )
 
 //bodyHeaders is entity that holds information about request body and request headers
@@ -35,12 +41,12 @@ type bodyHeaders struct {
 //Argument urlTemplate should be full url path. May include template values.
 //Argument bodyTemplate should be slice of bytes marshallable on bodyHeaders struct
 func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error {
-	input, err := s.replaceTemplatedValue(bodyTemplate.Content)
+	input, err := s.TemplateEngine.Replace(bodyTemplate.Content, s.Cache.All())
 	if err != nil {
 		return err
 	}
 
-	url, err := s.replaceTemplatedValue(urlTemplate)
+	url, err := s.TemplateEngine.Replace(urlTemplate, s.Cache.All())
 	if err != nil {
 		return err
 	}
@@ -60,12 +66,29 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 		req.Header.Set(headerName, headerValue)
 	}
 
-	return s.sendRequest(req)
+	if s.Debugger.IsOn() {
+		command, _ := http2curl.GetCurlCommand(req)
+		s.Debugger.Print(command.String())
+	}
+
+	resp, err := s.HttpContext.GetHTTPClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+	}
+
+	s.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
+
+	if s.Debugger.IsOn() {
+		respBody, _ := s.HttpContext.GetLastResponseBody()
+		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
+	}
+
+	return nil
 }
 
 //IPrepareNewRequestToAndSaveItAs prepares new request and saves it in cache under cacheKey
 func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error {
-	url, err := s.replaceTemplatedValue(urlTemplate)
+	url, err := s.TemplateEngine.Replace(urlTemplate, s.Cache.All())
 	if err != nil {
 		return err
 	}
@@ -82,7 +105,7 @@ func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey st
 
 //ISetFollowingHeadersForPreparedRequest sets provided headers for previously prepared request
 func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersTemplate *godog.DocString) error {
-	headers, err := s.replaceTemplatedValue(headersTemplate.Content)
+	headers, err := s.TemplateEngine.Replace(headersTemplate.Content, s.Cache.All())
 	if err != nil {
 		return err
 	}
@@ -109,7 +132,7 @@ func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersT
 //ISetFollowingBodyForPreparedRequest sets body for previously prepared request
 //bodyTemplate may be in any format and accepts template values
 func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate *godog.DocString) error {
-	body, err := s.replaceTemplatedValue(bodyTemplate.Content)
+	body, err := s.TemplateEngine.Replace(bodyTemplate.Content, s.Cache.All())
 	if err != nil {
 		return err
 	}
@@ -133,12 +156,29 @@ func (s *State) ISendRequest(cacheKey string) error {
 		return err
 	}
 
-	return s.sendRequest(req)
+	if s.Debugger.IsOn() {
+		command, _ := http2curl.GetCurlCommand(req)
+		s.Debugger.Print(command.String())
+	}
+
+	resp, err := s.HttpContext.GetHTTPClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+	}
+
+	s.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
+
+	if s.Debugger.IsOn() {
+		respBody, _ := s.HttpContext.GetLastResponseBody()
+		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
+	}
+
+	return nil
 }
 
 //TheResponseStatusCodeShouldBe compare last response status code with given in argument.
 func (s *State) TheResponseStatusCodeShouldBe(code int) error {
-	lastResponse, err := s.GetLastResponse()
+	lastResponse, err := s.HttpContext.GetLastResponse()
 	if err != nil {
 		return err
 	}
@@ -155,11 +195,21 @@ func (s *State) TheResponseStatusCodeShouldBe(code int) error {
 func (s *State) TheResponseBodyShouldHaveType(dataType string) error {
 	switch dataType {
 	case typeJSON:
-		return s.theResponseShouldBeInJSON()
+		body, err := s.HttpContext.GetLastResponseBody()
+		if err != nil {
+			return err
+		}
+
+		return datatype.IsJSON(body)
 
 	//This case checks whether last response body is not any of known types - then it assumes it is plain text
 	case typePlainText:
-		if err := s.theResponseShouldBeInJSON(); err != nil {
+		body, err := s.HttpContext.GetLastResponseBody()
+		if err != nil {
+			return err
+		}
+
+		if err := datatype.IsJSON(body); err != nil {
 			return nil
 		}
 
@@ -172,11 +222,17 @@ func (s *State) TheResponseBodyShouldHaveType(dataType string) error {
 //ISaveFromTheLastResponseJSONNodeAs saves from last response body JSON node under given DefaultCache key.
 //expr should be valid according to qjson library
 func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error {
-	iVal, err := qjson.Resolve(expr, s.GetLastResponseBody())
+	body, err := s.HttpContext.GetLastResponseBody()
+	if err != nil {
+		return err
+	}
+
+	iVal, err := qjson.Resolve(expr, body)
 
 	if err != nil {
-		if s.IsDebug {
-			_ = s.IPrintLastResponseBody()
+		if s.Debugger.IsOn() {
+			respBody, _ := s.HttpContext.GetLastResponseBody()
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 		}
 
 		return fmt.Errorf("%w, err: %s", ErrQJSON, err.Error())
@@ -189,14 +245,14 @@ func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error 
 
 //IGenerateARandomIntInTheRangeToAndSaveItAs generates random integer from provided range and preserve it under given DefaultCache key
 func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
-	s.Cache.Save(cacheKey, randomInt(from, to))
+	s.Cache.Save(cacheKey, mathutils.RandomInt(from, to))
 
 	return nil
 }
 
 //IGenerateARandomFloatInTheRangeToAndSaveItAs generates random float from provided range and preserve it under given DefaultCache key
 func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
-	randInt := randomInt(from, to)
+	randInt := mathutils.RandomInt(from, to)
 	float01 := rand.Float64()
 
 	strFloat := fmt.Sprintf("%.2f", float01*float64(randInt))
@@ -217,7 +273,7 @@ func (s *State) IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItA
 		return fmt.Errorf("%w: provided string length %d can't be less than 1", ErrGdutils, strLength)
 	}
 
-	s.Cache.Save(cacheKey, s.stringWithCharset(strLength, charsetLettersOnly))
+	s.Cache.Save(cacheKey, stringutils.StringWithCharset(strLength, stringutils.CharsetASCII))
 
 	return nil
 }
@@ -229,17 +285,23 @@ func (s *State) IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs(s
 		return fmt.Errorf("%w: provided string length %d can't be less than 1", ErrGdutils, strLength)
 	}
 
-	s.Cache.Save(cacheKey, s.stringWithCharset(strLength, charsetUnicodeCharacters))
+	s.Cache.Save(cacheKey, stringutils.StringWithCharset(strLength, stringutils.CharsetUnicode))
 
 	return nil
 }
 
 //TheJSONResponseShouldHaveNode checks whether last response body contains given key
 func (s *State) TheJSONResponseShouldHaveNode(expr string) error {
-	_, err := qjson.Resolve(expr, s.GetLastResponseBody())
+	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
-		if s.IsDebug {
-			_ = s.IPrintLastResponseBody()
+		return err
+	}
+
+	_, err = qjson.Resolve(expr, body)
+	if err != nil {
+		if s.Debugger.IsOn() {
+			respBody, _ := s.HttpContext.GetLastResponseBody()
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 		}
 
 		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
@@ -252,7 +314,12 @@ func (s *State) TheJSONResponseShouldHaveNode(expr string) error {
 //goType may be one of: nil, string, int, float, bool, map, slice
 //expr should be valid according to qjson library
 func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
-	iNodeVal, err := qjson.Resolve(expr, s.GetLastResponseBody())
+	body, err := s.HttpContext.GetLastResponseBody()
+	if err != nil {
+		return err
+	}
+
+	iNodeVal, err := qjson.Resolve(expr, body)
 	if err != nil {
 		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
 	}
@@ -261,7 +328,7 @@ func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
 	errInvalidType := fmt.Errorf("%w: %s value is \"%s\", but expected not to be", ErrGdutils, expr, goType)
 	switch goType {
 	case "nil":
-		if !vNodeVal.IsValid() || valueIsNil(vNodeVal) {
+		if !vNodeVal.IsValid() || reflectutils.IsValueNil(vNodeVal) {
 			return errInvalidType
 		}
 
@@ -345,10 +412,15 @@ func (s *State) TheJSONNodeShouldBe(expr string, goType string) error {
 func (s *State) TheJSONResponseShouldHaveNodes(nodeExprs string) error {
 	keysSlice := strings.Split(nodeExprs, ",")
 
+	body, err := s.HttpContext.GetLastResponseBody()
+	if err != nil {
+		return err
+	}
+
 	errs := make([]error, 0, len(keysSlice))
 	for _, key := range keysSlice {
 		trimmedKey := strings.TrimSpace(key)
-		_, err := qjson.Resolve(trimmedKey, s.GetLastResponseBody())
+		_, err := qjson.Resolve(trimmedKey, body)
 
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, trimmedKey, err.Error()))
@@ -361,8 +433,9 @@ func (s *State) TheJSONResponseShouldHaveNodes(nodeExprs string) error {
 			errString += fmt.Sprintf("%s\n", err)
 		}
 
-		if s.IsDebug {
-			_ = s.IPrintLastResponseBody()
+		if s.Debugger.IsOn() {
+			respBody, _ := s.HttpContext.GetLastResponseBody()
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 		}
 
 		return errors.New(errString)
@@ -374,10 +447,16 @@ func (s *State) TheJSONResponseShouldHaveNodes(nodeExprs string) error {
 //TheJSONNodeShouldBeSliceOfLength checks whether given key is slice and has given length
 //expr should be valid according to qjson library
 func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error {
-	iValue, err := qjson.Resolve(expr, s.GetLastResponseBody())
+	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
-		if s.IsDebug {
-			_ = s.IPrintLastResponseBody()
+		return err
+	}
+
+	iValue, err := qjson.Resolve(expr, body)
+	if err != nil {
+		if s.Debugger.IsOn() {
+			respBody, _ := s.HttpContext.GetLastResponseBody()
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 		}
 
 		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
@@ -391,8 +470,10 @@ func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error 
 
 		return nil
 	}
-	if s.IsDebug {
-		_ = s.IPrintLastResponseBody()
+
+	if s.Debugger.IsOn() {
+		respBody, _ := s.HttpContext.GetLastResponseBody()
+		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 	}
 
 	return fmt.Errorf("%w: %s does not point at slice(array) in last HTTP(s) response JSON body", ErrGdutils, expr)
@@ -402,19 +483,25 @@ func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error 
 //available data types are listed in switch section in each case directive
 //expr should be valid according to qjson library
 func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) error {
-	nodeValueReplaced, err := s.replaceTemplatedValue(dataValue)
+	nodeValueReplaced, err := s.TemplateEngine.Replace(dataValue, s.Cache.All())
 	if err != nil {
 		return err
 	}
 
-	if s.IsDebug {
-		fmt.Printf("Replaced value: %s\n", nodeValueReplaced)
+	if s.Debugger.IsOn() {
+		s.Debugger.Print(fmt.Sprintf("replaced value %s\n", nodeValueReplaced))
 	}
 
-	iValue, err := qjson.Resolve(expr, s.GetLastResponseBody())
+	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
-		if s.IsDebug {
-			_ = s.IPrintLastResponseBody()
+		return err
+	}
+
+	iValue, err := qjson.Resolve(expr, body)
+	if err != nil {
+		if s.Debugger.IsOn() {
+			respBody, _ := s.HttpContext.GetLastResponseBody()
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 		}
 
 		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
@@ -424,24 +511,30 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 	case "string":
 		strVal, ok := iValue.(string)
 		if !ok {
-			if s.IsDebug {
-				_ = s.IPrintLastResponseBody()
+			if s.Debugger.IsOn() {
+				respBody, _ := s.HttpContext.GetLastResponseBody()
+				s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 			}
+
 			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
 		}
 
 		if strVal != nodeValueReplaced {
-			if s.IsDebug {
-				_ = s.IPrintLastResponseBody()
+			if s.Debugger.IsOn() {
+				respBody, _ := s.HttpContext.GetLastResponseBody()
+				s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 			}
+
 			return fmt.Errorf("%w: node %s string value: %s is not equal to expected string value: %s", ErrGdutils, expr, strVal, nodeValueReplaced)
 		}
 	case "int":
 		floatVal, ok := iValue.(float64)
 		if !ok {
-			if s.IsDebug {
-				_ = s.IPrintLastResponseBody()
+			if s.Debugger.IsOn() {
+				respBody, _ := s.HttpContext.GetLastResponseBody()
+				s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 			}
+
 			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
 		}
 
@@ -450,62 +543,78 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 		intNodeValue, err := strconv.Atoi(nodeValueReplaced)
 
 		if err != nil {
-			if s.IsDebug {
-				_ = s.IPrintLastResponseBody()
+			if s.Debugger.IsOn() {
+				respBody, _ := s.HttpContext.GetLastResponseBody()
+				s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 			}
+
 			return fmt.Errorf("%w: replaced node %s value %s could not be converted to int", ErrGdutils, expr, nodeValueReplaced)
 		}
 
 		if intVal != intNodeValue {
-			if s.IsDebug {
-				_ = s.IPrintLastResponseBody()
+			if s.Debugger.IsOn() {
+				respBody, _ := s.HttpContext.GetLastResponseBody()
+				s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 			}
+
 			return fmt.Errorf("%w: node %s int value: %d is not equal to expected int value: %d", ErrGdutils, expr, intVal, intNodeValue)
 		}
 	case "float":
 		floatVal, ok := iValue.(float64)
 		if !ok {
-			if s.IsDebug {
-				_ = s.IPrintLastResponseBody()
+			if s.Debugger.IsOn() {
+				respBody, _ := s.HttpContext.GetLastResponseBody()
+				s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 			}
+
 			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
 		}
 
 		floatNodeValue, err := strconv.ParseFloat(nodeValueReplaced, 64)
 		if err != nil {
-			if s.IsDebug {
-				_ = s.IPrintLastResponseBody()
+			if s.Debugger.IsOn() {
+				respBody, _ := s.HttpContext.GetLastResponseBody()
+				s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 			}
+
 			return fmt.Errorf("%w: replaced node %s value %s could not be converted to float64", ErrGdutils, expr, nodeValueReplaced)
 		}
 
 		if floatVal != floatNodeValue {
-			if s.IsDebug {
-				_ = s.IPrintLastResponseBody()
+			if s.Debugger.IsOn() {
+				respBody, _ := s.HttpContext.GetLastResponseBody()
+				s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 			}
+
 			return fmt.Errorf("%w: node %s float value %f is not equal to expected float value %f", ErrGdutils, expr, floatVal, floatNodeValue)
 		}
 	case "bool":
 		boolVal, ok := iValue.(bool)
 		if !ok {
-			if s.IsDebug {
-				_ = s.IPrintLastResponseBody()
+			if s.Debugger.IsOn() {
+				respBody, _ := s.HttpContext.GetLastResponseBody()
+				s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 			}
+
 			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
 		}
 
 		boolNodeValue, err := strconv.ParseBool(nodeValueReplaced)
 		if err != nil {
-			if s.IsDebug {
-				_ = s.IPrintLastResponseBody()
+			if s.Debugger.IsOn() {
+				respBody, _ := s.HttpContext.GetLastResponseBody()
+				s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 			}
+
 			return fmt.Errorf("%w: replaced node %s value %s could not be converted to bool", ErrGdutils, expr, nodeValueReplaced)
 		}
 
 		if boolVal != boolNodeValue {
-			if s.IsDebug {
-				_ = s.IPrintLastResponseBody()
+			if s.Debugger.IsOn() {
+				respBody, _ := s.HttpContext.GetLastResponseBody()
+				s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 			}
+
 			return fmt.Errorf("%w: node %s bool value %t is not equal to expected bool value %t", ErrGdutils, expr, boolVal, boolNodeValue)
 		}
 	}
@@ -516,20 +625,28 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 // TheResponseShouldHaveHeader checks whether last HTTP response has given header
 func (s *State) TheResponseShouldHaveHeader(name string) error {
 	defer func() {
-		if s.IsDebug {
-			fmt.Printf("last HTTP response headers: %+v", s.GetLastResponseHeaders())
+		if s.Debugger.IsOn() {
+			lastResp, err := s.HttpContext.GetLastResponse()
+			if err != nil {
+				s.Debugger.Print("could not obtain last response headers")
+			}
+
+			s.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %+v", lastResp.Header))
 		}
 	}()
 
-	headers := s.GetLastResponseHeaders()
+	lastResp, err := s.HttpContext.GetLastResponse()
+	if err != nil {
+		return err
+	}
 
-	header := headers.Get(name)
+	header := lastResp.Header.Get(name)
 	if header != "" {
 		return nil
 	}
 
-	if s.IsDebug {
-		fmt.Printf("last HTTP response headers: %+v", headers)
+	if s.Debugger.IsOn() {
+		s.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %+v", lastResp.Header))
 	}
 
 	return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
@@ -538,14 +655,22 @@ func (s *State) TheResponseShouldHaveHeader(name string) error {
 // TheResponseShouldHaveHeaderOfValue checks whether last HTTP response has given header with provided value
 func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
 	defer func() {
-		if s.IsDebug {
-			fmt.Printf("last HTTP response headers: %+v", s.GetLastResponseHeaders())
+		if s.Debugger.IsOn() {
+			lastResp, err := s.HttpContext.GetLastResponse()
+			if err != nil {
+				s.Debugger.Print("could not obtain last response headers")
+			}
+
+			s.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %+v", lastResp.Header))
 		}
 	}()
 
-	headers := s.GetLastResponseHeaders()
+	lastResp, err := s.HttpContext.GetLastResponse()
+	if err != nil {
+		return err
+	}
 
-	header := headers.Get(name)
+	header := lastResp.Header.Get(name)
 
 	if header == "" && value == "" {
 		return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
@@ -573,34 +698,40 @@ func (s *State) IWait(timeInterval string) error {
 //IPrintLastResponseBody prints last response from request
 func (s *State) IPrintLastResponseBody() error {
 	var tmp map[string]interface{}
-	err := json.Unmarshal(s.GetLastResponseBody(), &tmp)
+
+	body, err := s.HttpContext.GetLastResponseBody()
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(body, &tmp)
 
 	if err != nil {
-		fmt.Println(string(s.GetLastResponseBody()))
+		s.Debugger.Print(string(body))
 		return nil
 	}
 
 	indentedRespBody, err := json.MarshalIndent(tmp, "", "\t")
 
 	if err != nil {
-		fmt.Println(string(s.GetLastResponseBody()))
+		s.Debugger.Print(string(body))
 		return nil
 	}
 
-	fmt.Println(string(indentedRespBody))
+	s.Debugger.Print(string(indentedRespBody))
 	return nil
 }
 
 //IStartDebugMode starts debugging mode
 func (s *State) IStartDebugMode() error {
-	s.IsDebug = true
+	s.Debugger.TurnOn()
 
 	return nil
 }
 
 //IStopDebugMode stops debugging mode
 func (s *State) IStopDebugMode() error {
-	s.IsDebug = false
+	s.Debugger.TurnOff()
 
 	return nil
 }

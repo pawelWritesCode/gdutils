@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	"github.com/cucumber/godog"
+
+	"github.com/pawelWritesCode/gdutils/pkg/cache"
+	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 )
 
 func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
@@ -119,11 +122,9 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &State{
-				Cache: NewDefaultCache(),
-			}
+			af := NewDefaultState(false)
 
-			af.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
 			if err := af.TheJSONNodeShouldBeOfValue(tt.args.expr, tt.args.dataType, tt.args.dataValue); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBeOfValue() error = %v, wantErr %v", err, tt.wantErr)
@@ -189,9 +190,9 @@ func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &State{Cache: NewDefaultCache()}
+			af := NewDefaultState(false)
 
-			af.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 			if err := af.TheJSONNodeShouldBeSliceOfLength(tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBeSliceOfLength() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -348,12 +349,9 @@ func TestApiFeature_TheJSONNodeShouldNotBe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &State{
-				Cache:   NewDefaultCache(),
-				IsDebug: tt.fields.isDebug,
-			}
+			af := NewDefaultState(tt.fields.isDebug)
 
-			af.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
 			if err := af.TheJSONNodeShouldNotBe(tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldNotBe() error = %v, wantErr %v", err, tt.wantErr)
@@ -511,12 +509,9 @@ func TestApiFeature_TheJSONNodeShouldBe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := &State{
-				Cache:   NewDefaultCache(),
-				IsDebug: tt.fields.isDebug,
-			}
+			af := NewDefaultState(tt.fields.isDebug)
 
-			af.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
 			if err := af.TheJSONNodeShouldBe(tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBe() error = %v, wantErr %v", err, tt.wantErr)
@@ -549,12 +544,9 @@ func TestScenario_TheResponseStatusCodeShouldBe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &State{
-				Cache:   NewDefaultCache(),
-				IsDebug: tt.fields.isDebug,
-			}
+			s := NewDefaultState(tt.fields.isDebug)
 
-			s.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
 			if err := s.TheResponseStatusCodeShouldBe(tt.args.code); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseStatusCodeShouldBe() error = %v, wantErr %v", err, tt.wantErr)
@@ -565,7 +557,7 @@ func TestScenario_TheResponseStatusCodeShouldBe(t *testing.T) {
 
 func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 	type fields struct {
-		cache        Cache
+		cache        cache.Cache
 		lastResponse *http.Response
 		isDebug      bool
 	}
@@ -580,13 +572,13 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "invalid node #1", fields: fields{
-			cache: NewDefaultCache(),
+			cache: cache.New(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "abc"
 }`))},
 		}, args: args{node: "token", variableName: "TOKEN"}, wantErr: true},
 		{name: "invalid node #2", fields: fields{
-			cache: NewDefaultCache(),
+			cache: cache.New(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {
 		"name": "a",
@@ -595,7 +587,7 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 }`))},
 		}, args: args{node: "last_name", variableName: "LAST_NAME"}, wantErr: true},
 		{name: "valid node #1", fields: fields{
-			cache: NewDefaultCache(),
+			cache: cache.New(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {
 		"name": "a",
@@ -604,7 +596,7 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 }`))},
 		}, args: args{node: "user.last_name", variableName: "LAST_NAME"}, wantErr: false},
 		{name: "valid node #2", fields: fields{
-			cache: NewDefaultCache(),
+			cache: cache.New(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {
 		"name": "a",
@@ -615,12 +607,9 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &State{
-				Cache:   tt.fields.cache,
-				IsDebug: tt.fields.isDebug,
-			}
+			s := NewDefaultState(tt.fields.isDebug)
 
-			s.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
 			err := s.ISaveFromTheLastResponseJSONNodeAs(tt.args.node, tt.args.variableName)
 
@@ -638,10 +627,7 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 }
 
 func TestScenario_IGenerateARandomIntInTheRangeToAndSaveItAs(t *testing.T) {
-	s := &State{
-		Cache:   NewDefaultCache(),
-		IsDebug: false,
-	}
+	s := NewDefaultState(false)
 	for i := 0; i < 100; i++ {
 		if err := s.IGenerateARandomIntInTheRangeToAndSaveItAs(0, 100000, "RANDOM_INT"); (err != nil) != false {
 			t.Errorf("IGenerateARandomIntInTheRangeToAndSaveItAs() error = %v, wantErr %v", err, false)
@@ -698,12 +684,9 @@ func TestScenario_TheResponseShouldHaveHeader(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &State{
-				Cache:   NewDefaultCache(),
-				IsDebug: tt.fields.isDebug,
-			}
+			s := NewDefaultState(tt.fields.isDebug)
 
-			s.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
 			if err := s.TheResponseShouldHaveHeader(tt.args.name); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseShouldHaveHeader() error = %v, wantErr %v", err, tt.wantErr)
@@ -751,12 +734,9 @@ func TestScenario_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &State{
-				Cache:   NewDefaultCache(),
-				IsDebug: tt.fields.isDebug,
-			}
+			s := NewDefaultState(tt.fields.isDebug)
 
-			s.Cache.Save(lastResponseKey, tt.fields.lastResponse)
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
 			if err := s.TheResponseShouldHaveHeaderOfValue(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseShouldHaveHeaderOfValue() error = %v, wantErr %v", err, tt.wantErr)
@@ -767,9 +747,7 @@ func TestScenario_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 
 func TestState_IPrepareNewRequestToAndSaveItAs(t *testing.T) {
 	type fields struct {
-		IsDebug    bool
-		Cache      Cache
-		httpClient HttpClient
+		IsDebug bool
 	}
 	type args struct {
 		method      string
@@ -784,18 +762,14 @@ func TestState_IPrepareNewRequestToAndSaveItAs(t *testing.T) {
 	}{
 		{
 			name:    "success",
-			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil},
+			fields:  fields{IsDebug: false},
 			args:    args{method: http.MethodGet, urlTemplate: "/", cacheKey: "MY_GET_REQUEST"},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &State{
-				IsDebug:    tt.fields.IsDebug,
-				Cache:      tt.fields.Cache,
-				HttpClient: tt.fields.httpClient,
-			}
+			s := NewDefaultState(tt.fields.IsDebug)
 			if err := s.IPrepareNewRequestToAndSaveItAs(tt.args.method, tt.args.urlTemplate, tt.args.cacheKey); (err != nil) != tt.wantErr {
 				t.Errorf("IPrepareNewRequestToAndSaveItAs() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -816,12 +790,10 @@ func TestState_IPrepareNewRequestToAndSaveItAs(t *testing.T) {
 
 func TestState_ISetFollowingHeadersForPreparedRequest(t *testing.T) {
 	type fields struct {
-		IsDebug    bool
-		Cache      Cache
-		httpClient HttpClient
-		reqMethod  string
-		reqUri     string
-		cacheKey   string
+		IsDebug   bool
+		reqMethod string
+		reqUri    string
+		cacheKey  string
 	}
 	type args struct {
 		cacheKey        string
@@ -835,36 +807,32 @@ func TestState_ISetFollowingHeadersForPreparedRequest(t *testing.T) {
 	}{
 		{
 			name:    "invalid headers",
-			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil},
+			fields:  fields{IsDebug: false},
 			args:    args{cacheKey: "", headersTemplate: &godog.DocString{Content: "abc"}},
 			wantErr: true,
 		},
 		{
 			name:    "no request",
-			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil},
+			fields:  fields{IsDebug: false},
 			args:    args{cacheKey: "abc", headersTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
 			wantErr: true,
 		},
 		{
 			name:    "cache key does not point at request",
-			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
+			fields:  fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
 			args:    args{cacheKey: "xxx", headersTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
 			wantErr: true,
 		},
 		{
 			name:    "successfully set request header",
-			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
+			fields:  fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
 			args:    args{cacheKey: "abc", headersTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &State{
-				IsDebug:    tt.fields.IsDebug,
-				Cache:      tt.fields.Cache,
-				HttpClient: tt.fields.httpClient,
-			}
+			s := NewDefaultState(tt.fields.IsDebug)
 
 			err := s.IPrepareNewRequestToAndSaveItAs(tt.fields.reqMethod, tt.fields.reqUri, tt.fields.cacheKey)
 			if err != nil {
@@ -880,12 +848,10 @@ func TestState_ISetFollowingHeadersForPreparedRequest(t *testing.T) {
 
 func TestState_ISetFollowingBodyForPreparedRequest(t *testing.T) {
 	type fields struct {
-		IsDebug    bool
-		Cache      Cache
-		httpClient HttpClient
-		reqMethod  string
-		reqUri     string
-		cacheKey   string
+		IsDebug   bool
+		reqMethod string
+		reqUri    string
+		cacheKey  string
 	}
 	type args struct {
 		cacheKey     string
@@ -899,31 +865,26 @@ func TestState_ISetFollowingBodyForPreparedRequest(t *testing.T) {
 	}{
 		{
 			name:    "no request",
-			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil},
+			fields:  fields{IsDebug: false},
 			args:    args{cacheKey: "abc", bodyTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
 			wantErr: true,
 		},
 		{
 			name:    "cache key does not point at request",
-			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
+			fields:  fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
 			args:    args{cacheKey: "xxx", bodyTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
 			wantErr: true,
 		},
 		{
 			name:    "successfully set request body",
-			fields:  fields{IsDebug: false, Cache: NewDefaultCache(), httpClient: nil, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
+			fields:  fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
 			args:    args{cacheKey: "abc", bodyTemplate: &godog.DocString{Content: `{"a": "b"}`}},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &State{
-				IsDebug:    tt.fields.IsDebug,
-				Cache:      tt.fields.Cache,
-				HttpClient: tt.fields.httpClient,
-			}
-
+			s := NewDefaultState(tt.fields.IsDebug)
 			err := s.IPrepareNewRequestToAndSaveItAs(tt.fields.reqMethod, tt.fields.reqUri, tt.fields.cacheKey)
 			if err != nil {
 				t.Errorf("%v", err)

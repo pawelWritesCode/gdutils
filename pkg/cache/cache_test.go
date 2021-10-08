@@ -1,4 +1,4 @@
-package gdutils
+package cache
 
 import (
 	"reflect"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestDefaultCache_SaveAndGetValue(t *testing.T) {
-	c := NewDefaultCache()
+	c := New()
 	c.Save("test", 1)
 	val, err := c.GetSaved("test")
 	if err != nil {
@@ -24,7 +24,7 @@ func TestDefaultCache_SaveAndGetValue(t *testing.T) {
 }
 
 func TestDefaultCache_GetAllValues(t *testing.T) {
-	c := NewDefaultCache()
+	c := New()
 	c.Save("test1", 1)
 	c.Save("test2", 2)
 
@@ -36,7 +36,7 @@ func TestDefaultCache_GetAllValues(t *testing.T) {
 }
 
 func TestDefaultCache_Reset(t *testing.T) {
-	c := NewDefaultCache()
+	c := New()
 	c.Save("test1", 1)
 	c.Save("test2", 2)
 

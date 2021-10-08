@@ -1,103 +1,66 @@
 package gdutils
 
 import (
-	"bytes"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-)
 
-//HttpClient describes ability to send HTTP requests
-type HttpClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
+	"github.com/pawelWritesCode/gdutils/pkg/cache"
+	"github.com/pawelWritesCode/gdutils/pkg/debugger"
+	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
+	"github.com/pawelWritesCode/gdutils/pkg/template"
+)
 
 //State struct represents data shared across one scenario.
 type State struct {
 	//IsDebug determine whether scenario is in debug mode
-	IsDebug bool
-	//Cache is storage for scenario data.
-	//It may hold any value from scenario steps or globally available environment variables
-	Cache Cache
+	Debugger debugger.Debugger
+	//Cache is storage for scenario data
+	Cache cache.Cache
 	//HttpClient is entity that has ability to send HTTP(s) requests
-	HttpClient HttpClient
+	HttpContext httpctx.HttpContext
+	//TemplateEngine is entity that has ability to retrieve templated values
+	TemplateEngine template.TemplateEngine
 }
 
-//NewDefaultState returns *State with default http.Client, DefaultCache and provided debug mode
+//NewDefaultState returns *State with default http.Client, DefaultCache and default Debugger
 func NewDefaultState(isDebug bool) *State {
-	return &State{
-		IsDebug: isDebug,
-		Cache:   NewDefaultCache(),
-		HttpClient: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}},
-	}
+	defaultCache := cache.New()
+	defaultHttpClient := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+
+	return NewState(defaultHttpClient, defaultCache, isDebug)
 }
 
-//NewState returns *State with provided HttpClient, cache and debug mode
-func NewState(httpClient HttpClient, cache Cache, isDebug bool) *State {
-	return &State{IsDebug: isDebug, Cache: cache, HttpClient: httpClient}
+//NewState returns *State with provided HttpClient, cache and default Debugger
+func NewState(httpClient *http.Client, cache cache.Cache, isDebug bool) *State {
+	defaultDebugger := debugger.New(isDebug)
+	return &State{
+		Debugger:       defaultDebugger,
+		Cache:          cache,
+		HttpContext:    httpctx.New(cache, defaultDebugger, httpClient),
+		TemplateEngine: template.New(),
+	}
 }
 
 //ResetState resets State struct instance to default values.
 func (s *State) ResetState(isDebug bool) {
 	s.Cache.Reset()
-	s.IsDebug = isDebug
+	s.Debugger.Reset(isDebug)
 }
 
-//GetLastResponse retrieve last response from cache
-func (s *State) GetLastResponse() (*http.Response, error) {
-	respInterface, err := s.Cache.GetSaved(lastResponseKey)
+//getPreparedRequest returns prepared request from cache or error if failed
+func (s *State) getPreparedRequest(cacheKey string) (*http.Request, error) {
+	reqInterface, err := s.Cache.GetSaved(cacheKey)
 	if err != nil {
-		return nil, fmt.Errorf("%w: missing last HTTP(s) response, err: %s", ErrHTTPReqRes, err.Error())
+		return &http.Request{}, err
 	}
 
-	lastResp, ok := respInterface.(*http.Response)
+	req, ok := reqInterface.(*http.Request)
 	if !ok {
-		if s.IsDebug {
-			fmt.Println()
-		}
-
-		return nil, fmt.Errorf("%w: last HTTP(s) response data structure is not type *http.Response", ErrHTTPReqRes)
+		return &http.Request{}, fmt.Errorf("%w: value under key %s in cache doesn't contain *http.Request", ErrPreservedData, cacheKey)
 	}
 
-	return lastResp, nil
-}
-
-//GetLastResponseBody returns last HTTP response body as slice of bytes
-//method is safe for multiple use
-func (s *State) GetLastResponseBody() []byte {
-	lastResponse, err := s.GetLastResponse()
-	if err != nil {
-		if s.IsDebug {
-			fmt.Println(err)
-		}
-
-		return []byte("")
-	}
-
-	var bodyBytes []byte
-
-	if lastResponse != nil {
-		bodyBytes, _ = ioutil.ReadAll(lastResponse.Body)
-		defer lastResponse.Body.Close()
-		lastResponse.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-	}
-
-	return bodyBytes
-}
-
-//GetLastResponseHeaders returns last HTTP response headers
-func (s *State) GetLastResponseHeaders() http.Header {
-	lastResponse, err := s.GetLastResponse()
-	if err != nil {
-		if s.IsDebug {
-			fmt.Println(err)
-		}
-
-		return http.Header{}
-	}
-
-	return lastResponse.Header
+	return req, nil
 }
