@@ -5,16 +5,20 @@ import (
 	"fmt"
 )
 
+//ErrMissingKey occurs when cache doesn't have any value under provided key
 var ErrMissingKey = errors.New("missing key")
 
 //Cache is entity that has ability to store/retrieve arbitrary values
 type Cache interface {
 	//Save preserve provided value under given key
 	Save(key string, value interface{})
+
 	//GetSaved retrieve value under given key
 	GetSaved(key string) (interface{}, error)
+
 	//Reset turns cache into init state
 	Reset()
+
 	//All returns all cache entries
 	All() map[string]interface{}
 }
@@ -33,7 +37,7 @@ func (c *DefaultCache) Save(key string, value interface{}) {
 	c.buff[key] = value
 }
 
-//GetSaved returns preserved value from DefaultCache if present, error otherwise.
+//GetSaved returns preserved value if present, error otherwise.
 func (c *DefaultCache) GetSaved(key string) (interface{}, error) {
 	val, ok := c.buff[key]
 
@@ -44,12 +48,12 @@ func (c *DefaultCache) GetSaved(key string) (interface{}, error) {
 	return val, nil
 }
 
-//Reset turns DefaultCache into init state
+//Reset turns cache into initial state
 func (c *DefaultCache) Reset() {
 	c.buff = map[string]interface{}{}
 }
 
-//All returns all current DefaultCache data
+//All returns all current cache data
 func (c *DefaultCache) All() map[string]interface{} {
 	return c.buff
 }

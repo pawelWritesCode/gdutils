@@ -4,20 +4,25 @@ import "fmt"
 
 //Debugger represents debugger
 type Debugger interface {
-	//Print prints provided info to stdout
+	//Print prints provided info
 	Print(info string)
+
 	//IsOn tells whether debugging mode is activated
 	IsOn() bool
+
 	//TurnOn turns on debugging mode
 	TurnOn()
+
 	//TurnOff turns off debugging mode
 	TurnOff()
+
 	//Reset resets debugging mode to init state
 	Reset(isOn bool)
 }
 
 //DebuggerService is utility tool for debugging
 type DebuggerService struct {
+	//actualState tells whether debugger is on/off, true = on, false = off
 	actualState bool
 }
 

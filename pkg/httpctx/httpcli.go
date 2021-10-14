@@ -8,32 +8,38 @@ import (
 	"net/http"
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
-	"github.com/pawelWritesCode/gdutils/pkg/debugger"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 )
 
+//ErrHTTPReqRes occurs when there is any problem with HTTP(s) req/res.
 var ErrHTTPReqRes = errors.New("something wrong with HTTP(s) request/response")
 
+//HttpContext represents set of operations related with HTTP.
 type HttpContext interface {
 	GetHTTPClient() *http.Client
 	GetLastResponse() (*http.Response, error)
 	GetLastResponseBody() ([]byte, error)
 }
 
+//HttpService is entity that implements HttpContext interface.
 type HttpService struct {
-	cache    cache.Cache
-	debugger debugger.Debugger
-	cli      *http.Client
+	//cache is place where last HTTP(s) resp is stored
+	cache cache.Cache
+
+	//cli is entity that has ability to send HTTP(s) requests
+	cli *http.Client
 }
 
-func New(c cache.Cache, d debugger.Debugger, cli *http.Client) HttpService {
-	return HttpService{cache: c, debugger: d, cli: cli}
+func New(c cache.Cache, cli *http.Client) HttpService {
+	return HttpService{cache: c, cli: cli}
 }
 
+//GetHTTPClient returns HTTP client.
 func (h HttpService) GetHTTPClient() *http.Client {
 	return h.cli
 }
 
+//GetLastResponse returns last HTTP(s) response.
 func (h HttpService) GetLastResponse() (*http.Response, error) {
 	respInterface, err := h.cache.GetSaved(httpcache.LastHTTPResponseCacheKey)
 	if err != nil {
@@ -48,6 +54,8 @@ func (h HttpService) GetLastResponse() (*http.Response, error) {
 	return lastResp, nil
 }
 
+//GetLastResponseBody returns last HTTP(s) response body.
+//internally method creates new NoPCloser on last response so this method is safe to reuse many times
 func (h HttpService) GetLastResponseBody() ([]byte, error) {
 	lastResponse, err := h.GetLastResponse()
 	if err != nil {
