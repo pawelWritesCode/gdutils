@@ -49,6 +49,22 @@ func TestTemplateManager_Replace(t *testing.T) {
 			templateValue: "{{.NAME}} abc {{.LAST_NAME}}",
 			storage:       map[string]interface{}{"NAME": true, "LAST_NAME": 111},
 		}, want: "true abc 111", wantErr: false},
+		{name: "key with dot #1", args: args{
+			templateValue: "{{.RANDOM_USER.TOKEN}}",
+			storage:       map[string]interface{}{"RANDOM_USER": map[string]string{"TOKEN": "a.b.c"}},
+		}, want: "a.b.c", wantErr: false},
+		{name: "key with dot #2", args: args{
+			templateValue: "{{.RANDOM_USER.TOKEN}}",
+			storage: map[string]interface{}{"RANDOM_USER": struct {
+				TOKEN string
+			}{TOKEN: "a.b.c"}},
+		}, want: "a.b.c", wantErr: false},
+		{name: "key with dot #3", args: args{
+			templateValue: "{{.RANDOM_USER.Token}}",
+			storage: map[string]interface{}{"RANDOM_USER": struct {
+				Token string
+			}{Token: "a.b.c"}},
+		}, want: "a.b.c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

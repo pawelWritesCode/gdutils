@@ -39,7 +39,7 @@ func NewState(httpClient *http.Client, cache cache.Cache, isDebug bool) *State {
 	return &State{
 		Debugger:       defaultDebugger,
 		Cache:          cache,
-		HttpContext:    httpctx.New(cache, defaultDebugger, httpClient),
+		HttpContext:    httpctx.New(cache, httpClient),
 		TemplateEngine: template.New(),
 	}
 }
