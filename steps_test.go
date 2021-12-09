@@ -2,15 +2,54 @@ package gdutils
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
 
 	"github.com/cucumber/godog"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
+	"github.com/pawelWritesCode/gdutils/pkg/debugger"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
+	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
+	"github.com/pawelWritesCode/gdutils/pkg/template"
+	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
+
+type mockedHTTPContext struct {
+	mock.Mock
+}
+
+type mockedJSONValidator struct {
+	mock.Mock
+}
+
+func (m mockedJSONValidator) Validate(document, schemaPath string) error {
+	args := m.Called(document, schemaPath)
+
+	return args.Error(0)
+}
+
+func (m mockedHTTPContext) GetHTTPClient() *http.Client {
+	args := m.Called()
+
+	return args.Get(0).(*http.Client)
+}
+
+func (m mockedHTTPContext) GetLastResponse() (*http.Response, error) {
+	args := m.Called()
+
+	return args.Get(0).(*http.Response), args.Error(1)
+}
+
+func (m mockedHTTPContext) GetLastResponseBody() ([]byte, error) {
+	args := m.Called()
+
+	return args.Get(0).([]byte), args.Error(1)
+}
 
 func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 	type fields struct {
@@ -122,7 +161,7 @@ func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := NewDefaultState(false)
+			af := NewDefaultState(false, "")
 
 			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
@@ -190,7 +229,7 @@ func TestApiFeature_TheJSONNodeShouldBeSliceOfLength(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := NewDefaultState(false)
+			af := NewDefaultState(false, "")
 
 			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 			if err := af.TheJSONNodeShouldBeSliceOfLength(tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
@@ -349,7 +388,7 @@ func TestApiFeature_TheJSONNodeShouldNotBe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := NewDefaultState(tt.fields.isDebug)
+			af := NewDefaultState(tt.fields.isDebug, "")
 
 			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
@@ -509,7 +548,7 @@ func TestApiFeature_TheJSONNodeShouldBe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			af := NewDefaultState(tt.fields.isDebug)
+			af := NewDefaultState(tt.fields.isDebug, "")
 
 			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
@@ -544,7 +583,7 @@ func TestScenario_TheResponseStatusCodeShouldBe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewDefaultState(tt.fields.isDebug)
+			s := NewDefaultState(tt.fields.isDebug, "")
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
@@ -607,7 +646,7 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewDefaultState(tt.fields.isDebug)
+			s := NewDefaultState(tt.fields.isDebug, "")
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
@@ -627,7 +666,7 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 }
 
 func TestScenario_IGenerateARandomIntInTheRangeToAndSaveItAs(t *testing.T) {
-	s := NewDefaultState(false)
+	s := NewDefaultState(false, "")
 	for i := 0; i < 100; i++ {
 		if err := s.IGenerateARandomIntInTheRangeToAndSaveItAs(0, 100000, "RANDOM_INT"); (err != nil) != false {
 			t.Errorf("IGenerateARandomIntInTheRangeToAndSaveItAs() error = %v, wantErr %v", err, false)
@@ -684,7 +723,7 @@ func TestScenario_TheResponseShouldHaveHeader(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewDefaultState(tt.fields.isDebug)
+			s := NewDefaultState(tt.fields.isDebug, "")
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
@@ -734,7 +773,7 @@ func TestScenario_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewDefaultState(tt.fields.isDebug)
+			s := NewDefaultState(tt.fields.isDebug, "")
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
@@ -769,7 +808,7 @@ func TestState_IPrepareNewRequestToAndSaveItAs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewDefaultState(tt.fields.IsDebug)
+			s := NewDefaultState(tt.fields.IsDebug, "")
 			if err := s.IPrepareNewRequestToAndSaveItAs(tt.args.method, tt.args.urlTemplate, tt.args.cacheKey); (err != nil) != tt.wantErr {
 				t.Errorf("IPrepareNewRequestToAndSaveItAs() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -832,7 +871,7 @@ func TestState_ISetFollowingHeadersForPreparedRequest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewDefaultState(tt.fields.IsDebug)
+			s := NewDefaultState(tt.fields.IsDebug, "")
 
 			err := s.IPrepareNewRequestToAndSaveItAs(tt.fields.reqMethod, tt.fields.reqUri, tt.fields.cacheKey)
 			if err != nil {
@@ -884,7 +923,7 @@ func TestState_ISetFollowingBodyForPreparedRequest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewDefaultState(tt.fields.IsDebug)
+			s := NewDefaultState(tt.fields.IsDebug, "")
 			err := s.IPrepareNewRequestToAndSaveItAs(tt.fields.reqMethod, tt.fields.reqUri, tt.fields.cacheKey)
 			if err != nil {
 				t.Errorf("%v", err)
@@ -892,6 +931,75 @@ func TestState_ISetFollowingBodyForPreparedRequest(t *testing.T) {
 
 			if err := s.ISetFollowingBodyForPreparedRequest(tt.args.cacheKey, tt.args.bodyTemplate); (err != nil) != tt.wantErr {
 				t.Errorf("ISetFollowingBodyForPreparedRequest() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_IValidateLastResponseBodyWithSchema(t *testing.T) {
+	type fields struct {
+		Debugger            debugger.Debugger
+		HttpContext         httpctx.HttpContext
+		TemplateEngine      template.TemplateEngine
+		JSONSchemaValidator validator.SchemaValidator
+		mockFunc            func()
+	}
+	type args struct {
+		schemaPath string
+	}
+
+	mHttpContext := new(mockedHTTPContext)
+	mJSONValidator := new(mockedJSONValidator)
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "missing last response body", fields: fields{
+			Debugger:            nil,
+			TemplateEngine:      nil,
+			JSONSchemaValidator: mJSONValidator,
+			HttpContext:         mHttpContext,
+			mockFunc: func() {
+				mHttpContext.On("GetLastResponseBody").Return([]byte(""), fmt.Errorf("abc")).Once()
+			},
+		}, args: args{schemaPath: ""}, wantErr: true},
+		{name: "validator fails", fields: fields{
+			Debugger:            nil,
+			TemplateEngine:      nil,
+			JSONSchemaValidator: mJSONValidator,
+			HttpContext:         mHttpContext,
+			mockFunc: func() {
+				mHttpContext.On("GetLastResponseBody").Return([]byte(""), nil).Once()
+				mJSONValidator.On("Validate", "", "").Return(errors.New("abc")).Once()
+			},
+		}, args: args{schemaPath: ""}, wantErr: true},
+		{name: "validator succed", fields: fields{
+			Debugger:            nil,
+			TemplateEngine:      nil,
+			JSONSchemaValidator: mJSONValidator,
+			HttpContext:         mHttpContext,
+			mockFunc: func() {
+				mHttpContext.On("GetLastResponseBody").Return([]byte(""), nil).Once()
+				mJSONValidator.On("Validate", "", "").Return(nil).Once()
+			},
+		}, args: args{schemaPath: ""}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &State{
+				Debugger:            tt.fields.Debugger,
+				Cache:               cache.New(),
+				HttpContext:         tt.fields.HttpContext,
+				TemplateEngine:      tt.fields.TemplateEngine,
+				JSONSchemaValidator: tt.fields.JSONSchemaValidator,
+			}
+
+			tt.fields.mockFunc()
+			if err := s.IValidateLastResponseBodyWithSchema(tt.args.schemaPath); (err != nil) != tt.wantErr {
+				t.Errorf("IValidateLastResponseBodyWithSchema() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

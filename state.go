@@ -9,38 +9,48 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/debugger"
 	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
+	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
 
 //State struct represents data shared across one scenario.
 type State struct {
 	//IsDebug determine whether scenario is in debug mode
 	Debugger debugger.Debugger
+
 	//Cache is storage for scenario data
 	Cache cache.Cache
+
 	//HttpClient is entity that has ability to send HTTP(s) requests
 	HttpContext httpctx.HttpContext
+
 	//TemplateEngine is entity that has ability to retrieve templated values
 	TemplateEngine template.TemplateEngine
+
+	//JSONSchemaValidator is entity that has ability to validate JSON schemas
+	JSONSchemaValidator validator.SchemaValidator
 }
 
-//NewDefaultState returns *State with default http.Client, DefaultCache and default Debugger
-func NewDefaultState(isDebug bool) *State {
+//NewDefaultState returns *State with default http.Client, DefaultCache and default Debugger.
+//jsonSchemaDir may be empty string or valid full path to directory with JSON schemas
+func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 	defaultCache := cache.New()
 	defaultHttpClient := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}
+	jsonSchemaValidator := validator.NewJSONSchemaValidator(jsonSchemaDir)
 
-	return NewState(defaultHttpClient, defaultCache, isDebug)
+	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidator, isDebug)
 }
 
 //NewState returns *State with provided HttpClient, cache and default Debugger
-func NewState(httpClient *http.Client, cache cache.Cache, isDebug bool) *State {
+func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidator validator.SchemaValidator, isDebug bool) *State {
 	defaultDebugger := debugger.New(isDebug)
 	return &State{
-		Debugger:       defaultDebugger,
-		Cache:          cache,
-		HttpContext:    httpctx.New(cache, httpClient),
-		TemplateEngine: template.New(),
+		Debugger:            defaultDebugger,
+		Cache:               cache,
+		HttpContext:         httpctx.New(cache, httpClient),
+		TemplateEngine:      template.New(),
+		JSONSchemaValidator: jsonSchemaValidator,
 	}
 }
 

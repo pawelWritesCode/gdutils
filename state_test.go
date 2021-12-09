@@ -11,7 +11,7 @@ import (
 )
 
 func TestState_ResetState(t *testing.T) {
-	s := NewDefaultState(true)
+	s := NewDefaultState(true, "")
 	s.Cache.Save("test", 1)
 
 	s.ResetState(false)
@@ -26,7 +26,7 @@ func TestState_ResetState(t *testing.T) {
 }
 
 func TestState_GetLastResponse(t *testing.T) {
-	s := NewDefaultState(false)
+	s := NewDefaultState(false, "")
 
 	resp := &http.Response{Header: map[string][]string{"Content-Type": []string{"application/json"}}}
 
@@ -43,7 +43,7 @@ func TestState_GetLastResponse(t *testing.T) {
 }
 
 func TestState_GetLastResponseBody(t *testing.T) {
-	s := NewDefaultState(false)
+	s := NewDefaultState(false, "")
 
 	body := []byte(`{"a": "b"}`)
 	resp := &http.Response{
