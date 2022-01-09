@@ -27,25 +27,25 @@ type mockedJSONValidator struct {
 	mock.Mock
 }
 
-func (m mockedJSONValidator) Validate(document, schemaPath string) error {
+func (m *mockedJSONValidator) Validate(document, schemaPath string) error {
 	args := m.Called(document, schemaPath)
 
 	return args.Error(0)
 }
 
-func (m mockedHTTPContext) GetHTTPClient() *http.Client {
+func (m *mockedHTTPContext) GetHTTPClient() *http.Client {
 	args := m.Called()
 
 	return args.Get(0).(*http.Client)
 }
 
-func (m mockedHTTPContext) GetLastResponse() (*http.Response, error) {
+func (m *mockedHTTPContext) GetLastResponse() (*http.Response, error) {
 	args := m.Called()
 
 	return args.Get(0).(*http.Response), args.Error(1)
 }
 
-func (m mockedHTTPContext) GetLastResponseBody() ([]byte, error) {
+func (m *mockedHTTPContext) GetLastResponseBody() ([]byte, error) {
 	args := m.Called()
 
 	return args.Get(0).([]byte), args.Error(1)
