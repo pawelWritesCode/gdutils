@@ -2,7 +2,7 @@
 
 # GDUTILS
 
-## Simple library with godog steps
+## Simple library with methods useful for e2e testing of HTTP(s) API.
 
 ### Downloading
 

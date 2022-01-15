@@ -12,26 +12,26 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
 
-//State struct represents data shared across one scenario.
+// State struct represents data shared across one scenario.
 type State struct {
-	//IsDebug determine whether scenario is in debug mode
+	// IsDebug determine whether scenario is in debug mode
 	Debugger debugger.Debugger
 
-	//Cache is storage for scenario data
+	// Cache is storage for scenario data
 	Cache cache.Cache
 
-	//HttpClient is entity that has ability to send HTTP(s) requests
+	// HttpClient is entity that has ability to send HTTP(s) requests
 	HttpContext httpctx.HttpContext
 
-	//TemplateEngine is entity that has ability to retrieve templated values
+	// TemplateEngine is entity that has ability to retrieve templated values
 	TemplateEngine template.TemplateEngine
 
-	//JSONSchemaValidator is entity that has ability to validate JSON schemas
+	// JSONSchemaValidator is entity that has ability to validate JSON schemas
 	JSONSchemaValidator validator.SchemaValidator
 }
 
-//NewDefaultState returns *State with default http.Client, DefaultCache and default Debugger.
-//jsonSchemaDir may be empty string or valid full path to directory with JSON schemas
+// NewDefaultState returns *State with default http.Client, DefaultCache and default Debugger.
+// jsonSchemaDir may be empty string or valid full path to directory with JSON schemas
 func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 	defaultCache := cache.New()
 	defaultHttpClient := &http.Client{Transport: &http.Transport{
@@ -42,7 +42,7 @@ func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidator, isDebug)
 }
 
-//NewState returns *State with provided HttpClient, cache and default Debugger
+// NewState returns *State with provided HttpClient, cache and default Debugger
 func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidator validator.SchemaValidator, isDebug bool) *State {
 	defaultDebugger := debugger.New(isDebug)
 	return &State{
@@ -54,13 +54,13 @@ func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidator va
 	}
 }
 
-//ResetState resets State struct instance to default values.
+// ResetState resets State struct instance to default values.
 func (s *State) ResetState(isDebug bool) {
 	s.Cache.Reset()
 	s.Debugger.Reset(isDebug)
 }
 
-//getPreparedRequest returns prepared request from cache or error if failed
+// getPreparedRequest returns prepared request from cache or error if failed
 func (s *State) getPreparedRequest(cacheKey string) (*http.Request, error) {
 	reqInterface, err := s.Cache.GetSaved(cacheKey)
 	if err != nil {

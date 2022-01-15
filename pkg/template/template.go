@@ -1,3 +1,4 @@
+// Package template holds utilities for working with templates.
 package template
 
 import (
@@ -6,26 +7,25 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
+
+	"github.com/pawelWritesCode/gdutils/pkg/cache"
 )
 
-//ErrMissingKey occurs when storage is missing key
-var ErrMissingKey = errors.New("missing entry for a key")
-
-//TemplateEngine is entity that has ability to work with templated values
+// TemplateEngine is entity that has ability to work with templates.
 type TemplateEngine interface {
-	//Replace replaces template values on that provided in storage
+	// Replace replaces template values using provided storage.
 	Replace(templateValue string, storage map[string]interface{}) (string, error)
 }
 
-//TemplateManager is entity that has ability to manage templates
+// TemplateManager is entity that has ability to manage templates.
 type TemplateManager struct{}
 
 func New() TemplateManager {
 	return TemplateManager{}
 }
 
-//Replace replaces template values in string on that ones provided in storage
-//template values should exist between two brackets {{ }} preceded with dot, for example: "my name is: {{.NAME}}"
+// Replace replaces template values using provided storage.
+// templateValue should exist between two brackets {{ }} preceded with dot, for example: "my name is: {{.NAME}}".
 func (tm TemplateManager) Replace(templateValue string, storage map[string]interface{}) (string, error) {
 	if storage == nil {
 		return "", errors.New("missing values storage for template manager")
@@ -41,7 +41,7 @@ func (tm TemplateManager) Replace(templateValue string, storage map[string]inter
 	strVal := buff.String()
 
 	if strings.Contains(strVal, "<no value>") {
-		return "", fmt.Errorf("%w, at least one of provided template values is not present in values storage", ErrMissingKey)
+		return "", fmt.Errorf("%w, at least one of provided values is not present in storage", cache.ErrMissingKey)
 	}
 
 	return strVal, nil

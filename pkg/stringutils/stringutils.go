@@ -1,3 +1,4 @@
+// Package stringutils holds utility methods for working with strings.
 package stringutils
 
 import (
@@ -6,11 +7,11 @@ import (
 )
 
 const (
-	//CharsetUnicode represents set of Unicode characters
+	// CharsetUnicode represents set of Unicode characters.
 	CharsetUnicode = "abcdefghijklmnopqrstuvwxyz" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 		"0123456789" + "🤡🤖🧟🏋🥇☟💄🐲🌓🌪🇵🇱⚥❄☠⌘©®💵⓵ " + "ęśćżźłóń"
 
-	//CharsetASCII represents set of ASCII characters
+	// CharsetASCII represents set of only ASCII characters.
 	CharsetASCII = "abcdefghijklmnopqrstuvwxyz" +
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
@@ -18,9 +19,9 @@ const (
 var seededRand *rand.Rand = rand.New(
 	rand.NewSource(time.Now().UnixNano()))
 
-//StringWithCharset returns random string of given length.
-//Argument length indices length of output string.
-//Argument charset indices input charset from which output string will be composed
+// StringWithCharset returns random string of given length.
+// Argument length indices length of output string.
+// Argument charset indices input charset from which output string will be composed.
 func StringWithCharset(length int, charset string) string {
 	b := make([]byte, length)
 	for i := range b {

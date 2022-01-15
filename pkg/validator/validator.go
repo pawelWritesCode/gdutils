@@ -1,3 +1,4 @@
+// Package validator holds utilities for validating data.
 package validator
 
 import (
@@ -7,15 +8,15 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-// SchemaValidator describes entity that can validate something
+// SchemaValidator describes entity that can validate document against some kind of schema.
 type SchemaValidator interface {
-	// Validate validates something
+	// Validate validates document against some kind of schema located in schemaPath.
 	Validate(document, schemaPath string) error
 }
 
-//JSONSchemaValidator is entity that has ability to validate data against JSON schema
+// JSONSchemaValidator is entity that has ability to validate data against JSON schema.
 type JSONSchemaValidator struct {
-	//schemasDir represents absolute path to JSON schemas directory
+	// schemasDir represents absolute path to JSON schemas directory.
 	schemasDir string
 }
 
@@ -23,6 +24,7 @@ func NewJSONSchemaValidator(schemasDir string) JSONSchemaValidator {
 	return JSONSchemaValidator{schemasDir: schemasDir}
 }
 
+// Validate validates document against JSON schema located in schemaPath.
 func (jsv JSONSchemaValidator) Validate(document, schemaPath string) error {
 	schemaLoader := gojsonschema.NewReferenceLoader(fmt.Sprintf("file://%s/%s", jsv.schemasDir, schemaPath))
 	documentLoader := gojsonschema.NewStringLoader(document)

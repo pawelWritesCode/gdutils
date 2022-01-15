@@ -1,6 +1,6 @@
-// Package gdutils provides State object with utility methods that may be used for behavioral testing of HTTP API.
+// Package gdutils provides State struct with methods that may be used for behavioral testing of HTTP API.
 //
-// Main package struct is State that represents one testing scenario state. It can be initialized by 2 ways.
+// Main package struct is State that represents one testing scenario state. It can be initialized by 2 ways:
 //
 // First, returns *State with default http.Client, DefaultCache and provided debug mode:
 //	func NewDefaultState(isDebug bool) *State
@@ -10,15 +10,15 @@
 //
 // Struct State contains of
 //
-//* cache with arbitrary values - State.Cache.
+// * State.Cache. - cache with arbitrary values,
 //
-//* info whether scenario is in debug mode - State.IsDebug.
+// * State.Debugger - debugging tool,
 //
-//	Useful State methods are
+// * State.HttpContext - tool for working with HTTP protocol,
 //
-//	func (s *State) GetLastResponse() (*http.Response, error)
-//	func (s *State) GetLastResponseBody() []byte
-//	func (s *State) GetLastResponseHeaders() http.Header
+// * State.TemplateEngine - tool for working with templates,
+//
+// * State.JSONSchemaValidator - tool that has ability to validate JSON schemas.
 //
 // Testing HTTP API usually consist the following aspects:
 //
@@ -66,4 +66,10 @@
 //	func (s *State) IPrintLastResponseBody() error
 //	func (s *State) IStartDebugMode() error
 //	func (s *State) IStopDebugMode() error
+//
+// State has also some useful utility methods like:
+//
+//	func (s *State) GetLastResponse() (*http.Response, error)
+//	func (s *State) GetLastResponseBody() []byte
+//	func (s *State) GetLastResponseHeaders() http.Header
 package gdutils

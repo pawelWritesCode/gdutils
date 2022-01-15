@@ -18,28 +18,35 @@ import (
 	"github.com/moul/http2curl"
 	"github.com/pawelWritesCode/qjson"
 
-	"github.com/pawelWritesCode/gdutils/internal/datatype"
-	"github.com/pawelWritesCode/gdutils/internal/mathutils"
-	"github.com/pawelWritesCode/gdutils/internal/reflectutils"
-	"github.com/pawelWritesCode/gdutils/internal/stringutils"
+	"github.com/pawelWritesCode/gdutils/pkg/datatype"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
+	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
+	"github.com/pawelWritesCode/gdutils/pkg/reflectutils"
+	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
 )
 
 const (
-	typeJSON      = "JSON"
+	// typeJSON describes JSON data format.
+	typeJSON = "JSON"
+
+	// typePlainText describes plan text data format.
 	typePlainText = "plain text"
 )
 
-//bodyHeaders is entity that holds information about request body and request headers
-type bodyHeaders struct {
-	Body    interface{}
+// BodyHeaders is entity that holds information about request body and request headers.
+type BodyHeaders struct {
+
+	// Body should contain HTTP(s) request body
+	Body interface{}
+
+	// Headers should contain HTTP(s) request headers
 	Headers map[string]string
 }
 
-//ISendRequestToWithBodyAndHeaders sends HTTP request with provided body and headers.
-//Argument method indices HTTP request method for example: "POST", "GET" etc.
-//Argument urlTemplate should be full url path. May include template values.
-//Argument bodyTemplate should be slice of bytes marshallable on bodyHeaders struct
+// ISendRequestToWithBodyAndHeaders sends HTTP request with provided body and headers.
+// Argument method indices HTTP request method for example: "POST", "GET" etc.
+// Argument urlTemplate should be full url path. May include template values.
+// Argument bodyTemplate should be slice of bytes marshallable on BodyHeaders struct
 func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error {
 	input, err := s.TemplateEngine.Replace(bodyTemplate.Content, s.Cache.All())
 	if err != nil {
@@ -51,7 +58,7 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 		return err
 	}
 
-	var bodyAndHeaders bodyHeaders
+	var bodyAndHeaders BodyHeaders
 	err = json.Unmarshal([]byte(input), &bodyAndHeaders)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrJson, err.Error())
@@ -91,7 +98,7 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 	return nil
 }
 
-//IPrepareNewRequestToAndSaveItAs prepares new request and saves it in cache under cacheKey
+// IPrepareNewRequestToAndSaveItAs prepares new request and saves it in cache under cacheKey
 func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error {
 	url, err := s.TemplateEngine.Replace(urlTemplate, s.Cache.All())
 	if err != nil {
@@ -108,7 +115,7 @@ func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey st
 	return nil
 }
 
-//ISetFollowingHeadersForPreparedRequest sets provided headers for previously prepared request
+// ISetFollowingHeadersForPreparedRequest sets provided headers for previously prepared request
 func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersTemplate *godog.DocString) error {
 	headers, err := s.TemplateEngine.Replace(headersTemplate.Content, s.Cache.All())
 	if err != nil {
@@ -134,8 +141,8 @@ func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersT
 	return nil
 }
 
-//ISetFollowingBodyForPreparedRequest sets body for previously prepared request
-//bodyTemplate may be in any format and accepts template values
+// ISetFollowingBodyForPreparedRequest sets body for previously prepared request
+// bodyTemplate may be in any format and accepts template values
 func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate *godog.DocString) error {
 	body, err := s.TemplateEngine.Replace(bodyTemplate.Content, s.Cache.All())
 	if err != nil {
@@ -154,7 +161,7 @@ func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplat
 	return nil
 }
 
-//ISendRequest sends previously prepared HTTP(s) request
+// ISendRequest sends previously prepared HTTP(s) request
 func (s *State) ISendRequest(cacheKey string) error {
 	req, err := s.getPreparedRequest(cacheKey)
 	if err != nil {
@@ -181,7 +188,7 @@ func (s *State) ISendRequest(cacheKey string) error {
 	return nil
 }
 
-//TheResponseStatusCodeShouldBe compare last response status code with given in argument.
+// TheResponseStatusCodeShouldBe compare last response status code with given in argument.
 func (s *State) TheResponseStatusCodeShouldBe(code int) error {
 	lastResponse, err := s.HttpContext.GetLastResponse()
 	if err != nil {
@@ -195,8 +202,8 @@ func (s *State) TheResponseStatusCodeShouldBe(code int) error {
 	return nil
 }
 
-//TheResponseBodyShouldHaveType checks whether last response body has given data type
-//available data types are listed as package constants
+// TheResponseBodyShouldHaveType checks whether last response body has given data type
+// available data types are listed as package constants
 func (s *State) TheResponseBodyShouldHaveType(dataType string) error {
 	switch dataType {
 	case typeJSON:
@@ -224,8 +231,8 @@ func (s *State) TheResponseBodyShouldHaveType(dataType string) error {
 	}
 }
 
-//ISaveFromTheLastResponseJSONNodeAs saves from last response body JSON node under given DefaultCache key.
-//expr should be valid according to qjson library
+// ISaveFromTheLastResponseJSONNodeAs saves from last response body JSON node under given DefaultCache key.
+// expr should be valid according to qjson library
 func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error {
 	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
@@ -248,18 +255,26 @@ func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error 
 	return nil
 }
 
-//IGenerateARandomIntInTheRangeToAndSaveItAs generates random integer from provided range and preserve it under given DefaultCache key
+// IGenerateARandomIntInTheRangeToAndSaveItAs generates random integer from provided range and preserve it under given DefaultCache key
 func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
-	s.Cache.Save(cacheKey, mathutils.RandomInt(from, to))
+	randomInteger, err := mathutils.RandomInt(from, to)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	s.Cache.Save(cacheKey, randomInteger)
 
 	return nil
 }
 
-//IGenerateARandomFloatInTheRangeToAndSaveItAs generates random float from provided range and preserve it under given DefaultCache key
+// IGenerateARandomFloatInTheRangeToAndSaveItAs generates random float from provided range and preserve it under given DefaultCache key
 func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
-	randInt := mathutils.RandomInt(from, to)
-	float01 := rand.Float64()
+	randInt, err := mathutils.RandomInt(from, to)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
 
+	float01 := rand.Float64()
 	strFloat := fmt.Sprintf("%.2f", float01*float64(randInt))
 	floatVal, err := strconv.ParseFloat(strFloat, 64)
 	if err != nil {
@@ -271,8 +286,8 @@ func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cache
 	return nil
 }
 
-//IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItAs generates random string of given length without unicode characters
-//and preserve it under given DefaultCache key
+// IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItAs generates random string of given length without unicode characters
+// and preserve it under given DefaultCache key
 func (s *State) IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItAs(strLength int, cacheKey string) error {
 	if strLength <= 0 {
 		return fmt.Errorf("%w: provided string length %d can't be less than 1", ErrGdutils, strLength)
@@ -283,8 +298,8 @@ func (s *State) IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItA
 	return nil
 }
 
-//IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs generates random string of given length with unicode characters
-//and preserve it under given DefaultCache key
+// IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs generates random string of given length with unicode characters
+// and preserve it under given DefaultCache key
 func (s *State) IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs(strLength int, cacheKey string) error {
 	if strLength <= 0 {
 		return fmt.Errorf("%w: provided string length %d can't be less than 1", ErrGdutils, strLength)
@@ -295,7 +310,7 @@ func (s *State) IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs(s
 	return nil
 }
 
-//TheJSONResponseShouldHaveNode checks whether last response body contains given key
+// TheJSONResponseShouldHaveNode checks whether last response body contains given key
 func (s *State) TheJSONResponseShouldHaveNode(expr string) error {
 	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
@@ -315,9 +330,9 @@ func (s *State) TheJSONResponseShouldHaveNode(expr string) error {
 	return nil
 }
 
-//TheJSONNodeShouldNotBe checks whether JSON node from last response body is not of provided type
-//goType may be one of: nil, string, int, float, bool, map, slice
-//expr should be valid according to qjson library
+// TheJSONNodeShouldNotBe checks whether JSON node from last response body is not of provided type
+// goType may be one of: nil, string, int, float, bool, map, slice
+// expr should be valid according to qjson library
 func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
 	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
@@ -394,9 +409,9 @@ func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
 	}
 }
 
-//TheJSONNodeShouldBe checks whether JSON node from last response body is of provided type
-//goType may be one of: nil, string, int, float, bool, map, slice
-//expr should be valid according to qjson library
+// TheJSONNodeShouldBe checks whether JSON node from last response body is of provided type
+// goType may be one of: nil, string, int, float, bool, map, slice
+// expr should be valid according to qjson library
 func (s *State) TheJSONNodeShouldBe(expr string, goType string) error {
 	errInvalidType := fmt.Errorf("%w: %s value is not \"%s\", but expected to be", ErrGdutils, expr, goType)
 
@@ -412,8 +427,8 @@ func (s *State) TheJSONNodeShouldBe(expr string, goType string) error {
 	}
 }
 
-//TheJSONResponseShouldHaveNodes checks whether last request body has keys defined in string separated by comma
-//nodeExpr should be valid according to qjson library expressions separated by comma (,)
+// TheJSONResponseShouldHaveNodes checks whether last request body has keys defined in string separated by comma
+// nodeExpr should be valid according to qjson library expressions separated by comma (,)
 func (s *State) TheJSONResponseShouldHaveNodes(nodeExprs string) error {
 	keysSlice := strings.Split(nodeExprs, ",")
 
@@ -449,8 +464,8 @@ func (s *State) TheJSONResponseShouldHaveNodes(nodeExprs string) error {
 	return nil
 }
 
-//TheJSONNodeShouldBeSliceOfLength checks whether given key is slice and has given length
-//expr should be valid according to qjson library
+// TheJSONNodeShouldBeSliceOfLength checks whether given key is slice and has given length
+// expr should be valid according to qjson library
 func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error {
 	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
@@ -484,9 +499,9 @@ func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error 
 	return fmt.Errorf("%w: %s does not point at slice(array) in last HTTP(s) response JSON body", ErrGdutils, expr)
 }
 
-//TheJSONNodeShouldBeOfValue compares json node value from expression to expected by user dataValue of given by user dataType
-//available data types are listed in switch section in each case directive
-//expr should be valid according to qjson library
+// TheJSONNodeShouldBeOfValue compares json node value from expression to expected by user dataValue of given by user dataType
+// available data types are listed in switch section in each case directive
+// expr should be valid according to qjson library
 func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) error {
 	nodeValueReplaced, err := s.TemplateEngine.Replace(dataValue, s.Cache.All())
 	if err != nil {
@@ -688,8 +703,8 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
 	return fmt.Errorf("%w: %s header exists but, expected value: %s, is not equal to actual: %s", ErrHTTPReqRes, name, value, header)
 }
 
-//IWait waits for given timeInterval amount of time
-//timeInterval should be string valid for time.ParseDuration func
+// IWait waits for given timeInterval amount of time
+// timeInterval should be string valid for time.ParseDuration func
 func (s *State) IWait(timeInterval string) error {
 	duration, err := time.ParseDuration(timeInterval)
 	if err != nil {
@@ -700,7 +715,7 @@ func (s *State) IWait(timeInterval string) error {
 	return nil
 }
 
-//IPrintLastResponseBody prints last response from request
+// IPrintLastResponseBody prints last response from request
 func (s *State) IPrintLastResponseBody() error {
 	var tmp map[string]interface{}
 
@@ -727,21 +742,21 @@ func (s *State) IPrintLastResponseBody() error {
 	return nil
 }
 
-//IStartDebugMode starts debugging mode
+// IStartDebugMode starts debugging mode
 func (s *State) IStartDebugMode() error {
 	s.Debugger.TurnOn()
 
 	return nil
 }
 
-//IStopDebugMode stops debugging mode
+// IStopDebugMode stops debugging mode
 func (s *State) IStopDebugMode() error {
 	s.Debugger.TurnOff()
 
 	return nil
 }
 
-//IValidateLastResponseBodyWithSchema validates last response body against JSON schema as provided in schemaPath
+// IValidateLastResponseBodyWithSchema validates last response body against JSON schema as provided in schemaPath
 func (s *State) IValidateLastResponseBodyWithSchema(schemaPath string) error {
 	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
