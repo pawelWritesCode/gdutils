@@ -231,7 +231,7 @@ func (s *State) TheResponseBodyShouldHaveType(dataType string) error {
 	}
 }
 
-// ISaveFromTheLastResponseJSONNodeAs saves from last response body JSON node under given DefaultCache key.
+// ISaveFromTheLastResponseJSONNodeAs saves from last response body JSON node under given cacheKey key.
 // expr should be valid according to qjson library
 func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error {
 	body, err := s.HttpContext.GetLastResponseBody()
@@ -255,7 +255,8 @@ func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error 
 	return nil
 }
 
-// IGenerateARandomIntInTheRangeToAndSaveItAs generates random integer from provided range and preserve it under given DefaultCache key
+// IGenerateARandomIntInTheRangeToAndSaveItAs generates random integer from provided range
+// and preserve it under given cacheKey key
 func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
 	randomInteger, err := mathutils.RandomInt(from, to)
 	if err != nil {
@@ -267,7 +268,8 @@ func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKe
 	return nil
 }
 
-// IGenerateARandomFloatInTheRangeToAndSaveItAs generates random float from provided range and preserve it under given DefaultCache key
+// IGenerateARandomFloatInTheRangeToAndSaveItAs generates random float from provided range
+// and preserve it under given cacheKey key
 func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
 	randInt, err := mathutils.RandomInt(from, to)
 	if err != nil {
@@ -286,28 +288,19 @@ func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cache
 	return nil
 }
 
-// IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItAs generates random string of given length without unicode characters
-// and preserve it under given DefaultCache key
-func (s *State) IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItAs(strLength int, cacheKey string) error {
-	if strLength <= 0 {
-		return fmt.Errorf("%w: provided string length %d can't be less than 1", ErrGdutils, strLength)
+// IGenerateARandomStringInTheRangeToAndSaveItAs creates random string generator func using provided charset
+// return func creates string from provided range and preserve it under given cacheKey
+func (s *State) IGenerateARandomStringInTheRangeToAndSaveItAs(charset string) func(from, to int, cacheKey string) error {
+	return func(from, to int, cacheKey string) error {
+		randInt, err := mathutils.RandomInt(from, to)
+		if err != nil {
+			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		}
+
+		s.Cache.Save(cacheKey, stringutils.RunesFromCharset(randInt, []rune(charset)))
+
+		return nil
 	}
-
-	s.Cache.Save(cacheKey, stringutils.StringWithCharset(strLength, stringutils.CharsetASCII))
-
-	return nil
-}
-
-// IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs generates random string of given length with unicode characters
-// and preserve it under given DefaultCache key
-func (s *State) IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs(strLength int, cacheKey string) error {
-	if strLength <= 0 {
-		return fmt.Errorf("%w: provided string length %d can't be less than 1", ErrGdutils, strLength)
-	}
-
-	s.Cache.Save(cacheKey, stringutils.StringWithCharset(strLength, stringutils.CharsetUnicode))
-
-	return nil
 }
 
 // TheJSONResponseShouldHaveNode checks whether last response body contains given key
