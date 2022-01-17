@@ -12,7 +12,7 @@ const (
 		"0123456789" + "🤡🤖🧟🏋🥇☟💄🐲🌓🌪🇵🇱⚥❄☠⌘©®💵⓵ " + "ęśćżźłóń"
 
 	// CharsetASCII represents set containing only ASCII characters.
-	CharsetASCII = " !\"#$%&\\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+	CharsetASCII = " !#$%&'()*+,-.0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ^_`abcdefghijklmnopqrstuvwxyz|~"
 )
 
 var seededRand *rand.Rand = rand.New(
