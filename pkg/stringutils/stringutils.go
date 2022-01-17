@@ -7,25 +7,27 @@ import (
 )
 
 const (
-	// CharsetUnicode represents set of Unicode characters.
+	// CharsetUnicode represents set of Unicode characters (contain multi byte runes).
 	CharsetUnicode = "abcdefghijklmnopqrstuvwxyz" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 		"0123456789" + "🤡🤖🧟🏋🥇☟💄🐲🌓🌪🇵🇱⚥❄☠⌘©®💵⓵ " + "ęśćżźłóń"
 
-	// CharsetASCII represents set of only ASCII characters.
-	CharsetASCII = "abcdefghijklmnopqrstuvwxyz" +
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	// CharsetASCII represents set containing only ASCII characters.
+	CharsetASCII = " !\"#$%&\\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
 )
 
 var seededRand *rand.Rand = rand.New(
 	rand.NewSource(time.Now().UnixNano()))
 
-// StringWithCharset returns random string of given length.
-// Argument length indices length of output string.
-// Argument charset indices input charset from which output string will be composed.
-func StringWithCharset(length int, charset string) string {
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[seededRand.Intn(len(charset))]
+// RunesFromCharset returns random slice of runes of given length.
+// Argument length indices length of output slice.
+// Argument charset indices input charset from which output slice will be composed.
+func RunesFromCharset(length int, charset []rune) []rune {
+	output := make([]rune, 0, length)
+	charsetR := charset
+
+	for i := 0; i < length; i++ {
+		output = append(output, charsetR[seededRand.Intn(len(charsetR))])
 	}
-	return string(b)
+
+	return output
 }

@@ -7,15 +7,16 @@ import (
 
 func TestStringWithCharset(t *testing.T) {
 	for i := 1; i < 10; i++ {
-		randomNumberOfLetters := rand.Intn(50)
-		randomStringASCII := StringWithCharset(randomNumberOfLetters, CharsetASCII)
-		randomStringUnicode := StringWithCharset(randomNumberOfLetters, CharsetUnicode)
-		if len(randomStringASCII) != randomNumberOfLetters {
-			t.Errorf("expected string of lenght %d, got %d", randomNumberOfLetters, len(randomStringASCII))
+		randomNumberOfRunes := rand.Intn(50)
+		randomRunesASCII := RunesFromCharset(randomNumberOfRunes, []rune(CharsetASCII))
+		randomRunesUnicode := RunesFromCharset(randomNumberOfRunes, []rune(CharsetUnicode))
+
+		if len(randomRunesASCII) != randomNumberOfRunes {
+			t.Errorf("expected slice of ascii runes of lenght %d, got %d", randomNumberOfRunes, len(randomRunesASCII))
 		}
 
-		if len(randomStringUnicode) != randomNumberOfLetters {
-			t.Errorf("expected string of lenght %d, got %d", randomNumberOfLetters, len(randomStringUnicode))
+		if len(randomRunesUnicode) != randomNumberOfRunes {
+			t.Errorf("expected slice of unicode runes of lenght %d, got %d", randomNumberOfRunes, len(randomRunesUnicode))
 		}
 	}
 }

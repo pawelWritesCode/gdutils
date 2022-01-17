@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/cucumber/godog"
@@ -15,6 +16,7 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/debugger"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
+	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
@@ -1002,5 +1004,53 @@ func TestState_IValidateLastResponseBodyWithSchema(t *testing.T) {
 				t.Errorf("IValidateLastResponseBodyWithSchema() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestState_IGenerateARandomStringWithoutUnicodeCharactersInTheRangeToAndSaveItAs(t *testing.T) {
+	s := NewDefaultState(false, "")
+
+	rndStringASCII := s.IGenerateARandomStringInTheRangeToAndSaveItAs(stringutils.CharsetASCII)
+	for i := 0; i < 10; i++ {
+		key := "TEST_" + strconv.Itoa(i)
+		if err := rndStringASCII(5, 10, key); err != nil {
+			t.Errorf(err.Error())
+		}
+
+		strI, err := s.Cache.GetSaved(key)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+
+		str, ok := strI.([]rune)
+		if !ok {
+			t.Errorf("%+v is not []rune", strI)
+		}
+
+		if len(str) < 5 || len(str) > 10 {
+			t.Errorf("%v should have length between 5 - 10, got: %d", str, len(str))
+		}
+	}
+
+	rndStringUnicode := s.IGenerateARandomStringInTheRangeToAndSaveItAs(stringutils.CharsetUnicode)
+	for i := 0; i < 10; i++ {
+		key := "TEST_" + strconv.Itoa(i)
+		if err := rndStringUnicode(5, 10, key); err != nil {
+			t.Errorf(err.Error())
+		}
+
+		strI, err := s.Cache.GetSaved(key)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+
+		str, ok := strI.([]rune)
+		if !ok {
+			t.Errorf("%+v is not []rune", strI)
+		}
+
+		if len(str) < 5 || len(str) > 10 {
+			t.Errorf("%v should have length between 5 - 10, got: %d", str, len(str))
+		}
 	}
 }
