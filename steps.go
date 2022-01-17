@@ -297,7 +297,7 @@ func (s *State) IGenerateARandomStringInTheRangeToAndSaveItAs(charset string) fu
 			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 		}
 
-		s.Cache.Save(cacheKey, stringutils.RunesFromCharset(randInt, []rune(charset)))
+		s.Cache.Save(cacheKey, string(stringutils.RunesFromCharset(randInt, []rune(charset))))
 
 		return nil
 	}
