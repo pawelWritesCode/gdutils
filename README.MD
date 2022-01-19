@@ -9,3 +9,7 @@ Library is suitable for steps in godog framework.
 ### Downloading
 
 `go get github.com/pawelWritesCode/gdutils`
+
+### Docs:
+
+https://pkg.go.dev/github.com/pawelWritesCode/gdutils

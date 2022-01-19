@@ -1022,13 +1022,15 @@ func TestState_IGenerateARandomStringWithoutUnicodeCharactersInTheRangeToAndSave
 			t.Errorf(err.Error())
 		}
 
-		str, ok := strI.([]rune)
+		str, ok := strI.(string)
 		if !ok {
-			t.Errorf("%+v is not []rune", strI)
+			t.Errorf("%+v is not string", strI)
 		}
 
-		if len(str) < 5 || len(str) > 10 {
-			t.Errorf("%v should have length between 5 - 10, got: %d", str, len(str))
+		rStr := []rune(str)
+
+		if !(len(rStr) >= 5 && len(rStr) <= 10) {
+			t.Errorf("%v should have length between 5 - 10, got: %d", str, len(rStr))
 		}
 	}
 
@@ -1044,13 +1046,15 @@ func TestState_IGenerateARandomStringWithoutUnicodeCharactersInTheRangeToAndSave
 			t.Errorf(err.Error())
 		}
 
-		str, ok := strI.([]rune)
+		str, ok := strI.(string)
 		if !ok {
-			t.Errorf("%+v is not []rune", strI)
+			t.Errorf("%+v is not string", strI)
 		}
 
-		if len(str) < 5 || len(str) > 10 {
-			t.Errorf("%v should have length between 5 - 10, got: %d", str, len(str))
+		rStr := []rune(str)
+
+		if !(len(rStr) >= 5 && len(rStr) <= 10) {
+			t.Errorf("%v should have length between 5 - 10, got: %d", str, len(rStr))
 		}
 	}
 }
