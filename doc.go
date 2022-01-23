@@ -8,18 +8,6 @@
 // Second, returns *State with provided http.Client, Cache and debug mode:
 //	func NewState(HttpClient HttpClient, cache Cache, isDebug bool) *State
 //
-// Struct State contains of
-//
-// * State.Cache. - cache with arbitrary values,
-//
-// * State.Debugger - debugging tool,
-//
-// * State.HttpContext - tool for working with HTTP protocol,
-//
-// * State.TemplateEngine - tool for working with templates,
-//
-// * State.JSONSchemaValidator - tool that has ability to validate JSON schemas.
-//
 // Testing HTTP API usually consist the following aspects:
 //
 // * Data generation:

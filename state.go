@@ -14,19 +14,19 @@ import (
 
 // State struct represents data shared across one scenario.
 type State struct {
-	// IsDebug determine whether scenario is in debug mode
+	// Debugger represents scenario debugger.
 	Debugger debugger.Debugger
 
-	// Cache is storage for scenario data
+	// Cache is storage for scenario data.
 	Cache cache.Cache
 
-	// HttpClient is entity that has ability to send HTTP(s) requests
+	// HttpContext is service that works with HTTP(s) req/res.
 	HttpContext httpctx.HttpContext
 
-	// TemplateEngine is entity that has ability to retrieve templated values
+	// TemplateEngine is entity that has ability to work with template values.
 	TemplateEngine template.TemplateEngine
 
-	// JSONSchemaValidator is entity that has ability to validate JSON schemas
+	// JSONSchemaValidator is entity that has ability to validate JSON schemas.
 	JSONSchemaValidator validator.SchemaValidator
 }
 
