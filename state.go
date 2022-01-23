@@ -33,7 +33,7 @@ type State struct {
 // NewDefaultState returns *State with default http.Client, DefaultCache and default Debugger.
 // jsonSchemaDir may be empty string or valid full path to directory with JSON schemas
 func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
-	defaultCache := cache.New()
+	defaultCache := cache.NewConcurrentCache()
 	defaultHttpClient := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}

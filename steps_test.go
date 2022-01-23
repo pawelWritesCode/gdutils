@@ -613,13 +613,13 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "invalid node #1", fields: fields{
-			cache: cache.New(),
+			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "abc"
 }`))},
 		}, args: args{node: "token", variableName: "TOKEN"}, wantErr: true},
 		{name: "invalid node #2", fields: fields{
-			cache: cache.New(),
+			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {
 		"name": "a",
@@ -628,7 +628,7 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 }`))},
 		}, args: args{node: "last_name", variableName: "LAST_NAME"}, wantErr: true},
 		{name: "valid node #1", fields: fields{
-			cache: cache.New(),
+			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {
 		"name": "a",
@@ -637,7 +637,7 @@ func TestScenario_ISaveFromTheLastResponseJSONNodeAs(t *testing.T) {
 }`))},
 		}, args: args{node: "user.last_name", variableName: "LAST_NAME"}, wantErr: false},
 		{name: "valid node #2", fields: fields{
-			cache: cache.New(),
+			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": {
 		"name": "a",
@@ -993,7 +993,7 @@ func TestState_IValidateLastResponseBodyWithSchema(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &State{
 				Debugger:            tt.fields.Debugger,
-				Cache:               cache.New(),
+				Cache:               cache.NewConcurrentCache(),
 				HttpContext:         tt.fields.HttpContext,
 				TemplateEngine:      tt.fields.TemplateEngine,
 				JSONSchemaValidator: tt.fields.JSONSchemaValidator,
