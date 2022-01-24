@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
+	"github.com/pawelWritesCode/gdutils/pkg/datatype"
 	"github.com/pawelWritesCode/gdutils/pkg/debugger"
 	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
@@ -37,7 +38,7 @@ func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 	defaultHttpClient := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}
-	jsonSchemaValidator := validator.NewJSONSchemaValidator(jsonSchemaDir)
+	jsonSchemaValidator := datatype.NewDefaultJSONSchemaValidator(jsonSchemaDir)
 
 	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidator, isDebug)
 }
@@ -48,7 +49,7 @@ func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidator va
 	return &State{
 		Debugger:            defaultDebugger,
 		Cache:               cache,
-		HttpContext:         httpctx.New(cache, httpClient),
+		HttpContext:         httpctx.NewHttpService(cache, httpClient),
 		TemplateEngine:      template.New(),
 		JSONSchemaValidator: jsonSchemaValidator,
 	}

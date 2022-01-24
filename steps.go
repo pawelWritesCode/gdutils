@@ -749,12 +749,13 @@ func (s *State) IStopDebugMode() error {
 	return nil
 }
 
-// IValidateLastResponseBodyWithSchema validates last response body against JSON schema as provided in schemaPath
-func (s *State) IValidateLastResponseBodyWithSchema(schemaPath string) error {
+// IValidateLastResponseBodyWithSchema validates last response body against JSON schema as provided in source.
+// source may be: URL or full/relative path
+func (s *State) IValidateLastResponseBodyWithSchema(source string) error {
 	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
 		return err
 	}
 
-	return s.JSONSchemaValidator.Validate(string(body), schemaPath)
+	return s.JSONSchemaValidator.Validate(string(body), source)
 }

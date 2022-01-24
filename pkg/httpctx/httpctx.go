@@ -36,7 +36,7 @@ type HttpService struct {
 	cli *http.Client
 }
 
-func New(c cache.Cache, cli *http.Client) HttpService {
+func NewHttpService(c cache.Cache, cli *http.Client) HttpService {
 	return HttpService{cache: c, cli: cli}
 }
 

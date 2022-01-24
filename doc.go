@@ -2,11 +2,11 @@
 //
 // Main package struct is State that represents one testing scenario state. It can be initialized by 2 ways:
 //
-// First, returns *State with default http.Client, DefaultCache and provided debug mode:
-//	func NewDefaultState(isDebug bool) *State
+// First, returns *State with default http.Client, DefaultCache, default JSONschemaValidator and provided debug mode:
+//	func NewDefaultState(isDebug bool, jsonSchemaDir string) *State
 //
-// Second, returns *State with provided http.Client, Cache and debug mode:
-//	func NewState(HttpClient HttpClient, cache Cache, isDebug bool) *State
+// Second, returns *State with provided http.Client, Cache, JSONschemaValidator and debug mode:
+//	func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidator validator.SchemaValidator, isDebug bool) *State
 //
 // Testing HTTP API usually consist the following aspects:
 //
@@ -14,8 +14,7 @@
 //
 //	func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error
 //	func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error
-//	func (s *State) IGenerateARandomStringOfLengthWithoutUnicodeCharactersAndSaveItAs(strLength int, cacheKey string) error
-//	func (s *State) IGenerateARandomStringOfLengthWithUnicodeCharactersAndSaveItAs(strLength int, cacheKey string) error
+//  func (s *State) IGenerateARandomStringInTheRangeToAndSaveItAs(charset string) func(from, to int, cacheKey string) error
 //
 // * Sending HTTP(s) requests:
 //
@@ -40,6 +39,7 @@
 //	func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) error
 //	func (s *State) TheResponseShouldHaveHeader(name string) error
 //	func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error
+//  func (s *State) IValidateLastResponseBodyWithSchema(source string) error
 //
 // * Preserving JSON nodes:
 //
