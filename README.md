@@ -10,7 +10,7 @@ Library is suitable for steps in godog framework.
 
 `go get github.com/pawelWritesCode/gdutils`
 
-### Related:
+### Related project:
 
 Skeleton that allows to write e2e tests using *godog & gdutils* almost instantly with minimal configuration.
 https://github.com/pawelWritesCode/godog-example-setup
