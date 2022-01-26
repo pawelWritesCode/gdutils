@@ -1007,10 +1007,10 @@ func TestState_IValidateLastResponseBodyWithSchema(t *testing.T) {
 	}
 }
 
-func TestState_IGenerateARandomStringWithoutUnicodeCharactersInTheRangeToAndSaveItAs(t *testing.T) {
+func TestState_IGenerateARandomRunesWithoutUnicodeCharactersInTheRangeToAndSaveItAs(t *testing.T) {
 	s := NewDefaultState(false, "")
 
-	rndStringASCII := s.IGenerateARandomStringInTheRangeToAndSaveItAs(stringutils.CharsetASCII)
+	rndStringASCII := s.IGenerateARandomRunesInTheRangeToAndSaveItAs(stringutils.CharsetASCII)
 	for i := 0; i < 10; i++ {
 		key := "TEST_" + strconv.Itoa(i)
 		if err := rndStringASCII(5, 10, key); err != nil {
@@ -1034,7 +1034,7 @@ func TestState_IGenerateARandomStringWithoutUnicodeCharactersInTheRangeToAndSave
 		}
 	}
 
-	rndStringUnicode := s.IGenerateARandomStringInTheRangeToAndSaveItAs(stringutils.CharsetUnicode)
+	rndStringUnicode := s.IGenerateARandomRunesInTheRangeToAndSaveItAs(stringutils.CharsetUnicode)
 	for i := 0; i < 10; i++ {
 		key := "TEST_" + strconv.Itoa(i)
 		if err := rndStringUnicode(5, 10, key); err != nil {

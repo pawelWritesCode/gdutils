@@ -288,9 +288,9 @@ func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cache
 	return nil
 }
 
-// IGenerateARandomStringInTheRangeToAndSaveItAs creates random string generator func using provided charset
-// return func creates string from provided range and preserve it under given cacheKey
-func (s *State) IGenerateARandomStringInTheRangeToAndSaveItAs(charset string) func(from, to int, cacheKey string) error {
+// IGenerateARandomRunesInTheRangeToAndSaveItAs creates random runes generator func using provided charset
+// return func creates runes from provided range and preserve it under given cacheKey
+func (s *State) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset string) func(from, to int, cacheKey string) error {
 	return func(from, to int, cacheKey string) error {
 		randInt, err := mathutils.RandomInt(from, to)
 		if err != nil {
