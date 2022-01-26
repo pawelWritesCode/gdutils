@@ -1,4 +1,4 @@
-[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions)
+[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils)
 
 # GDUTILS
 
@@ -9,10 +9,6 @@ Library is suitable for steps in godog framework.
 ### Downloading
 
 `go get github.com/pawelWritesCode/gdutils`
-
-### Docs:
-
-https://pkg.go.dev/github.com/pawelWritesCode/gdutils
 
 ### Related:
 
