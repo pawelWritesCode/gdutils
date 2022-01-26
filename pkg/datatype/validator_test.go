@@ -84,7 +84,7 @@ func TestJSONSchemaValidator_getSource(t *testing.T) {
 				mUrlValidator.On("Validate", "/jsons/user.json").Return(errors.New("a")).Once()
 				mFileValidator.On("Validate", "/jsons/user.json").Return(nil).Once()
 			},
-		}, args: args{rawSource: "/jsons/user.json"}, want: "/jsons/user.json", wantErr: false},
+		}, args: args{rawSource: "/jsons/user.json"}, want: "file:///jsons/user.json", wantErr: false},
 		{name: "is valid path on user OS", fields: fields{
 			fileValidator: mFileValidator,
 			urlValidator:  mUrlValidator,
@@ -93,7 +93,7 @@ func TestJSONSchemaValidator_getSource(t *testing.T) {
 				mUrlValidator.On("Validate", "user.json").Return(errors.New("a")).Once()
 				mFileValidator.On("Validate", "/jsons/user.json").Return(nil).Once()
 			},
-		}, args: args{rawSource: "user.json"}, want: "/jsons/user.json", wantErr: false},
+		}, args: args{rawSource: "user.json"}, want: "file:///jsons/user.json", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

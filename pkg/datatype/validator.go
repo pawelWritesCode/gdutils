@@ -80,7 +80,7 @@ func (jsv JSONSchemaValidator) getSource(rawSource string) (string, error) {
 
 	errPath := jsv.fileValidator.Validate(pth)
 	if errPath == nil { // pth points at some resource in user OS
-		return pth, nil
+		return fmt.Sprintf("%s%s", "file://", pth), nil
 	}
 
 	return "", fmt.Errorf("%s isn't valid path to any resource on your OS, nor valid URL", rawSource)
