@@ -42,7 +42,7 @@ jobs:
         uses: tj-actions/verify-changed-files@v8.1
         id: verify-changed-files
         with:
-          files: README.md
+          files: README.MD
 
       - name: Push changes
         if: steps.changed_files.outputs.files_changed == 'true'
