@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/cucumber/godog"
@@ -16,6 +17,7 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/debugger"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
+	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
 	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
@@ -938,7 +940,7 @@ func TestState_ISetFollowingBodyForPreparedRequest(t *testing.T) {
 	}
 }
 
-func TestState_IValidateLastResponseBodyWithSchema(t *testing.T) {
+func TestState_IValidateLastResponseBodyWithSchemaReference(t *testing.T) {
 	type fields struct {
 		Debugger            debugger.Debugger
 		HttpContext         httpctx.HttpContext
@@ -992,16 +994,85 @@ func TestState_IValidateLastResponseBodyWithSchema(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &State{
-				Debugger:            tt.fields.Debugger,
-				Cache:               cache.NewConcurrentCache(),
-				HttpContext:         tt.fields.HttpContext,
-				TemplateEngine:      tt.fields.TemplateEngine,
-				JSONSchemaValidator: tt.fields.JSONSchemaValidator,
+				Debugger:             tt.fields.Debugger,
+				Cache:                cache.NewConcurrentCache(),
+				HttpContext:          tt.fields.HttpContext,
+				TemplateEngine:       tt.fields.TemplateEngine,
+				JSONSchemaValidators: JSONSchemaValidators{ReferenceValidator: tt.fields.JSONSchemaValidator},
 			}
 
 			tt.fields.mockFunc()
-			if err := s.IValidateLastResponseBodyWithSchema(tt.args.schemaPath); (err != nil) != tt.wantErr {
-				t.Errorf("IValidateLastResponseBodyWithSchema() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.IValidateLastResponseBodyWithSchemaReference(tt.args.schemaPath); (err != nil) != tt.wantErr {
+				t.Errorf("IValidateLastResponseBodyWithSchemaReference() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_IValidateLastResponseBodyWithSchemaString(t *testing.T) {
+	type fields struct {
+		Debugger            debugger.Debugger
+		HttpContext         httpctx.HttpContext
+		TemplateEngine      template.TemplateEngine
+		JSONSchemaValidator validator.SchemaValidator
+		mockFunc            func()
+	}
+	type args struct {
+		jsonSchema string
+	}
+
+	mHttpContext := new(mockedHTTPContext)
+	mJSONValidator := new(mockedJSONValidator)
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "missing last response body", fields: fields{
+			Debugger:            nil,
+			TemplateEngine:      nil,
+			JSONSchemaValidator: mJSONValidator,
+			HttpContext:         mHttpContext,
+			mockFunc: func() {
+				mHttpContext.On("GetLastResponseBody").Return([]byte(""), fmt.Errorf("abc")).Once()
+			},
+		}, args: args{jsonSchema: ""}, wantErr: true},
+		{name: "validator fails", fields: fields{
+			Debugger:            nil,
+			TemplateEngine:      nil,
+			JSONSchemaValidator: mJSONValidator,
+			HttpContext:         mHttpContext,
+			mockFunc: func() {
+				mHttpContext.On("GetLastResponseBody").Return([]byte(""), nil).Once()
+				mJSONValidator.On("Validate", "", "").Return(errors.New("abc")).Once()
+			},
+		}, args: args{jsonSchema: ""}, wantErr: true},
+		{name: "validator succed", fields: fields{
+			Debugger:            nil,
+			TemplateEngine:      nil,
+			JSONSchemaValidator: mJSONValidator,
+			HttpContext:         mHttpContext,
+			mockFunc: func() {
+				mHttpContext.On("GetLastResponseBody").Return([]byte(""), nil).Once()
+				mJSONValidator.On("Validate", "", "").Return(nil).Once()
+			},
+		}, args: args{jsonSchema: ""}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &State{
+				Debugger:             tt.fields.Debugger,
+				Cache:                cache.NewConcurrentCache(),
+				HttpContext:          tt.fields.HttpContext,
+				TemplateEngine:       tt.fields.TemplateEngine,
+				JSONSchemaValidators: JSONSchemaValidators{StringValidator: tt.fields.JSONSchemaValidator},
+			}
+
+			tt.fields.mockFunc()
+			if err := s.IValidateLastResponseBodyWithSchemaString(&godog.DocString{Content: tt.args.jsonSchema}); (err != nil) != tt.wantErr {
+				t.Errorf("IValidateLastResponseBodyWithSchemaReference() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -1055,6 +1126,62 @@ func TestState_IGenerateARandomRunesWithoutUnicodeCharactersInTheRangeToAndSaveI
 
 		if !(len(rStr) >= 5 && len(rStr) <= 10) {
 			t.Errorf("%v should have length between 5 - 10, got: %d", str, len(rStr))
+		}
+	}
+}
+
+func TestState_IGenerateArandomSentenceInTheRangeFromToWordsAndSaveItAsASCII(t *testing.T) {
+	s := NewDefaultState(false, "")
+	sentenceGen := s.IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs("ab", 1, 1)
+
+	for i := 0; i < 10; i++ {
+		rndNumberOfWords, _ := mathutils.RandomInt(2, 10)
+		cacheKeyRnd := fmt.Sprintf("TEST_%d", i)
+		if err := sentenceGen(2, rndNumberOfWords, cacheKeyRnd); err != nil {
+			t.Errorf("error during sentence generation, err: %s", err.Error())
+		}
+
+		sentenceFromCache, err := s.Cache.GetSaved(cacheKeyRnd)
+		if err != nil {
+			t.Errorf("error during obtaining sentence from cache, err: %s", err.Error())
+		}
+
+		obtainedSentence, ok := sentenceFromCache.(string)
+		if !ok {
+			t.Errorf("error during type checking. Expected %+v to be string", obtainedSentence)
+		}
+
+		words := strings.Split(obtainedSentence, " ")
+		if len(words) < 2 || len(words) > rndNumberOfWords {
+			t.Errorf("expected sentence to have between (%d, %d) words, got %d, sentence: %s", 2, rndNumberOfWords, len(words), obtainedSentence)
+		}
+	}
+}
+
+func TestState_IGenerateArandomSentenceInTheRangeFromToWordsAndSaveItAsUnicode(t *testing.T) {
+	s := NewDefaultState(false, "")
+	sentenceGen := s.IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs("🤡🤖🧟🏋🥇", 1, 1)
+
+	for i := 0; i < 10; i++ {
+		rndNumberOfWords, _ := mathutils.RandomInt(2, 10)
+		cacheKeyRnd := fmt.Sprintf("TEST_%d", i)
+		if err := sentenceGen(2, rndNumberOfWords, cacheKeyRnd); err != nil {
+			t.Errorf("error during sentence generation, err: %s", err.Error())
+		}
+
+		sentenceFromCache, err := s.Cache.GetSaved(cacheKeyRnd)
+		if err != nil {
+			t.Errorf("error during obtaining sentence from cache, err: %s", err.Error())
+		}
+
+		obtainedSentence, ok := sentenceFromCache.(string)
+		if !ok {
+			t.Errorf("error during type checking. Expected %+v to be string", obtainedSentence)
+		}
+
+		words := strings.Split(obtainedSentence, " ")
+		if len(words) < 2 || len(words) > rndNumberOfWords {
+			t.Errorf("expected sentence to have between (%d, %d) words, got %d, sentence: %s", 2, rndNumberOfWords, len(words), obtainedSentence)
 		}
 	}
 }

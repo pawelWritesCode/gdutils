@@ -27,8 +27,17 @@ type State struct {
 	// TemplateEngine is entity that has ability to work with template values.
 	TemplateEngine template.TemplateEngine
 
-	// JSONSchemaValidator is entity that has ability to validate JSON schemas.
-	JSONSchemaValidator validator.SchemaValidator
+	// JSONSchemaValidators holds validators available to validate JSON Schemas
+	JSONSchemaValidators JSONSchemaValidators
+}
+
+// JSONSchemaValidators is container for JSON schema validators
+type JSONSchemaValidators struct {
+	// StringValidator represents entity that has ability to validate document against string of JSON schema
+	StringValidator validator.SchemaValidator
+	// ReferenceValidator represents entity that has ability to validate document against JSON schema
+	// provided by reference like URL or relative/full OS path
+	ReferenceValidator validator.SchemaValidator
 }
 
 // NewDefaultState returns *State with default http.Client, DefaultCache and default Debugger.
@@ -38,20 +47,24 @@ func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 	defaultHttpClient := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}
-	jsonSchemaValidator := datatype.NewDefaultJSONSchemaValidator(jsonSchemaDir)
 
-	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidator, isDebug)
+	jsonSchemaValidators := JSONSchemaValidators{
+		StringValidator:    datatype.NewJSONSchemaRawValidator(),
+		ReferenceValidator: datatype.NewDefaultJSONSchemaReferenceValidator(jsonSchemaDir),
+	}
+
+	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidators, isDebug)
 }
 
 // NewState returns *State with provided HttpClient, cache and default Debugger
-func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidator validator.SchemaValidator, isDebug bool) *State {
+func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidators JSONSchemaValidators, isDebug bool) *State {
 	defaultDebugger := debugger.New(isDebug)
 	return &State{
-		Debugger:            defaultDebugger,
-		Cache:               cache,
-		HttpContext:         httpctx.NewHttpService(cache, httpClient),
-		TemplateEngine:      template.New(),
-		JSONSchemaValidator: jsonSchemaValidator,
+		Debugger:             defaultDebugger,
+		Cache:                cache,
+		HttpContext:          httpctx.NewHttpService(cache, httpClient),
+		TemplateEngine:       template.New(),
+		JSONSchemaValidators: jsonSchemaValidators,
 	}
 }
 

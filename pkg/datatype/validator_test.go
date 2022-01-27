@@ -97,7 +97,7 @@ func TestJSONSchemaValidator_getSource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			jsv := JSONSchemaValidator{
+			jsv := JSONSchemaReferenceValidator{
 				fileValidator: tt.fields.fileValidator,
 				urlValidator:  tt.fields.urlValidator,
 				schemasDir:    tt.fields.schemasDir,
@@ -112,6 +112,83 @@ func TestJSONSchemaValidator_getSource(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("getSource() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestJSONSchemaRawValidator_Validate(t *testing.T) {
+	document := `{
+  "latitude": 48.858093,
+  "longitude": 2.294694
+}`
+	jsonSchema := `{
+  "$id": "https://example.com/geographical-location.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Longitude and Latitude Values",
+  "description": "A geographical coordinate.",
+  "required": [ "latitude", "longitude" ],
+  "type": "object",
+  "properties": {
+    "latitude": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90
+    },
+    "longitude": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180
+    }
+  }
+}`
+
+	type args struct {
+		document   string
+		jsonSchema string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "valid data #1", args: args{
+			document:   document,
+			jsonSchema: jsonSchema,
+		}, wantErr: false},
+		{name: "no document", args: args{
+			document:   "",
+			jsonSchema: jsonSchema,
+		}, wantErr: true},
+		{name: "no json schema", args: args{
+			document:   document,
+			jsonSchema: ``,
+		}, wantErr: true},
+		{name: "invalid json schema", args: args{
+			document: document,
+			jsonSchema: `{
+  "$id": "https://example.com/geographical-location.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Longitude and Latitude Values",
+  "description": "A geographical coordinate.",
+  "required": [ "latitude", "longitude" ],
+  "type": "object",
+  "properties": {
+    "latitude": {
+      "type": "string"
+    },
+    "longitude": {
+      "type": "string"
+    }
+  }
+}`,
+		}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			J := JSONSchemaRawValidator{}
+			if err := J.Validate(tt.args.document, tt.args.jsonSchema); (err != nil) != tt.wantErr {
+				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

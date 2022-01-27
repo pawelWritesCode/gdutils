@@ -303,6 +303,45 @@ func (s *State) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset string) fun
 	}
 }
 
+// IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs creates generator func for creating random sentences
+// each sentence has length from - to as provided in params and is saved in provided cacheKey
+// Given I generate a random sentence in the range from "5" to "10" words and save it as "ABC"
+func (s *State) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error {
+	return func(from, to int, cacheKey string) error {
+		if from > to {
+			return fmt.Errorf("%w could not generate sentence because of invalid range provided, from '%d' should not be greater than to: '%d'", ErrGdutils, from, to)
+		}
+
+		if wordMinLength > wordMaxLength {
+			return fmt.Errorf("%w could not generate sentence because of invalid range provided, wordMinLength '%d' should not be greater than wordMaxLength '%d'", ErrGdutils, wordMinLength, wordMaxLength)
+		}
+
+		numberOfWords, err := mathutils.RandomInt(from, to)
+		if err != nil {
+			return err
+		}
+
+		sentence := ""
+		for i := 0; i < numberOfWords; i++ {
+			lengthOfWord, err := mathutils.RandomInt(wordMinLength, wordMaxLength)
+			if err != nil {
+				return err
+			}
+
+			word := stringutils.RunesFromCharset(lengthOfWord, []rune(charset))
+			if i == numberOfWords-1 {
+				sentence += string(word)
+			} else {
+				sentence += string(word) + " "
+			}
+		}
+
+		s.Cache.Save(cacheKey, sentence)
+
+		return nil
+	}
+}
+
 // TheJSONResponseShouldHaveNode checks whether last response body contains given key
 func (s *State) TheJSONResponseShouldHaveNode(expr string) error {
 	body, err := s.HttpContext.GetLastResponseBody()
@@ -696,6 +735,27 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
 	return fmt.Errorf("%w: %s header exists but, expected value: %s, is not equal to actual: %s", ErrHTTPReqRes, name, value, header)
 }
 
+// IValidateLastResponseBodyWithSchemaReference validates last response body against JSON schema as provided in reference.
+// reference may be: URL or full/relative path
+func (s *State) IValidateLastResponseBodyWithSchemaReference(reference string) error {
+	body, err := s.HttpContext.GetLastResponseBody()
+	if err != nil {
+		return err
+	}
+
+	return s.JSONSchemaValidators.ReferenceValidator.Validate(string(body), reference)
+}
+
+// IValidateLastResponseBodyWithSchemaString validates last response body against jsonSchema.
+func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema *godog.DocString) error {
+	body, err := s.HttpContext.GetLastResponseBody()
+	if err != nil {
+		return err
+	}
+
+	return s.JSONSchemaValidators.StringValidator.Validate(string(body), jsonSchema.GetContent())
+}
+
 // IWait waits for given timeInterval amount of time
 // timeInterval should be string valid for time.ParseDuration func
 func (s *State) IWait(timeInterval string) error {
@@ -747,15 +807,4 @@ func (s *State) IStopDebugMode() error {
 	s.Debugger.TurnOff()
 
 	return nil
-}
-
-// IValidateLastResponseBodyWithSchema validates last response body against JSON schema as provided in source.
-// source may be: URL or full/relative path
-func (s *State) IValidateLastResponseBodyWithSchema(source string) error {
-	body, err := s.HttpContext.GetLastResponseBody()
-	if err != nil {
-		return err
-	}
-
-	return s.JSONSchemaValidator.Validate(string(body), source)
 }

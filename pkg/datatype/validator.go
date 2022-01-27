@@ -12,8 +12,8 @@ import (
 	v "github.com/pawelWritesCode/gdutils/pkg/validator"
 )
 
-// JSONSchemaValidator is entity that has ability to validate data against JSON schema.
-type JSONSchemaValidator struct {
+// JSONSchemaReferenceValidator is entity that has ability to validate data against JSON schema passed as reference.
+type JSONSchemaReferenceValidator struct {
 	fileValidator v.Validator
 	urlValidator  v.Validator
 
@@ -21,21 +21,28 @@ type JSONSchemaValidator struct {
 	schemasDir string
 }
 
-func NewDefaultJSONSchemaValidator(schemasDir string) JSONSchemaValidator {
-	return NewJSONSchemaValidator(schemasDir, osutils.NewFileValidator(), httpctx.NewURLValidator())
+// JSONSchemaRawValidator is entity that has ability to validate data against JSON schema passed as string
+type JSONSchemaRawValidator struct{}
+
+func NewDefaultJSONSchemaReferenceValidator(schemasDir string) JSONSchemaReferenceValidator {
+	return NewJSONSchemaReferenceValidator(schemasDir, osutils.NewFileValidator(), httpctx.NewURLValidator())
 }
 
-func NewJSONSchemaValidator(schemasDir string, fileValidator v.Validator, urlValidator v.Validator) JSONSchemaValidator {
-	return JSONSchemaValidator{
+func NewJSONSchemaReferenceValidator(schemasDir string, fileValidator v.Validator, urlValidator v.Validator) JSONSchemaReferenceValidator {
+	return JSONSchemaReferenceValidator{
 		fileValidator: fileValidator,
 		urlValidator:  urlValidator,
 		schemasDir:    schemasDir,
 	}
 }
 
+func NewJSONSchemaRawValidator() JSONSchemaRawValidator {
+	return JSONSchemaRawValidator{}
+}
+
 // Validate validates document against JSON schema located in schemaPath.
 // schemaPath may be URL or relative/full path to json schema on user OS
-func (jsv JSONSchemaValidator) Validate(document, schemaPath string) error {
+func (jsv JSONSchemaReferenceValidator) Validate(document, schemaPath string) error {
 	source, err := jsv.getSource(schemaPath)
 	if err != nil {
 		return err
@@ -60,7 +67,7 @@ func (jsv JSONSchemaValidator) Validate(document, schemaPath string) error {
 
 // getSource accepts rawSource, validate it and returns valid source
 // available sources are: file system os path and URL
-func (jsv JSONSchemaValidator) getSource(rawSource string) (string, error) {
+func (jsv JSONSchemaReferenceValidator) getSource(rawSource string) (string, error) {
 	if rawSource == "" {
 		return rawSource, errors.New("provided rawSource should not be empty string")
 	}
@@ -84,4 +91,23 @@ func (jsv JSONSchemaValidator) getSource(rawSource string) (string, error) {
 	}
 
 	return "", fmt.Errorf("%s isn't valid path to any resource on your OS, nor valid URL", rawSource)
+}
+
+// Validate validates document against jsonSchema
+func (J JSONSchemaRawValidator) Validate(document, jsonSchema string) error {
+	result, err := jschema.Validate(jschema.NewStringLoader(jsonSchema), jschema.NewStringLoader(document))
+	if err != nil {
+		return err
+	}
+
+	if !result.Valid() {
+		errSum := ""
+		for _, err := range result.Errors() {
+			errSum += err.String()
+		}
+
+		return errors.New(errSum)
+	}
+
+	return nil
 }
