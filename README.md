@@ -44,6 +44,7 @@ https://github.com/pawelWritesCode/godog-example-setup
 | IGenerateARandomIntInTheRangeToAndSaveItAs | Generates random integer from provided range and save it under provided cache key |
 | IGenerateARandomFloatInTheRangeToAndSaveItAs | Generates random float from provided range and save it under provided cache key |
 | IGenerateARandomStringInTheRangeToAndSaveItAs | Creates generator for random strings from provided charset in provided range |
+| IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs | Creates generator for random sentence from provided charset in provided range |
 | | |
 | **Preserving data:** |
 | | |
@@ -71,4 +72,5 @@ https://github.com/pawelWritesCode/godog-example-setup
 | TheJSONNodeShouldNotBe | Checks whether JSON node from last response body is not of provided type |
 | TheJSONResponseShouldHaveNodes | Checks whether last HTTP(s) response body JSON has given nodes |
 | TheJSONNodeShouldBeSliceOfLength | checks whether given key is slice and has given length |
-| IValidateLastResponseBodyWithSchema | Validates last HTTP(s) response body against provided JSON schema |
+| IValidateLastResponseBodyWithSchemaReference | Validates last HTTP(s) response body against provided in reference JSON schema |
+| IValidateLastResponseBodyWithSchemaString | Validates last HTTP(s) response body against provided JSON schema |
