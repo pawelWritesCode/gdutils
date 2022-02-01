@@ -2,7 +2,6 @@ package gdutils
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net/http"
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
@@ -72,19 +71,4 @@ func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidators J
 func (s *State) ResetState(isDebug bool) {
 	s.Cache.Reset()
 	s.Debugger.Reset(isDebug)
-}
-
-// getPreparedRequest returns prepared request from cache or error if failed
-func (s *State) getPreparedRequest(cacheKey string) (*http.Request, error) {
-	reqInterface, err := s.Cache.GetSaved(cacheKey)
-	if err != nil {
-		return &http.Request{}, err
-	}
-
-	req, ok := reqInterface.(*http.Request)
-	if !ok {
-		return &http.Request{}, fmt.Errorf("%w: value under key %s in cache doesn't contain *http.Request", ErrPreservedData, cacheKey)
-	}
-
-	return req, nil
 }

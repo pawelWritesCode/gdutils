@@ -318,14 +318,14 @@ func (s *State) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset
 
 		numberOfWords, err := mathutils.RandomInt(from, to)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: %s", ErrGdutils, err)
 		}
 
 		sentence := ""
 		for i := 0; i < numberOfWords; i++ {
 			lengthOfWord, err := mathutils.RandomInt(wordMinLength, wordMaxLength)
 			if err != nil {
-				return err
+				return fmt.Errorf("%w: %s", ErrGdutils, err)
 			}
 
 			word := stringutils.RunesFromCharset(lengthOfWord, []rune(charset))
@@ -740,7 +740,7 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
 func (s *State) IValidateLastResponseBodyWithSchemaReference(reference string) error {
 	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err)
 	}
 
 	return s.JSONSchemaValidators.ReferenceValidator.Validate(string(body), reference)
@@ -750,7 +750,7 @@ func (s *State) IValidateLastResponseBodyWithSchemaReference(reference string) e
 func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema *godog.DocString) error {
 	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err)
 	}
 
 	return s.JSONSchemaValidators.StringValidator.Validate(string(body), jsonSchema.GetContent())
@@ -807,4 +807,19 @@ func (s *State) IStopDebugMode() error {
 	s.Debugger.TurnOff()
 
 	return nil
+}
+
+// getPreparedRequest returns prepared request from cache or error if failed
+func (s *State) getPreparedRequest(cacheKey string) (*http.Request, error) {
+	reqInterface, err := s.Cache.GetSaved(cacheKey)
+	if err != nil {
+		return &http.Request{}, fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	req, ok := reqInterface.(*http.Request)
+	if !ok {
+		return &http.Request{}, fmt.Errorf("%w: value under key %s in cache doesn't contain *http.Request", ErrPreservedData, cacheKey)
+	}
+
+	return req, nil
 }
