@@ -21,7 +21,7 @@ https://github.com/pawelWritesCode/godog-example-setup
 - [ ] New method for **saving fixed values from scenario under provided cache key** (not only from HTTP(s) response)
 - [ ] New method for asserting on HTTP(s) response using cucumber datatable (field | matcher | type | value )
 - [ ] New method for asserting on **HTTP(s) request-response time**
-- [ ] Upgrade assertion for validating last HTTP(s) response with **user provided (as []bytes)** JSON schema
+- [x] Upgrade assertion for validating last HTTP(s) response with **user provided (as []bytes)** JSON schema
 - [x] Upgrade assertion for validating last HTTP(s) response against JSON Schema **to accept URL**
 - [ ] Upgrade assertion using qjson-jsonpath to accept another jsonpath library
   syntax: (https://github.com/oliveagle/jsonpath)
