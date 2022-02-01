@@ -753,7 +753,7 @@ func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema *godog.DocS
 		return fmt.Errorf("%w: %s", ErrGdutils, err)
 	}
 
-	return s.JSONSchemaValidators.StringValidator.Validate(string(body), jsonSchema.GetContent())
+	return s.JSONSchemaValidators.StringValidator.Validate(string(body), jsonSchema.Content)
 }
 
 // IWait waits for given timeInterval amount of time
