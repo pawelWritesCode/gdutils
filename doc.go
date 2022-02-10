@@ -54,10 +54,12 @@
 //	func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error
 //  func (s *State) IValidateLastResponseBodyWithSchemaReference(source string) error
 //	func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema *godog.DocString) error
+//	func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval string)
 //
 // * Preserving JSON nodes:
 //
 //	func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error
+//  func (s *State) ISaveAs(value, cacheKey string) error
 //
 // * Temporary stopping scenario execution:
 //

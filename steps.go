@@ -82,11 +82,14 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 		s.Debugger.Print(command.String())
 	}
 
+	s.Cache.Save(httpcache.LastHTTPRequestTimestamp, time.Now())
+
 	resp, err := s.HttpContext.GetHTTPClient().Do(req)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
 	}
 
+	s.Cache.Save(httpcache.LastHTTPResponseTimestamp, time.Now())
 	s.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
 
 	if s.Debugger.IsOn() {
@@ -172,11 +175,14 @@ func (s *State) ISendRequest(cacheKey string) error {
 		s.Debugger.Print(command.String())
 	}
 
+	s.Cache.Save(httpcache.LastHTTPRequestTimestamp, time.Now())
+
 	resp, err := s.HttpContext.GetHTTPClient().Do(req)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
 	}
 
+	s.Cache.Save(httpcache.LastHTTPResponseTimestamp, time.Now())
 	s.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
 
 	if s.Debugger.IsOn() {
@@ -228,6 +234,21 @@ func (s *State) TheResponseBodyShouldHaveType(dataType string) error {
 	default:
 		return fmt.Errorf("%w: unknown last response body data type, available values: %s, %s", ErrHTTPReqRes, typeJSON, typePlainText)
 	}
+}
+
+// ISaveAs saves into cache arbitrary passed value
+func (s *State) ISaveAs(value, cacheKey string) error {
+	if len(value) == 0 {
+		return fmt.Errorf("%w: pass any value", ErrGdutils)
+	}
+
+	if len(cacheKey) == 0 {
+		return fmt.Errorf("%w: cacheKey should be not empty value", ErrGdutils)
+	}
+
+	s.Cache.Save(cacheKey, value)
+
+	return nil
 }
 
 // ISaveFromTheLastResponseJSONNodeAs saves from last response body JSON node under given cacheKey key.
@@ -700,6 +721,43 @@ func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema *godog.DocS
 	}
 
 	return s.JSONSchemaValidators.StringValidator.Validate(string(body), jsonSchema.Content)
+}
+
+// TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo asserts that last HTTP request-response time
+// is <= than expected timeInterval.
+// timeInterval should be string acceptable by time.ParseDuration func
+func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval string) error {
+	lastReqTimestampI, err := s.Cache.GetSaved(httpcache.LastHTTPRequestTimestamp)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	lastReqTimestamp, ok := lastReqTimestampI.(time.Time)
+	if !ok {
+		return fmt.Errorf("%w: last request timestamp: '%+v' should be time.Time", ErrHTTPReqRes, lastReqTimestampI)
+	}
+
+	lastResTimestampI, err := s.Cache.GetSaved(httpcache.LastHTTPResponseTimestamp)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	lastResTimestamp, ok := lastResTimestampI.(time.Time)
+	if !ok {
+		return fmt.Errorf("%w: last response timestamp: '%+v' should be time.Time", ErrHTTPReqRes, lastResTimestampI)
+	}
+
+	d, err := time.ParseDuration(timeInterval)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	timeBetweenReqRes := lastResTimestamp.Sub(lastReqTimestamp)
+	if timeBetweenReqRes > d {
+		return fmt.Errorf("%w: time between last request - response should be less than %+v, but it took %+v", ErrHTTPReqRes, d, timeBetweenReqRes)
+	}
+
+	return nil
 }
 
 // IWait waits for given timeInterval amount of time

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cucumber/godog"
 	"github.com/stretchr/testify/mock"
@@ -1183,5 +1184,109 @@ func TestState_IGenerateArandomSentenceInTheRangeFromToWordsAndSaveItAsUnicode(t
 		if len(words) < 2 || len(words) > rndNumberOfWords {
 			t.Errorf("expected sentence to have between (%d, %d) words, got %d, sentence: %s", 2, rndNumberOfWords, len(words), obtainedSentence)
 		}
+	}
+}
+
+func TestState_ISaveAs(t *testing.T) {
+	type fields struct{}
+	type args struct {
+		value    string
+		cacheKey string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "value and cacheKey should be not empty string", fields: fields{}, args: args{
+			value:    "",
+			cacheKey: "",
+		}, wantErr: true},
+		{name: "value should be not empty string", fields: fields{}, args: args{
+			value:    "",
+			cacheKey: "a",
+		}, wantErr: true},
+		{name: "cacheKey should be not empty string", fields: fields{}, args: args{
+			value:    "a",
+			cacheKey: "",
+		}, wantErr: true},
+		{name: "valid value", fields: fields{}, args: args{
+			value:    "a",
+			cacheKey: "a",
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, "")
+			if err := s.ISaveAs(tt.args.value, tt.args.cacheKey); (err != nil) != tt.wantErr {
+				t.Errorf("ISaveAs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !tt.wantErr {
+				v, err := s.Cache.GetSaved(tt.args.cacheKey)
+				if err != nil {
+					t.Errorf("%s", err)
+				}
+
+				vStr, ok := v.(string)
+				if !ok {
+					t.Errorf("%+v value is not string", v)
+				}
+
+				if vStr != tt.args.value {
+					t.Errorf("expected %s, got %s", tt.args.value, vStr)
+				}
+			}
+		})
+	}
+}
+
+func TestState_TimeBetweenLastHTTPRequestResponseShouldBeLessThan(t *testing.T) {
+	type fields struct {
+		req *time.Time
+		res *time.Time
+	}
+	type args struct {
+		timeInterval string
+	}
+
+	currTime := time.Now()
+	currTimePlusOneSec := currTime.Add(1 * time.Second)
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "duration is not parseable by time.ParseDuration method", fields: fields{
+			req: &time.Time{},
+			res: &time.Time{},
+		}, args: args{timeInterval: "abc"}, wantErr: true},
+		{name: "time passed between request and response is greater than expected", fields: fields{
+			req: &currTime,
+			res: &currTimePlusOneSec,
+		}, args: args{timeInterval: "1ms"}, wantErr: true},
+		{name: "time passed between request and response is equal to expected", fields: fields{
+			req: &currTime,
+			res: &currTimePlusOneSec,
+		}, args: args{timeInterval: "1s"}, wantErr: false},
+		{name: "time passed between request and response is less to expected", fields: fields{
+			req: &currTime,
+			res: &currTimePlusOneSec,
+		}, args: args{timeInterval: "2s"}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, "")
+
+			s.Cache.Save(httpcache.LastHTTPRequestTimestamp, *tt.fields.req)
+			s.Cache.Save(httpcache.LastHTTPResponseTimestamp, *tt.fields.res)
+
+			if err := s.TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(tt.args.timeInterval); (err != nil) != tt.wantErr {
+				t.Errorf("TimeBetweenLastHTTPRequestResponseShouldBeLessThan() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }

@@ -1,4 +1,4 @@
-[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-47.3%25-brightgreen)
+[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-53.1%25-brightgreen)
 
 # GDUTILS
 
@@ -18,9 +18,9 @@ https://github.com/pawelWritesCode/godog-example-setup
 ### Roadmap (not yet implemented ideas):
 
 - [ ] New method for **adding cookies to HTTP(s) request**
-- [ ] New method for **saving fixed values from scenario under provided cache key** (not only from HTTP(s) response)
+- [x] New method for **saving fixed values from scenario under provided cache key** (not only from HTTP(s) response)
 - [ ] New method for asserting on HTTP(s) response using cucumber datatable (field | matcher | type | value )
-- [ ] New method for asserting on **HTTP(s) request-response time**
+- [x] New method for asserting on **HTTP(s) request-response time**
 - [x] Upgrade assertion for validating last HTTP(s) response with **user provided (as []bytes)** JSON schema
 - [x] Upgrade assertion for validating last HTTP(s) response against JSON Schema **to accept URL**
 - [x] Upgrade assertion using qjson-jsonpath to accept another jsonpath library
@@ -49,6 +49,7 @@ https://github.com/pawelWritesCode/godog-example-setup
 | **Preserving data:** |
 | | |
 | ISaveFromTheLastResponseJSONNodeAs | Saves from last response body JSON node under given cacheKey key |
+| ISaveAs | Saves into cache arbitrary passed value |
 | | |
 | **Debugging:** |
 | | |
@@ -74,3 +75,4 @@ https://github.com/pawelWritesCode/godog-example-setup
 | TheJSONNodeShouldBeSliceOfLength | checks whether given key is slice and has given length |
 | IValidateLastResponseBodyWithSchemaReference | Validates last HTTP(s) response body against provided in reference JSON schema |
 | IValidateLastResponseBodyWithSchemaString | Validates last HTTP(s) response body against provided JSON schema |
+| TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo | Asserts that last HTTP(s) request-response time is <= than expected |
