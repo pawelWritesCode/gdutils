@@ -8,6 +8,7 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/datatype"
 	"github.com/pawelWritesCode/gdutils/pkg/debugger"
 	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
+	"github.com/pawelWritesCode/gdutils/pkg/jsonpath"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
@@ -24,10 +25,13 @@ type State struct {
 	HttpContext httpctx.HttpContext
 
 	// TemplateEngine is entity that has ability to work with template values.
-	TemplateEngine template.TemplateEngine
+	TemplateEngine template.Engine
 
 	// JSONSchemaValidators holds validators available to validate JSON Schemas
 	JSONSchemaValidators JSONSchemaValidators
+
+	// JSONPathResolver is entity that has ability to obtain data from JSON
+	JSONPathResolver jsonpath.Resolver
 }
 
 // JSONSchemaValidators is container for JSON schema validators
@@ -39,7 +43,7 @@ type JSONSchemaValidators struct {
 	ReferenceValidator validator.SchemaValidator
 }
 
-// NewDefaultState returns *State with default http.Client, DefaultCache and default Debugger.
+// NewDefaultState returns *State with default services.
 // jsonSchemaDir may be empty string or valid full path to directory with JSON schemas
 func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 	defaultCache := cache.NewConcurrentCache()
@@ -52,18 +56,21 @@ func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 		ReferenceValidator: datatype.NewDefaultJSONSchemaReferenceValidator(jsonSchemaDir),
 	}
 
-	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidators, isDebug)
+	resolver := jsonpath.NewDynamicJSONPathResolver(jsonpath.NewQJSONResolver(), jsonpath.NewOliveagleJSONpath())
+
+	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidators, resolver, isDebug)
 }
 
-// NewState returns *State with provided HttpClient, cache and default Debugger
-func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidators JSONSchemaValidators, isDebug bool) *State {
+// NewState returns *State
+func NewState(cli *http.Client, cache cache.Cache, jsValidators JSONSchemaValidators, resolver jsonpath.Resolver, isDebug bool) *State {
 	defaultDebugger := debugger.New(isDebug)
 	return &State{
 		Debugger:             defaultDebugger,
 		Cache:                cache,
-		HttpContext:          httpctx.NewHttpService(cache, httpClient),
+		HttpContext:          httpctx.NewHttpService(cache, cli),
 		TemplateEngine:       template.New(),
-		JSONSchemaValidators: jsonSchemaValidators,
+		JSONSchemaValidators: jsValidators,
+		JSONPathResolver:     resolver,
 	}
 }
 
@@ -71,4 +78,34 @@ func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidators J
 func (s *State) ResetState(isDebug bool) {
 	s.Cache.Reset()
 	s.Debugger.Reset(isDebug)
+}
+
+// SetDebugger sets new debugger for State
+func (s *State) SetDebugger(d debugger.Debugger) {
+	s.Debugger = d
+}
+
+// SetCache sets new Cache for State
+func (s *State) SetCache(c cache.Cache) {
+	s.Cache = c
+}
+
+// SetHttpContext sets new HttpContext for State
+func (s *State) SetHttpContext(c httpctx.HttpContext) {
+	s.HttpContext = c
+}
+
+// SetTemplateEngine sets new template Engine for State
+func (s *State) SetTemplateEngine(t template.Engine) {
+	s.TemplateEngine = t
+}
+
+// SetJSONSchemaValidators sets new JSONSchemaValidators for State
+func (s *State) SetJSONSchemaValidators(j JSONSchemaValidators) {
+	s.JSONSchemaValidators = j
+}
+
+// SetJSONPathResolver sets new JSON path resolver for State
+func (s *State) SetJSONPathResolver(j jsonpath.Resolver) {
+	s.JSONPathResolver = j
 }

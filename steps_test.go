@@ -944,7 +944,7 @@ func TestState_IValidateLastResponseBodyWithSchemaReference(t *testing.T) {
 	type fields struct {
 		Debugger            debugger.Debugger
 		HttpContext         httpctx.HttpContext
-		TemplateEngine      template.TemplateEngine
+		TemplateEngine      template.Engine
 		JSONSchemaValidator validator.SchemaValidator
 		mockFunc            func()
 	}
@@ -1013,7 +1013,7 @@ func TestState_IValidateLastResponseBodyWithSchemaString(t *testing.T) {
 	type fields struct {
 		Debugger            debugger.Debugger
 		HttpContext         httpctx.HttpContext
-		TemplateEngine      template.TemplateEngine
+		TemplateEngine      template.Engine
 		JSONSchemaValidator validator.SchemaValidator
 		mockFunc            func()
 	}

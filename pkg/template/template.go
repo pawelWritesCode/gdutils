@@ -11,8 +11,8 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
 )
 
-// TemplateEngine is entity that has ability to work with templates.
-type TemplateEngine interface {
+// Engine is entity that has ability to work with templates.
+type Engine interface {
 	// Replace replaces template values using provided storage.
 	Replace(templateValue string, storage map[string]interface{}) (string, error)
 }

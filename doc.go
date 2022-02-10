@@ -1,12 +1,24 @@
 // Package gdutils provides State struct with methods that may be used for behavioral testing of HTTP API.
 //
-// Main package struct is State that represents one testing scenario state. It can be initialized by 2 ways:
+// State may be initialized by two ways:
 //
-// First, returns *State with default http.Client, ConcurrentCache, default JSONschemaValidators and provided debug mode:
+// First, returns *State with default services:
 //	func NewDefaultState(isDebug bool, jsonSchemaDir string) *State
 //
-// Second, returns *State with provided http.Client, Cache, JSONschemaValidators and debug mode:
+// Second, more customisable returns *State with provided services:
 //	func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidators JSONSchemaValidators, isDebug bool) *State
+//
+// No matter which way you choose, you can inject your custom services afterwards with one of available setters:
+//	func (s *State) SetDebugger(d debugger.Debugger)
+//	func (s *State) SetCache(c cache.Cache)
+//	func (s *State) SetHttpContext(c httpctx.HttpContext)
+//	func (s *State) SetTemplateEngine(t template.Engine)
+//	func (s *State) SetJSONSchemaValidators(j JSONSchemaValidators)
+//	func (s *State) SetJSONPathResolver(j jsonpath.Resolver)
+//
+// Those services will be used in utility methods.
+// For example, if you want to use your own debugger, create your own struct, implement debugger.Debugger interface on it,
+// and then inject it with "func (s *State) SetDebugger(d debugger.Debugger)" method.
 //
 // Testing HTTP API usually consist the following aspects:
 //
@@ -56,10 +68,4 @@
 //	func (s *State) IPrintLastResponseBody() error
 //	func (s *State) IStartDebugMode() error
 //	func (s *State) IStopDebugMode() error
-//
-// State has also some useful utility methods like:
-//
-//	func (s *State) GetLastResponse() (*http.Response, error)
-//	func (s *State) GetLastResponseBody() []byte
-//	func (s *State) GetLastResponseHeaders() http.Header
 package gdutils

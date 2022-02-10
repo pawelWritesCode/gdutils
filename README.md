@@ -1,4 +1,4 @@
-[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-47.9%25-brightgreen)
+[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-47.3%25-brightgreen)
 
 # GDUTILS
 
@@ -23,7 +23,7 @@ https://github.com/pawelWritesCode/godog-example-setup
 - [ ] New method for asserting on **HTTP(s) request-response time**
 - [x] Upgrade assertion for validating last HTTP(s) response with **user provided (as []bytes)** JSON schema
 - [x] Upgrade assertion for validating last HTTP(s) response against JSON Schema **to accept URL**
-- [ ] Upgrade assertion using qjson-jsonpath to accept another jsonpath library
+- [x] Upgrade assertion using qjson-jsonpath to accept another jsonpath library
   syntax: (https://github.com/oliveagle/jsonpath)
 
 ### Available methods:
