@@ -775,12 +775,25 @@ func TestScenario_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 			},
 		},
 		}, args: args{name: "Content-Type", value: "application/json"}, wantErr: false},
+		{name: "matching header using template value #3", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{
+				"Content-Length": {"30"},
+				"Content-Type":   {"application/json"},
+			},
+		},
+			cache: map[string]interface{}{"CONTENT_TYPE_JSON": "application/json"},
+		}, args: args{name: "Content-Type", value: "{{.CONTENT_TYPE_JSON}}"}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewDefaultState(tt.fields.isDebug, "")
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
+			if tt.fields.cache != nil {
+				for key, val := range tt.fields.cache {
+					s.Cache.Save(key, val)
+				}
+			}
 
 			if err := s.TheResponseShouldHaveHeaderOfValue(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("TheResponseShouldHaveHeaderOfValue() error = %v, wantErr %v", err, tt.wantErr)

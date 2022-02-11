@@ -685,8 +685,8 @@ func (s *State) TheResponseShouldHaveHeader(name string) error {
 	return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
 }
 
-// TheResponseShouldHaveHeaderOfValue checks whether last HTTP response has given header with provided value
-func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
+// TheResponseShouldHaveHeaderOfValue checks whether last HTTP response has given header with provided valueTemplate
+func (s *State) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) error {
 	defer func() {
 		if s.Debugger.IsOn() {
 			lastResp, err := s.HttpContext.GetLastResponse()
@@ -700,10 +700,14 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error {
 
 	lastResp, err := s.HttpContext.GetLastResponse()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
 	}
 
 	header := lastResp.Header.Get(name)
+	value, err := s.TemplateEngine.Replace(valueTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
 
 	if header == "" && value == "" {
 		return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
