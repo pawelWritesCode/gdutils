@@ -6,7 +6,7 @@
 //	func NewDefaultState(isDebug bool, jsonSchemaDir string) *State
 //
 // Second, more customisable returns *State with provided services:
-//	func NewState(httpClient *http.Client, cache cache.Cache, jsonSchemaValidators JSONSchemaValidators, isDebug bool) *State
+//	func NewState(cli *http.Client, c cache.Cache, jv JSONSchemaValidators, r jsonpath.Resolver, d formatter.Deserializer, isDebug bool) *State
 //
 // No matter which way you choose, you can inject your custom services afterwards with one of available setters:
 //	func (s *State) SetDebugger(d debugger.Debugger)
@@ -15,6 +15,7 @@
 //	func (s *State) SetTemplateEngine(t template.Engine)
 //	func (s *State) SetJSONSchemaValidators(j JSONSchemaValidators)
 //	func (s *State) SetJSONPathResolver(j jsonpath.Resolver)
+//	func (s *State) SetDeserializer(d formatter.Deserializer)
 //
 // Those services will be used in utility methods.
 // For example, if you want to use your own debugger, create your own struct, implement debugger.Debugger interface on it,

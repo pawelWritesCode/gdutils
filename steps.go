@@ -42,10 +42,21 @@ type BodyHeaders struct {
 	Headers map[string]string
 }
 
-// ISendRequestToWithBodyAndHeaders sends HTTP request with provided body and headers.
-// Argument method indices HTTP request method for example: "POST", "GET" etc.
-// Argument urlTemplate should be full url path. May include template values.
-// Argument bodyTemplate should be slice of bytes marshallable on BodyHeaders struct
+/*
+	ISendRequestToWithBodyAndHeaders sends HTTP(s) requests with provided body and headers.
+
+	Argument "method" indices HTTP request method for example: "POST", "GET" etc.
+ 	Argument "urlTemplate" should be full valid URL. May include template values.
+	Argument "bodyTemplate" should contain data (may include template values) in format acceptable by Deserializer
+	with keys "body" and "headers". Internally method will marshal request body to JSON format and add it to request.
+
+	If you want to send request body in arbitrary data format, use step-by-step flow containing following methods:
+		IPrepareNewRequestToAndSaveItAs            - creates request object and save it to cache
+		ISetFollowingHeadersForPreparedRequest     - sets header for saved request
+		ISetFollowingBodyForPreparedRequest        - sets body for saved request
+		ISendRequest 							   - sends previously saved request
+	Because method ISetFollowingBodyForPreparedRequest pass any bytes to HTTP(s) request body without any mutation.
+*/
 func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error {
 	input, err := s.TemplateEngine.Replace(bodyTemplate.Content, s.Cache.All())
 	if err != nil {
@@ -58,11 +69,13 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 	}
 
 	var bodyAndHeaders BodyHeaders
-	err = json.Unmarshal([]byte(input), &bodyAndHeaders)
+	err = s.Deserializer.Deserialize([]byte(input), &bodyAndHeaders)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrJson, err.Error())
 	}
 
+	// request body will always be marshaled to JSON, if you want to send it in different format,
+	// use flow with ISetFollowingBodyForPreparedRequest method
 	reqBody, err := json.Marshal(bodyAndHeaders.Body)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrJson, err.Error())
@@ -117,7 +130,8 @@ func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey st
 	return nil
 }
 
-// ISetFollowingHeadersForPreparedRequest sets provided headers for previously prepared request
+// ISetFollowingHeadersForPreparedRequest sets provided headers for previously prepared request.
+// incoming data should be in format acceptable by injected Deserializer
 func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersTemplate *godog.DocString) error {
 	headers, err := s.TemplateEngine.Replace(headersTemplate.Content, s.Cache.All())
 	if err != nil {
@@ -125,7 +139,7 @@ func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersT
 	}
 
 	var headersMap map[string]string
-	if err = json.Unmarshal([]byte(headers), &headersMap); err != nil {
+	if err = s.Deserializer.Deserialize([]byte(headers), &headersMap); err != nil {
 		return fmt.Errorf("%w: could not parse provided headers: \n\n%s\n\nerr: %s", ErrGdutils, headers, err.Error())
 	}
 

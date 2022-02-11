@@ -868,9 +868,16 @@ func TestState_ISetFollowingHeadersForPreparedRequest(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "successfully set request header",
+			name:    "successfully set request header with JSON format",
 			fields:  fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
 			args:    args{cacheKey: "abc", headersTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
+			wantErr: false,
+		},
+		{
+			name:   "successfully set request header with YAML format",
+			fields: fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
+			args: args{cacheKey: "abc", headersTemplate: &godog.DocString{Content: `---
+Content-Type: application/json`}},
 			wantErr: false,
 		},
 	}

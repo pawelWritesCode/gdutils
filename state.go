@@ -7,6 +7,7 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
 	"github.com/pawelWritesCode/gdutils/pkg/datatype"
 	"github.com/pawelWritesCode/gdutils/pkg/debugger"
+	"github.com/pawelWritesCode/gdutils/pkg/formatter"
 	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
 	"github.com/pawelWritesCode/gdutils/pkg/jsonpath"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
@@ -32,6 +33,9 @@ type State struct {
 
 	// JSONPathResolver is entity that has ability to obtain data from JSON
 	JSONPathResolver jsonpath.Resolver
+
+	// Deserializer is entity that has ability to deserialize data in expected format
+	Deserializer formatter.Deserializer
 }
 
 // JSONSchemaValidators is container for JSON schema validators
@@ -57,20 +61,22 @@ func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 	}
 
 	resolver := jsonpath.NewDynamicJSONPathResolver(jsonpath.NewQJSONResolver(), jsonpath.NewOliveagleJSONpath())
+	deserializer := formatter.NewAwareFormatter(formatter.NewJSONFormatter(), formatter.NewYAMLFormatter())
 
-	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidators, resolver, isDebug)
+	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidators, resolver, deserializer, isDebug)
 }
 
 // NewState returns *State
-func NewState(cli *http.Client, cache cache.Cache, jsValidators JSONSchemaValidators, resolver jsonpath.Resolver, isDebug bool) *State {
+func NewState(cli *http.Client, c cache.Cache, jv JSONSchemaValidators, r jsonpath.Resolver, d formatter.Deserializer, isDebug bool) *State {
 	defaultDebugger := debugger.New(isDebug)
 	return &State{
 		Debugger:             defaultDebugger,
-		Cache:                cache,
-		HttpContext:          httpctx.NewHttpService(cache, cli),
+		Cache:                c,
+		HttpContext:          httpctx.NewHttpService(c, cli),
 		TemplateEngine:       template.New(),
-		JSONSchemaValidators: jsValidators,
-		JSONPathResolver:     resolver,
+		JSONSchemaValidators: jv,
+		JSONPathResolver:     r,
+		Deserializer:         d,
 	}
 }
 
@@ -108,4 +114,9 @@ func (s *State) SetJSONSchemaValidators(j JSONSchemaValidators) {
 // SetJSONPathResolver sets new JSON path resolver for State
 func (s *State) SetJSONPathResolver(j jsonpath.Resolver) {
 	s.JSONPathResolver = j
+}
+
+// SetDeserializer sets new deserializer for State
+func (s *State) SetDeserializer(d formatter.Deserializer) {
+	s.Deserializer = d
 }
