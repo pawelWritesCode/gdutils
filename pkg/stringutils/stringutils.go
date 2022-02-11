@@ -13,6 +13,15 @@ const (
 
 	// CharsetASCII represents set containing only ASCII characters.
 	CharsetASCII = " !#$%&'()*+,-.0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ^_`abcdefghijklmnopqrstuvwxyz|~"
+
+	// CharsetPolish represents set of only polish letters.
+	CharsetPolish = "ĄąĆćĘęŁłŃńÓóŚśŹźŻżabcdefghijklmnoprstuwvxyzABCDEFGHIJKLMNOPRSTUWVXYZ"
+
+	// CharsetEnglish represents set of only english letters.
+	CharsetEnglish = "abcdefghijklmnoprstuwvxyzABCDEFGHIJKLMNOPRSTUWVXYZ"
+
+	// CharsetRussian represents set of only russian letters.
+	CharsetRussian = "АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя"
 )
 
 var seededRand *rand.Rand = rand.New(
