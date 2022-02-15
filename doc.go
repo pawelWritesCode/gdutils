@@ -27,18 +27,18 @@
 //
 //	func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error
 //	func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error
-//  func (s *State) IGenerateARandomStringInTheRangeToAndSaveItAs(charset string) func(from, to int, cacheKey string) error
+//  func (s *State) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset string) func(from, to int, cacheKey string) error
 //	func (s *State) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error
 //
 // * Sending HTTP(s) requests:
 //
-//	func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error
+//	func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate string) error
 //
 // or
 //
 //	func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error
-//	func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersTemplate *godog.DocString) error
-//	func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate *godog.DocString) error
+//	func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersTemplate string) error
+//	func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate string) error
 //	func (s *State) ISendRequest(cacheKey string) error
 //
 // * Assertions:

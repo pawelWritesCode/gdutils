@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cucumber/godog"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
@@ -854,7 +853,7 @@ func TestState_ISetFollowingHeadersForPreparedRequest(t *testing.T) {
 	}
 	type args struct {
 		cacheKey        string
-		headersTemplate *godog.DocString
+		headersTemplate string
 	}
 	tests := []struct {
 		name    string
@@ -865,32 +864,32 @@ func TestState_ISetFollowingHeadersForPreparedRequest(t *testing.T) {
 		{
 			name:    "invalid headers",
 			fields:  fields{IsDebug: false},
-			args:    args{cacheKey: "", headersTemplate: &godog.DocString{Content: "abc"}},
+			args:    args{cacheKey: "", headersTemplate: "abc"},
 			wantErr: true,
 		},
 		{
 			name:    "no request",
 			fields:  fields{IsDebug: false},
-			args:    args{cacheKey: "abc", headersTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
+			args:    args{cacheKey: "abc", headersTemplate: `{"Content-Type": "application/json"}`},
 			wantErr: true,
 		},
 		{
 			name:    "cache key does not point at request",
 			fields:  fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
-			args:    args{cacheKey: "xxx", headersTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
+			args:    args{cacheKey: "xxx", headersTemplate: `{"Content-Type": "application/json"}`},
 			wantErr: true,
 		},
 		{
 			name:    "successfully set request header with JSON format",
 			fields:  fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
-			args:    args{cacheKey: "abc", headersTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
+			args:    args{cacheKey: "abc", headersTemplate: `{"Content-Type": "application/json"}`},
 			wantErr: false,
 		},
 		{
 			name:   "successfully set request header with YAML format",
 			fields: fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
-			args: args{cacheKey: "abc", headersTemplate: &godog.DocString{Content: `---
-Content-Type: application/json`}},
+			args: args{cacheKey: "abc", headersTemplate: `---
+Content-Type: application/json`},
 			wantErr: false,
 		},
 	}
@@ -919,7 +918,7 @@ func TestState_ISetFollowingBodyForPreparedRequest(t *testing.T) {
 	}
 	type args struct {
 		cacheKey     string
-		bodyTemplate *godog.DocString
+		bodyTemplate string
 	}
 	tests := []struct {
 		name    string
@@ -930,19 +929,19 @@ func TestState_ISetFollowingBodyForPreparedRequest(t *testing.T) {
 		{
 			name:    "no request",
 			fields:  fields{IsDebug: false},
-			args:    args{cacheKey: "abc", bodyTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
+			args:    args{cacheKey: "abc", bodyTemplate: `{"Content-Type": "application/json"}`},
 			wantErr: true,
 		},
 		{
 			name:    "cache key does not point at request",
 			fields:  fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
-			args:    args{cacheKey: "xxx", bodyTemplate: &godog.DocString{Content: `{"Content-Type": "application/json"}`}},
+			args:    args{cacheKey: "xxx", bodyTemplate: `{"Content-Type": "application/json"}`},
 			wantErr: true,
 		},
 		{
 			name:    "successfully set request body",
 			fields:  fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
-			args:    args{cacheKey: "abc", bodyTemplate: &godog.DocString{Content: `{"a": "b"}`}},
+			args:    args{cacheKey: "abc", bodyTemplate: `{"a": "b"}`},
 			wantErr: false,
 		},
 	}
@@ -1092,7 +1091,7 @@ func TestState_IValidateLastResponseBodyWithSchemaString(t *testing.T) {
 			}
 
 			tt.fields.mockFunc()
-			if err := s.IValidateLastResponseBodyWithSchemaString(&godog.DocString{Content: tt.args.jsonSchema}); (err != nil) != tt.wantErr {
+			if err := s.IValidateLastResponseBodyWithSchemaString(tt.args.jsonSchema); (err != nil) != tt.wantErr {
 				t.Errorf("IValidateLastResponseBodyWithSchemaReference() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

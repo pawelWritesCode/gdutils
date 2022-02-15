@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cucumber/godog"
 	"github.com/moul/http2curl"
 
 	"github.com/pawelWritesCode/gdutils/pkg/datatype"
@@ -57,8 +56,8 @@ type BodyHeaders struct {
 		ISendRequest 							   - sends previously saved request
 	Because method ISetFollowingBodyForPreparedRequest pass any bytes to HTTP(s) request body without any mutation.
 */
-func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate *godog.DocString) error {
-	input, err := s.TemplateEngine.Replace(bodyTemplate.Content, s.Cache.All())
+func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate, bodyTemplate string) error {
+	input, err := s.TemplateEngine.Replace(bodyTemplate, s.Cache.All())
 	if err != nil {
 		return err
 	}
@@ -132,8 +131,8 @@ func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey st
 
 // ISetFollowingHeadersForPreparedRequest sets provided headers for previously prepared request.
 // incoming data should be in format acceptable by injected Deserializer
-func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersTemplate *godog.DocString) error {
-	headers, err := s.TemplateEngine.Replace(headersTemplate.Content, s.Cache.All())
+func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate string) error {
+	headers, err := s.TemplateEngine.Replace(headersTemplate, s.Cache.All())
 	if err != nil {
 		return err
 	}
@@ -159,8 +158,8 @@ func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersT
 
 // ISetFollowingBodyForPreparedRequest sets body for previously prepared request
 // bodyTemplate may be in any format and accepts template values
-func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate *godog.DocString) error {
-	body, err := s.TemplateEngine.Replace(bodyTemplate.Content, s.Cache.All())
+func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate string) error {
+	body, err := s.TemplateEngine.Replace(bodyTemplate, s.Cache.All())
 	if err != nil {
 		return err
 	}
@@ -732,13 +731,13 @@ func (s *State) IValidateLastResponseBodyWithSchemaReference(reference string) e
 }
 
 // IValidateLastResponseBodyWithSchemaString validates last response body against jsonSchema.
-func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema *godog.DocString) error {
+func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema string) error {
 	body, err := s.HttpContext.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrGdutils, err)
 	}
 
-	return s.JSONSchemaValidators.StringValidator.Validate(string(body), jsonSchema.Content)
+	return s.JSONSchemaValidators.StringValidator.Validate(string(body), jsonSchema)
 }
 
 // TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo asserts that last HTTP request-response time
