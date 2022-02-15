@@ -16,19 +16,12 @@ import (
 
 	"github.com/moul/http2curl"
 
-	"github.com/pawelWritesCode/gdutils/pkg/datatype"
+	"github.com/pawelWritesCode/gdutils/pkg/dataformat"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
 	"github.com/pawelWritesCode/gdutils/pkg/reflectutils"
 	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
-)
-
-const (
-	// typeJSON describes JSON data format.
-	typeJSON = "JSON"
-
-	// typePlainText describes plan text data format.
-	typePlainText = "plain text"
+	"github.com/pawelWritesCode/gdutils/pkg/timeutils"
 )
 
 // BodyHeaders is entity that holds information about request body and request headers.
@@ -220,32 +213,32 @@ func (s *State) TheResponseStatusCodeShouldBe(code int) error {
 	return nil
 }
 
-// TheResponseBodyShouldHaveType checks whether last response body has given data type
-// available data types are listed as package constants
-func (s *State) TheResponseBodyShouldHaveType(dataType string) error {
-	switch dataType {
-	case typeJSON:
+// TheResponseBodyShouldHaveFormat checks whether last response body has given data format
+// available data formats are listed as package constants
+func (s *State) TheResponseBodyShouldHaveFormat(dataFormat dataformat.DataFormat) error {
+	switch dataFormat {
+	case dataformat.FormatJSON:
 		body, err := s.HttpContext.GetLastResponseBody()
 		if err != nil {
 			return err
 		}
 
-		return datatype.IsJSON(body)
+		return dataformat.IsJSON(body)
 
 	//This case checks whether last response body is not any of known types - then it assumes it is plain text
-	case typePlainText:
+	case dataformat.FormatPlainText:
 		body, err := s.HttpContext.GetLastResponseBody()
 		if err != nil {
 			return err
 		}
 
-		if err := datatype.IsJSON(body); err != nil {
+		if err := dataformat.IsJSON(body); err != nil {
 			return nil
 		}
 
-		return fmt.Errorf("%w: last response body has type %s", ErrHTTPReqRes, typeJSON)
+		return fmt.Errorf("%w: last response body has type %s", ErrHTTPReqRes, dataformat.FormatJSON)
 	default:
-		return fmt.Errorf("%w: unknown last response body data type, available values: %s, %s", ErrHTTPReqRes, typeJSON, typePlainText)
+		return fmt.Errorf("%w: unknown last response body data type, available values: %s, %s", ErrHTTPReqRes, dataformat.FormatJSON, dataformat.FormatPlainText)
 	}
 }
 
@@ -373,6 +366,30 @@ func (s *State) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset
 
 		return nil
 	}
+}
+
+// IGetTimeAndTravelByAndSaveItAs accepts time object, move timeDuration in time and
+// save it in cache under given cacheKey.
+func (s *State) IGetTimeAndTravelByAndSaveItAs(t time.Time, timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error {
+	var newTime time.Time
+	switch timeDirection {
+	case timeutils.TimeDirectionBackward:
+		newTime = t.Add(-timeDuration)
+	case timeutils.TimeDirectionForward:
+		newTime = t.Add(timeDuration)
+	default:
+		return fmt.Errorf("unknown timeDirection: %s, allowed: %s, %s", timeDirection, timeutils.TimeDirectionForward, timeutils.TimeDirectionBackward)
+	}
+
+	s.Cache.Save(cacheKey, newTime)
+
+	return nil
+}
+
+// IGenerateCurrentTimeAndTravelAboutAndSaveItAs creates current time object, move timeDuration in time and
+// save it in cache under given cacheKey.
+func (s *State) IGenerateCurrentTimeAndTravelByAndSaveItAs(timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error {
+	return s.IGetTimeAndTravelByAndSaveItAs(time.Now(), timeDirection, timeDuration, cacheKey)
 }
 
 // TheJSONResponseShouldHaveNode checks whether last response body contains given node.
@@ -743,7 +760,7 @@ func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema string) err
 // TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo asserts that last HTTP request-response time
 // is <= than expected timeInterval.
 // timeInterval should be string acceptable by time.ParseDuration func
-func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval string) error {
+func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval time.Duration) error {
 	lastReqTimestampI, err := s.Cache.GetSaved(httpcache.LastHTTPRequestTimestamp)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
@@ -764,28 +781,18 @@ func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(time
 		return fmt.Errorf("%w: last response timestamp: '%+v' should be time.Time", ErrHTTPReqRes, lastResTimestampI)
 	}
 
-	d, err := time.ParseDuration(timeInterval)
-	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
-	}
-
 	timeBetweenReqRes := lastResTimestamp.Sub(lastReqTimestamp)
-	if timeBetweenReqRes > d {
-		return fmt.Errorf("%w: time between last request - response should be less than %+v, but it took %+v", ErrHTTPReqRes, d, timeBetweenReqRes)
+	if timeBetweenReqRes > timeInterval {
+		return fmt.Errorf("%w: time between last request - response should be less than %+v, but it took %+v", ErrHTTPReqRes, timeInterval, timeBetweenReqRes)
 	}
 
 	return nil
 }
 
 // IWait waits for given timeInterval amount of time
-// timeInterval should be string valid for time.ParseDuration func
-func (s *State) IWait(timeInterval string) error {
-	duration, err := time.ParseDuration(timeInterval)
-	if err != nil {
-		return fmt.Errorf("%w: something wrong with provided time interval %s, err: %s", ErrGdutils, timeInterval, err.Error())
-	}
+func (s *State) IWait(timeInterval time.Duration) error {
+	time.Sleep(timeInterval)
 
-	time.Sleep(duration)
 	return nil
 }
 

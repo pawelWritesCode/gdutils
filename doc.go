@@ -29,6 +29,8 @@
 //	func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error
 //  func (s *State) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset string) func(from, to int, cacheKey string) error
 //	func (s *State) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error
+//	func (s *State) IGetTimeAndTravelByAndSaveItAs(t time.Time, timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error
+//	func (s *State) IGenerateCurrentTimeAndTravelByAndSaveItAs(timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error
 //
 // * Sending HTTP(s) requests:
 //
@@ -44,7 +46,7 @@
 // * Assertions:
 //
 //	func (s *State) TheResponseStatusCodeShouldBe(code int) error
-//	func (s *State) TheResponseBodyShouldHaveType(dataType string) error
+//	func (s *State) TheResponseBodyShouldHaveFormat(dataFormat dataformat.DataFormat) error
 //	func (s *State) TheJSONResponseShouldHaveNode(expr string) error
 //	func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error
 //	func (s *State) TheJSONNodeShouldBe(expr string, goType string) error
@@ -54,8 +56,8 @@
 //	func (s *State) TheResponseShouldHaveHeader(name string) error
 //	func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error
 //  func (s *State) IValidateLastResponseBodyWithSchemaReference(source string) error
-//	func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema *godog.DocString) error
-//	func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval string)
+//	func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema string) error
+//	func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval time.Duration)
 //
 // * Preserving JSON nodes:
 //
@@ -64,7 +66,7 @@
 //
 // * Temporary stopping scenario execution:
 //
-//	func (s *State) IWait(timeInterval string) error
+//	func (s *State) IWait(timeInterval time.Duration) error
 //
 // * Debugging:
 //

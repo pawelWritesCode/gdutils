@@ -1,8 +1,18 @@
 package template
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+	"time"
+)
 
 func TestTemplateManager_Replace(t *testing.T) {
+	tm, err := time.Parse("Jan 2, 2006 at 3:04pm (MST)", "Feb 4, 2014 at 6:05pm (PST)")
+	if err != nil {
+		t.Errorf("invalid time parsing")
+	}
+	fmt.Println(tm)
+
 	type args struct {
 		templateValue string
 		storage       map[string]interface{}
@@ -65,6 +75,22 @@ func TestTemplateManager_Replace(t *testing.T) {
 				Token string
 			}{Token: "a.b.c"}},
 		}, want: "a.b.c", wantErr: false},
+		{name: "use function on template #1", args: args{
+			templateValue: `{{.TIME.Format "2006-01-02T15:04:05Z07:00"}}`,
+			storage:       map[string]interface{}{"TIME": tm},
+		}, want: "2014-02-04T18:05:00Z", wantErr: false},
+		{name: "use function on template #2", args: args{
+			templateValue: `{{.TIME.Format "Jan 2, 2006 at 3:04pm (MST)"}}`,
+			storage:       map[string]interface{}{"TIME": tm},
+		}, want: "Feb 4, 2014 at 6:05pm (PST)", wantErr: false},
+		{name: "use function on template #3", args: args{
+			templateValue: `{{.TIME.Format "2006-01-02"}}`,
+			storage:       map[string]interface{}{"TIME": tm},
+		}, want: "2014-02-04", wantErr: false},
+		{name: "use function on template #4", args: args{
+			templateValue: `{{.TIME}}`,
+			storage:       map[string]interface{}{"TIME": tm},
+		}, want: "2014-02-04 18:05:00 +0000 PST", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -74,6 +100,7 @@ func TestTemplateManager_Replace(t *testing.T) {
 				t.Errorf("Replace() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if got != tt.want {
 				t.Errorf("Replace() got = %v, want %v", got, tt.want)
 			}

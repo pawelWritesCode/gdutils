@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
-	"github.com/pawelWritesCode/gdutils/pkg/datatype"
+	"github.com/pawelWritesCode/gdutils/pkg/dataformat"
 	"github.com/pawelWritesCode/gdutils/pkg/debugger"
 	"github.com/pawelWritesCode/gdutils/pkg/formatter"
 	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
@@ -56,8 +56,8 @@ func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 	}}
 
 	jsonSchemaValidators := JSONSchemaValidators{
-		StringValidator:    datatype.NewJSONSchemaRawValidator(),
-		ReferenceValidator: datatype.NewDefaultJSONSchemaReferenceValidator(jsonSchemaDir),
+		StringValidator:    dataformat.NewJSONSchemaRawValidator(),
+		ReferenceValidator: dataformat.NewDefaultJSONSchemaReferenceValidator(jsonSchemaDir),
 	}
 
 	resolver := jsonpath.NewDynamicJSONPathResolver(jsonpath.NewQJSONResolver(), jsonpath.NewOliveagleJSONpath())

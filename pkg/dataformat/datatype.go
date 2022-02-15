@@ -1,5 +1,5 @@
 // Package datatype holds utilities for working with different data formats.
-package datatype
+package dataformat
 
 import (
 	"encoding/json"

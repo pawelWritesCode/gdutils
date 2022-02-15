@@ -20,6 +20,7 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
 	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
+	"github.com/pawelWritesCode/gdutils/pkg/timeutils"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
 
@@ -1279,10 +1280,6 @@ func TestState_TimeBetweenLastHTTPRequestResponseShouldBeLessThan(t *testing.T) 
 		args    args
 		wantErr bool
 	}{
-		{name: "duration is not parseable by time.ParseDuration method", fields: fields{
-			req: &time.Time{},
-			res: &time.Time{},
-		}, args: args{timeInterval: "abc"}, wantErr: true},
 		{name: "time passed between request and response is greater than expected", fields: fields{
 			req: &currTime,
 			res: &currTimePlusOneSec,
@@ -1303,8 +1300,90 @@ func TestState_TimeBetweenLastHTTPRequestResponseShouldBeLessThan(t *testing.T) 
 			s.Cache.Save(httpcache.LastHTTPRequestTimestamp, *tt.fields.req)
 			s.Cache.Save(httpcache.LastHTTPResponseTimestamp, *tt.fields.res)
 
-			if err := s.TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(tt.args.timeInterval); (err != nil) != tt.wantErr {
+			td, err := time.ParseDuration(tt.args.timeInterval)
+			if err != nil {
+				t.Errorf("could not parse timeInterval: %s", tt.args.timeInterval)
+			}
+
+			if err := s.TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(td); (err != nil) != tt.wantErr {
 				t.Errorf("TimeBetweenLastHTTPRequestResponseShouldBeLessThan() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_IGetTimeAndTravelByAndSaveItAs(t *testing.T) {
+	layout := "Jan 2, 2006 at 3:04pm (MST)"
+	tm, err := time.Parse(layout, "Feb 4, 2014 at 6:05pm (PST)")
+	if err != nil {
+		t.Errorf("invalid time parsing")
+	}
+
+	type args struct {
+		t             time.Time
+		timeDirection timeutils.TimeDirection
+		timeDuration  time.Duration
+		cacheKey      string
+	}
+	tests := []struct {
+		name     string
+		args     args
+		wantErr  bool
+		wantTime string
+	}{
+		{name: "unknown time direction", args: args{
+			t:             tm,
+			timeDirection: timeutils.TimeDirection("abc"),
+			timeDuration:  5 * time.Minute,
+			cacheKey:      "TIME",
+		}, wantErr: true, wantTime: "Jan 1, 0001 at 12:00am (UTC)"},
+		{name: "Move forward 5 min", args: args{
+			t:             tm,
+			timeDirection: timeutils.TimeDirectionForward,
+			timeDuration:  5 * time.Minute,
+			cacheKey:      "TIME",
+		}, wantErr: false, wantTime: "Feb 4, 2014 at 6:10pm (PST)"},
+		{name: "Move forward 0 sec", args: args{
+			t:             tm,
+			timeDirection: timeutils.TimeDirectionForward,
+			timeDuration:  0 * time.Second,
+			cacheKey:      "TIME",
+		}, wantErr: false, wantTime: "Feb 4, 2014 at 6:05pm (PST)"},
+		{name: "Move backward 0 sec", args: args{
+			t:             tm,
+			timeDirection: timeutils.TimeDirectionBackward,
+			timeDuration:  0 * time.Second,
+			cacheKey:      "TIME",
+		}, wantErr: false, wantTime: "Feb 4, 2014 at 6:05pm (PST)"},
+		{name: "Move backward 5 min", args: args{
+			t:             tm,
+			timeDirection: timeutils.TimeDirectionBackward,
+			timeDuration:  5 * time.Minute,
+			cacheKey:      "TIME",
+		}, wantErr: false, wantTime: "Feb 4, 2014 at 6:00pm (PST)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, ".")
+
+			if err := s.IGetTimeAndTravelByAndSaveItAs(tt.args.t, tt.args.timeDirection, tt.args.timeDuration, tt.args.cacheKey); (err != nil) != tt.wantErr {
+				t.Errorf("IGetTimeAndTravelByAndSaveItAs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !tt.wantErr {
+				ti, err := s.Cache.GetSaved(tt.args.cacheKey)
+				if err != nil {
+					t.Errorf("err: %v", err)
+				}
+
+				tim, ok := ti.(time.Time)
+				if !ok {
+					t.Errorf("cache key %s is not time.Time", tt.args.cacheKey)
+				}
+
+				if tim.Format(layout) != tt.wantTime {
+					t.Errorf("expected: %s, got: %s", tt.wantTime, tim.Format(layout))
+				}
 			}
 		})
 	}
