@@ -11,7 +11,7 @@
 // No matter which way you choose, you can inject your custom services afterwards with one of available setters:
 //	func (s *State) SetDebugger(d debugger.Debugger)
 //	func (s *State) SetCache(c cache.Cache)
-//	func (s *State) SetHttpContext(c httpctx.HttpContext)
+//	func (s *State) SetRequestDoer(r httpctx.RequestDoer)
 //	func (s *State) SetTemplateEngine(t template.Engine)
 //	func (s *State) SetJSONSchemaValidators(j JSONSchemaValidators)
 //	func (s *State) SetJSONPathResolver(j jsonpath.Resolver)

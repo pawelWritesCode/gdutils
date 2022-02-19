@@ -14,12 +14,9 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
-	"github.com/pawelWritesCode/gdutils/pkg/debugger"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
-	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
 	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
-	"github.com/pawelWritesCode/gdutils/pkg/template"
 	"github.com/pawelWritesCode/gdutils/pkg/timeutils"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
@@ -832,7 +829,7 @@ func TestState_IPrepareNewRequestToAndSaveItAs(t *testing.T) {
 			}
 
 			if !tt.wantErr {
-				req, err := s.getPreparedRequest(tt.args.cacheKey)
+				req, err := s.GetPreparedRequest(tt.args.cacheKey)
 				if err != nil {
 					t.Errorf("%v", err)
 				}
@@ -963,17 +960,14 @@ func TestState_ISetFollowingBodyForPreparedRequest(t *testing.T) {
 
 func TestState_IValidateLastResponseBodyWithSchemaReference(t *testing.T) {
 	type fields struct {
-		Debugger            debugger.Debugger
-		HttpContext         httpctx.HttpContext
-		TemplateEngine      template.Engine
-		JSONSchemaValidator validator.SchemaValidator
-		mockFunc            func()
+		resp      *http.Response
+		validator validator.SchemaValidator
+		mockFunc  func()
 	}
 	type args struct {
 		schemaPath string
 	}
 
-	mHttpContext := new(mockedHTTPContext)
 	mJSONValidator := new(mockedJSONValidator)
 
 	tests := []struct {
@@ -983,46 +977,36 @@ func TestState_IValidateLastResponseBodyWithSchemaReference(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "missing last response body", fields: fields{
-			Debugger:            nil,
-			TemplateEngine:      nil,
-			JSONSchemaValidator: mJSONValidator,
-			HttpContext:         mHttpContext,
+			resp:      nil,
+			validator: mJSONValidator,
 			mockFunc: func() {
-				mHttpContext.On("GetLastResponseBody").Return([]byte(""), fmt.Errorf("abc")).Once()
+
 			},
 		}, args: args{schemaPath: ""}, wantErr: true},
 		{name: "validator fails", fields: fields{
-			Debugger:            nil,
-			TemplateEngine:      nil,
-			JSONSchemaValidator: mJSONValidator,
-			HttpContext:         mHttpContext,
+			resp:      &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(""))},
+			validator: mJSONValidator,
 			mockFunc: func() {
-				mHttpContext.On("GetLastResponseBody").Return([]byte(""), nil).Once()
 				mJSONValidator.On("Validate", "", "").Return(errors.New("abc")).Once()
 			},
 		}, args: args{schemaPath: ""}, wantErr: true},
-		{name: "validator succed", fields: fields{
-			Debugger:            nil,
-			TemplateEngine:      nil,
-			JSONSchemaValidator: mJSONValidator,
-			HttpContext:         mHttpContext,
+		{name: "validator succeeded", fields: fields{
+			resp:      &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(""))},
+			validator: mJSONValidator,
 			mockFunc: func() {
-				mHttpContext.On("GetLastResponseBody").Return([]byte(""), nil).Once()
 				mJSONValidator.On("Validate", "", "").Return(nil).Once()
 			},
 		}, args: args{schemaPath: ""}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &State{
-				Debugger:             tt.fields.Debugger,
-				Cache:                cache.NewConcurrentCache(),
-				HttpContext:          tt.fields.HttpContext,
-				TemplateEngine:       tt.fields.TemplateEngine,
-				JSONSchemaValidators: JSONSchemaValidators{ReferenceValidator: tt.fields.JSONSchemaValidator},
-			}
+			s := NewDefaultState(false, "")
+			s.SetJSONSchemaValidators(JSONSchemaValidators{ReferenceValidator: tt.fields.validator})
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.resp)
 
 			tt.fields.mockFunc()
+
 			if err := s.IValidateLastResponseBodyWithSchemaReference(tt.args.schemaPath); (err != nil) != tt.wantErr {
 				t.Errorf("IValidateLastResponseBodyWithSchemaReference() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -1032,17 +1016,14 @@ func TestState_IValidateLastResponseBodyWithSchemaReference(t *testing.T) {
 
 func TestState_IValidateLastResponseBodyWithSchemaString(t *testing.T) {
 	type fields struct {
-		Debugger            debugger.Debugger
-		HttpContext         httpctx.HttpContext
-		TemplateEngine      template.Engine
-		JSONSchemaValidator validator.SchemaValidator
-		mockFunc            func()
+		resp      *http.Response
+		validator validator.SchemaValidator
+		mockFunc  func()
 	}
 	type args struct {
 		jsonSchema string
 	}
 
-	mHttpContext := new(mockedHTTPContext)
 	mJSONValidator := new(mockedJSONValidator)
 
 	tests := []struct {
@@ -1052,46 +1033,36 @@ func TestState_IValidateLastResponseBodyWithSchemaString(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "missing last response body", fields: fields{
-			Debugger:            nil,
-			TemplateEngine:      nil,
-			JSONSchemaValidator: mJSONValidator,
-			HttpContext:         mHttpContext,
+			resp:      nil,
+			validator: mJSONValidator,
 			mockFunc: func() {
-				mHttpContext.On("GetLastResponseBody").Return([]byte(""), fmt.Errorf("abc")).Once()
+
 			},
 		}, args: args{jsonSchema: ""}, wantErr: true},
 		{name: "validator fails", fields: fields{
-			Debugger:            nil,
-			TemplateEngine:      nil,
-			JSONSchemaValidator: mJSONValidator,
-			HttpContext:         mHttpContext,
+			resp:      &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(""))},
+			validator: mJSONValidator,
 			mockFunc: func() {
-				mHttpContext.On("GetLastResponseBody").Return([]byte(""), nil).Once()
 				mJSONValidator.On("Validate", "", "").Return(errors.New("abc")).Once()
 			},
 		}, args: args{jsonSchema: ""}, wantErr: true},
-		{name: "validator succed", fields: fields{
-			Debugger:            nil,
-			TemplateEngine:      nil,
-			JSONSchemaValidator: mJSONValidator,
-			HttpContext:         mHttpContext,
+		{name: "validator succeeded", fields: fields{
+			resp:      &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(""))},
+			validator: mJSONValidator,
 			mockFunc: func() {
-				mHttpContext.On("GetLastResponseBody").Return([]byte(""), nil).Once()
 				mJSONValidator.On("Validate", "", "").Return(nil).Once()
 			},
 		}, args: args{jsonSchema: ""}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &State{
-				Debugger:             tt.fields.Debugger,
-				Cache:                cache.NewConcurrentCache(),
-				HttpContext:          tt.fields.HttpContext,
-				TemplateEngine:       tt.fields.TemplateEngine,
-				JSONSchemaValidators: JSONSchemaValidators{StringValidator: tt.fields.JSONSchemaValidator},
-			}
+			s := NewDefaultState(false, "")
+			s.SetJSONSchemaValidators(JSONSchemaValidators{StringValidator: tt.fields.validator})
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.resp)
 
 			tt.fields.mockFunc()
+
 			if err := s.IValidateLastResponseBodyWithSchemaString(tt.args.jsonSchema); (err != nil) != tt.wantErr {
 				t.Errorf("IValidateLastResponseBodyWithSchemaReference() error = %v, wantErr %v", err, tt.wantErr)
 			}

@@ -89,7 +89,7 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate, bodyTempla
 
 	s.Cache.Save(httpcache.LastHTTPRequestTimestamp, time.Now())
 
-	resp, err := s.HttpContext.GetHTTPClient().Do(req)
+	resp, err := s.RequestDoer.Do(req)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
 	}
@@ -98,7 +98,7 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate, bodyTempla
 	s.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
 
 	if s.Debugger.IsOn() {
-		respBody, _ := s.HttpContext.GetLastResponseBody()
+		respBody, _ := s.GetLastResponseBody()
 		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 	}
 
@@ -135,7 +135,7 @@ func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate
 		return fmt.Errorf("%w: could not parse provided headers: \n\n%s\n\nerr: %s", ErrGdutils, headers, err.Error())
 	}
 
-	req, err := s.getPreparedRequest(cacheKey)
+	req, err := s.GetPreparedRequest(cacheKey)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplat
 		return err
 	}
 
-	req, err := s.getPreparedRequest(cacheKey)
+	req, err := s.GetPreparedRequest(cacheKey)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplat
 
 // ISendRequest sends previously prepared HTTP(s) request
 func (s *State) ISendRequest(cacheKey string) error {
-	req, err := s.getPreparedRequest(cacheKey)
+	req, err := s.GetPreparedRequest(cacheKey)
 	if err != nil {
 		return err
 	}
@@ -183,7 +183,7 @@ func (s *State) ISendRequest(cacheKey string) error {
 
 	s.Cache.Save(httpcache.LastHTTPRequestTimestamp, time.Now())
 
-	resp, err := s.HttpContext.GetHTTPClient().Do(req)
+	resp, err := s.RequestDoer.Do(req)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
 	}
@@ -192,7 +192,7 @@ func (s *State) ISendRequest(cacheKey string) error {
 	s.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
 
 	if s.Debugger.IsOn() {
-		respBody, _ := s.HttpContext.GetLastResponseBody()
+		respBody, _ := s.GetLastResponseBody()
 		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
 	}
 
@@ -201,7 +201,7 @@ func (s *State) ISendRequest(cacheKey string) error {
 
 // TheResponseStatusCodeShouldBe compare last response status code with given in argument.
 func (s *State) TheResponseStatusCodeShouldBe(code int) error {
-	lastResponse, err := s.HttpContext.GetLastResponse()
+	lastResponse, err := s.GetLastResponse()
 	if err != nil {
 		return err
 	}
@@ -216,22 +216,17 @@ func (s *State) TheResponseStatusCodeShouldBe(code int) error {
 // TheResponseBodyShouldHaveFormat checks whether last response body has given data format
 // available data formats are listed as package constants
 func (s *State) TheResponseBodyShouldHaveFormat(dataFormat dataformat.DataFormat) error {
+	body, err := s.GetLastResponseBody()
+	if err != nil {
+		return err
+	}
+
 	switch dataFormat {
 	case dataformat.FormatJSON:
-		body, err := s.HttpContext.GetLastResponseBody()
-		if err != nil {
-			return err
-		}
-
 		return dataformat.IsJSON(body)
 
 	//This case checks whether last response body is not any of known types - then it assumes it is plain text
 	case dataformat.FormatPlainText:
-		body, err := s.HttpContext.GetLastResponseBody()
-		if err != nil {
-			return err
-		}
-
 		if err := dataformat.IsJSON(body); err != nil {
 			return nil
 		}
@@ -260,7 +255,7 @@ func (s *State) ISaveAs(value, cacheKey string) error {
 // ISaveFromTheLastResponseJSONNodeAs saves from last response body JSON node under given cacheKey key.
 // expr should be valid according to injected JSONPathResolver
 func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error {
-	body, err := s.HttpContext.GetLastResponseBody()
+	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return err
 	}
@@ -269,8 +264,7 @@ func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error 
 
 	if err != nil {
 		if s.Debugger.IsOn() {
-			respBody, _ := s.HttpContext.GetLastResponseBody()
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 		}
 
 		return fmt.Errorf("%w, err: %s", ErrQJSON, err.Error())
@@ -386,7 +380,7 @@ func (s *State) IGetTimeAndTravelByAndSaveItAs(t time.Time, timeDirection timeut
 	return nil
 }
 
-// IGenerateCurrentTimeAndTravelAboutAndSaveItAs creates current time object, move timeDuration in time and
+// IGenerateCurrentTimeAndTravelByAndSaveItAs creates current time object, move timeDuration in time and
 // save it in cache under given cacheKey.
 func (s *State) IGenerateCurrentTimeAndTravelByAndSaveItAs(timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error {
 	return s.IGetTimeAndTravelByAndSaveItAs(time.Now(), timeDirection, timeDuration, cacheKey)
@@ -395,7 +389,7 @@ func (s *State) IGenerateCurrentTimeAndTravelByAndSaveItAs(timeDirection timeuti
 // TheJSONResponseShouldHaveNode checks whether last response body contains given node.
 // expr should be valid according to injected JSONPathResolver
 func (s *State) TheJSONResponseShouldHaveNode(expr string) error {
-	body, err := s.HttpContext.GetLastResponseBody()
+	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return err
 	}
@@ -403,8 +397,7 @@ func (s *State) TheJSONResponseShouldHaveNode(expr string) error {
 	_, err = s.JSONPathResolver.Resolve(expr, body)
 	if err != nil {
 		if s.Debugger.IsOn() {
-			respBody, _ := s.HttpContext.GetLastResponseBody()
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 		}
 
 		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
@@ -417,7 +410,7 @@ func (s *State) TheJSONResponseShouldHaveNode(expr string) error {
 // goType may be one of: nil, string, int, float, bool, map, slice,
 // expr should be valid according to injected JSONPathResolver
 func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
-	body, err := s.HttpContext.GetLastResponseBody()
+	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return err
 	}
@@ -434,14 +427,10 @@ func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
 		if !vNodeVal.IsValid() || reflectutils.IsValueNil(vNodeVal) {
 			return errInvalidType
 		}
-
-		return nil
 	case "string":
 		if vNodeVal.Kind() == reflect.String {
 			return errInvalidType
 		}
-
-		return nil
 	case "int":
 		if vNodeVal.Kind() == reflect.Int64 || vNodeVal.Kind() == reflect.Int32 || vNodeVal.Kind() == reflect.Int16 ||
 			vNodeVal.Kind() == reflect.Int8 || vNodeVal.Kind() == reflect.Int || vNodeVal.Kind() == reflect.Uint ||
@@ -456,8 +445,6 @@ func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
 				return errInvalidType
 			}
 		}
-
-		return nil
 	case "float":
 		if vNodeVal.Kind() == reflect.Float64 || vNodeVal.Kind() == reflect.Float32 {
 			_, frac := math.Modf(vNodeVal.Float())
@@ -467,29 +454,23 @@ func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
 
 			return errInvalidType
 		}
-
-		return nil
 	case "bool":
 		if vNodeVal.Kind() == reflect.Bool {
 			return errInvalidType
 		}
-
-		return nil
 	case "map":
 		if vNodeVal.Kind() == reflect.Map {
 			return errInvalidType
 		}
-
-		return nil
 	case "slice":
 		if vNodeVal.Kind() == reflect.Slice {
 			return errInvalidType
 		}
-
-		return nil
 	default:
 		return fmt.Errorf("%w: %s is unknown type for this step", ErrGdutils, goType)
 	}
+
+	return nil
 }
 
 // TheJSONNodeShouldBe checks whether JSON node from last response body is of provided type
@@ -515,7 +496,7 @@ func (s *State) TheJSONNodeShouldBe(expr string, goType string) error {
 func (s *State) TheJSONResponseShouldHaveNodes(expressions string) error {
 	keysSlice := strings.Split(expressions, ",")
 
-	body, err := s.HttpContext.GetLastResponseBody()
+	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return err
 	}
@@ -537,8 +518,7 @@ func (s *State) TheJSONResponseShouldHaveNodes(expressions string) error {
 		}
 
 		if s.Debugger.IsOn() {
-			respBody, _ := s.HttpContext.GetLastResponseBody()
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 		}
 
 		return errors.New(errString)
@@ -550,7 +530,7 @@ func (s *State) TheJSONResponseShouldHaveNodes(expressions string) error {
 // TheJSONNodeShouldBeSliceOfLength checks whether given key is slice and has given length
 // expr should be valid according to injected JSONPathResolver
 func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error {
-	body, err := s.HttpContext.GetLastResponseBody()
+	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return err
 	}
@@ -558,8 +538,7 @@ func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error 
 	iValue, err := s.JSONPathResolver.Resolve(expr, body)
 	if err != nil {
 		if s.Debugger.IsOn() {
-			respBody, _ := s.HttpContext.GetLastResponseBody()
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 		}
 
 		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
@@ -575,8 +554,7 @@ func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error 
 	}
 
 	if s.Debugger.IsOn() {
-		respBody, _ := s.HttpContext.GetLastResponseBody()
-		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
+		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 	}
 
 	return fmt.Errorf("%w: %s does not point at slice(array) in last HTTP(s) response JSON body", ErrGdutils, expr)
@@ -595,15 +573,14 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 		s.Debugger.Print(fmt.Sprintf("replaced value %s\n", nodeValueReplaced))
 	}
 
-	body, err := s.HttpContext.GetLastResponseBody()
+	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return err
 	}
 
 	if s.Debugger.IsOn() {
 		defer func() {
-			respBody, _ := s.HttpContext.GetLastResponseBody()
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 		}()
 	}
 
@@ -675,7 +652,7 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 func (s *State) TheResponseShouldHaveHeader(name string) error {
 	defer func() {
 		if s.Debugger.IsOn() {
-			lastResp, err := s.HttpContext.GetLastResponse()
+			lastResp, err := s.GetLastResponse()
 			if err != nil {
 				s.Debugger.Print("could not obtain last response headers")
 			}
@@ -684,7 +661,7 @@ func (s *State) TheResponseShouldHaveHeader(name string) error {
 		}
 	}()
 
-	lastResp, err := s.HttpContext.GetLastResponse()
+	lastResp, err := s.GetLastResponse()
 	if err != nil {
 		return err
 	}
@@ -705,7 +682,7 @@ func (s *State) TheResponseShouldHaveHeader(name string) error {
 func (s *State) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) error {
 	defer func() {
 		if s.Debugger.IsOn() {
-			lastResp, err := s.HttpContext.GetLastResponse()
+			lastResp, err := s.GetLastResponse()
 			if err != nil {
 				s.Debugger.Print("could not obtain last response headers")
 			}
@@ -714,7 +691,7 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) e
 		}
 	}()
 
-	lastResp, err := s.HttpContext.GetLastResponse()
+	lastResp, err := s.GetLastResponse()
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
 	}
@@ -739,7 +716,7 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) e
 // IValidateLastResponseBodyWithSchemaReference validates last response body against JSON schema as provided in reference.
 // reference may be: URL or full/relative path
 func (s *State) IValidateLastResponseBodyWithSchemaReference(reference string) error {
-	body, err := s.HttpContext.GetLastResponseBody()
+	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrGdutils, err)
 	}
@@ -749,7 +726,7 @@ func (s *State) IValidateLastResponseBodyWithSchemaReference(reference string) e
 
 // IValidateLastResponseBodyWithSchemaString validates last response body against jsonSchema.
 func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema string) error {
-	body, err := s.HttpContext.GetLastResponseBody()
+	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrGdutils, err)
 	}
@@ -800,7 +777,7 @@ func (s *State) IWait(timeInterval time.Duration) error {
 func (s *State) IPrintLastResponseBody() error {
 	var tmp map[string]interface{}
 
-	body, err := s.HttpContext.GetLastResponseBody()
+	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return err
 	}
@@ -837,8 +814,8 @@ func (s *State) IStopDebugMode() error {
 	return nil
 }
 
-// getPreparedRequest returns prepared request from cache or error if failed
-func (s *State) getPreparedRequest(cacheKey string) (*http.Request, error) {
+// GetPreparedRequest returns prepared request from cache or error if failed
+func (s *State) GetPreparedRequest(cacheKey string) (*http.Request, error) {
 	reqInterface, err := s.Cache.GetSaved(cacheKey)
 	if err != nil {
 		return &http.Request{}, fmt.Errorf("%w: %s", ErrGdutils, err.Error())
@@ -850,4 +827,44 @@ func (s *State) getPreparedRequest(cacheKey string) (*http.Request, error) {
 	}
 
 	return req, nil
+}
+
+// GetLastResponse returns last HTTP(s) response.
+func (s *State) GetLastResponse() (*http.Response, error) {
+	respInterface, err := s.Cache.GetSaved(httpcache.LastHTTPResponseCacheKey)
+	if err != nil {
+		return nil, fmt.Errorf("%w: missing last HTTP(s) response, err: %s", ErrHTTPReqRes, err.Error())
+	}
+
+	lastResp, ok := respInterface.(*http.Response)
+	if !ok {
+		return nil, fmt.Errorf("%w: last HTTP(s) response data structure is not type *http.Response", ErrHTTPReqRes)
+	}
+
+	if lastResp == nil {
+		return nil, fmt.Errorf("%w: missing last HTTP(s) response", ErrHTTPReqRes)
+	}
+
+	return lastResp, nil
+}
+
+// GetLastResponseBody returns last HTTP(s) response body.
+// internally method creates new NoPCloser on last response so this method is safe to reuse many times
+func (s *State) GetLastResponseBody() ([]byte, error) {
+	lastResponse, err := s.GetLastResponse()
+	if err != nil {
+		return []byte(""), err
+	}
+
+	var bodyBytes []byte
+
+	if lastResponse != nil {
+		bodyBytes, _ = ioutil.ReadAll(lastResponse.Body)
+		defer lastResponse.Body.Close()
+
+		// last response body may be read again
+		lastResponse.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	}
+
+	return bodyBytes, nil
 }

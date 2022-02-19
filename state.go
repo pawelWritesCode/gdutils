@@ -22,8 +22,8 @@ type State struct {
 	// Cache is storage for scenario data.
 	Cache cache.Cache
 
-	// HttpContext is service that works with HTTP(s) req/res.
-	HttpContext httpctx.HttpContext
+	// RequestDoer is service that has ability to send HTTP(s) requests
+	RequestDoer httpctx.RequestDoer
 
 	// TemplateEngine is entity that has ability to work with template values.
 	TemplateEngine template.Engine
@@ -72,7 +72,7 @@ func NewState(cli *http.Client, c cache.Cache, jv JSONSchemaValidators, r jsonpa
 	return &State{
 		Debugger:             defaultDebugger,
 		Cache:                c,
-		HttpContext:          httpctx.NewHttpService(c, cli),
+		RequestDoer:          cli,
 		TemplateEngine:       template.New(),
 		JSONSchemaValidators: jv,
 		JSONPathResolver:     r,
@@ -96,9 +96,9 @@ func (s *State) SetCache(c cache.Cache) {
 	s.Cache = c
 }
 
-// SetHttpContext sets new HttpContext for State
-func (s *State) SetHttpContext(c httpctx.HttpContext) {
-	s.HttpContext = c
+// SetRequestDoer sets new RequestDoer for State
+func (s *State) SetRequestDoer(r httpctx.RequestDoer) {
+	s.RequestDoer = r
 }
 
 // SetTemplateEngine sets new template Engine for State

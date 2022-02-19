@@ -1,4 +1,4 @@
-[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-53.1%25-brightgreen)
+[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-56.2%25-brightgreen)
 
 # GDUTILS
 
@@ -19,7 +19,6 @@ https://github.com/pawelWritesCode/godog-example-setup
 
 - [ ] New method for **adding cookies to HTTP(s) request**
 - [x] New method for **saving fixed values from scenario under provided cache key** (not only from HTTP(s) response)
-- [ ] New method for asserting on HTTP(s) response using cucumber datatable (field | matcher | type | value )
 - [x] New method for asserting on **HTTP(s) request-response time**
 - [x] Upgrade assertion for validating last HTTP(s) response with **user provided (as []bytes)** JSON schema
 - [x] Upgrade assertion for validating last HTTP(s) response against JSON Schema **to accept URL**
@@ -43,8 +42,10 @@ https://github.com/pawelWritesCode/godog-example-setup
 | | |
 | IGenerateARandomIntInTheRangeToAndSaveItAs | Generates random integer from provided range and save it under provided cache key |
 | IGenerateARandomFloatInTheRangeToAndSaveItAs | Generates random float from provided range and save it under provided cache key |
-| IGenerateARandomStringInTheRangeToAndSaveItAs | Creates generator for random strings from provided charset in provided range |
+| IGenerateARandomRunesInTheRangeToAndSaveItAs | Creates generator for random strings from provided charset in provided range |
 | IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs | Creates generator for random sentence from provided charset in provided range |
+| IGetTimeAndTravelByAndSaveItAs | Accepts time object and move in time by given time interval |
+| IGenerateCurrentTimeAndTravelByAndSaveItAs | Creates current time object and move in time by given time interval |
 | | |
 | **Preserving data:** |
 | | |
