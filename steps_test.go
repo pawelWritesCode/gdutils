@@ -17,6 +17,7 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
 	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
+	"github.com/pawelWritesCode/gdutils/pkg/template"
 	"github.com/pawelWritesCode/gdutils/pkg/timeutils"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
@@ -27,6 +28,26 @@ type mockedHTTPContext struct {
 
 type mockedJSONValidator struct {
 	mock.Mock
+}
+
+type mockedTemplateEngine struct {
+	mock.Mock
+}
+
+type mockedDeserializer struct {
+	mock.Mock
+}
+
+func (m *mockedDeserializer) Deserialize(data []byte, v interface{}) error {
+	args := m.Called(data, v)
+
+	return args.Error(0)
+}
+
+func (m *mockedTemplateEngine) Replace(templateValue string, storage map[string]interface{}) (string, error) {
+	args := m.Called(templateValue, storage)
+
+	return args.String(0), args.Error(1)
 }
 
 func (m *mockedJSONValidator) Validate(document, schemaPath string) error {
@@ -1355,6 +1376,228 @@ func TestState_IGetTimeAndTravelByAndSaveItAs(t *testing.T) {
 				if tim.Format(layout) != tt.wantTime {
 					t.Errorf("expected: %s, got: %s", tt.wantTime, tim.Format(layout))
 				}
+			}
+		})
+	}
+}
+
+func TestState_ISetFollowingCookiesForPreparedRequest(t *testing.T) {
+	layout := "Jan 2, 2006 at 3:04pm (MST)"
+	tm, err := time.Parse(layout, "Feb 4, 2014 at 6:05pm (PST)")
+	if err != nil {
+		t.Errorf("invalid time parsing")
+	}
+
+	mTemplateEngine := new(mockedTemplateEngine)
+	mDeserializer := new(mockedDeserializer)
+
+	type fields struct {
+		mockFunc func()
+	}
+
+	type args struct {
+		cacheKey        string
+		cookiesTemplate string
+	}
+	tests := []struct {
+		name        string
+		fields      fields
+		args        args
+		wantErr     bool
+		wantCookies []http.Cookie
+	}{
+		{name: "template engine returns error", fields: fields{mockFunc: func() {
+			mTemplateEngine.On("Replace", "https://www.example.com", mock.Anything).
+				Return("https://www.example.com", nil).Once()
+
+			mTemplateEngine.On("Replace", "", mock.Anything).
+				Return("", errors.New("abc")).Once()
+		}}, args: args{
+			cacheKey:        "a",
+			cookiesTemplate: "",
+		}, wantErr: true},
+		{name: "deserializer returns error", fields: fields{mockFunc: func() {
+			mTemplateEngine.On("Replace", "", mock.Anything).
+				Return("", nil).Once()
+
+			mTemplateEngine.On("Replace", "https://www.example.com", mock.Anything).
+				Return("https://www.example.com", nil).Once()
+
+			mDeserializer.On("Deserialize", []byte(""), mock.Anything).Return(errors.New("abc"))
+
+		}}, args: args{
+			cacheKey:        "a",
+			cookiesTemplate: "",
+		}, wantErr: true},
+		{name: "Valid cookies #1", fields: fields{mockFunc: func() {
+		}}, args: args{
+			cacheKey: "MY_REQ",
+			cookiesTemplate: `[
+	{
+		"name": "token",
+		"value": "abc"
+	}
+]`,
+		}, wantErr: false, wantCookies: []http.Cookie{{Name: "token", Value: "abc"}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, "")
+
+			if tt.wantErr {
+				s.SetDeserializer(mDeserializer)
+				s.SetTemplateEngine(mTemplateEngine)
+			}
+			tt.fields.mockFunc()
+
+			if err = s.IPrepareNewRequestToAndSaveItAs("GET", "https://www.example.com", tt.args.cacheKey); err != nil {
+				t.Errorf("%s", err.Error())
+			}
+
+			s.Cache.Save("NOW", tm)
+
+			if err := s.ISetFollowingCookiesForPreparedRequest(tt.args.cacheKey, tt.args.cookiesTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("ISetFollowingCookiesForPreparedRequest() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !tt.wantErr {
+				reqWithCookies, err := s.GetPreparedRequest(tt.args.cacheKey)
+				if err != nil {
+					t.Errorf("err: %s", err.Error())
+				}
+
+				for _, wantCookie := range tt.wantCookies {
+					exists := false
+					for _, cookie := range reqWithCookies.Cookies() {
+						if cookie.Name == wantCookie.Name && cookie.Value == wantCookie.Value && cookie.HttpOnly == wantCookie.HttpOnly && cookie.Secure == wantCookie.Secure {
+							exists = true
+						}
+					}
+
+					if !exists {
+						t.Errorf("cookie %v does not exists in http.Request. All cookies: %+v", wantCookie, reqWithCookies.Cookies())
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestState_TheResponseShouldHaveCookieOfValue(t *testing.T) {
+	mTemplateEngine := new(mockedTemplateEngine)
+
+	type fields struct {
+		TemplateEngine template.Engine
+		response       *http.Response
+		mockFunc       func()
+	}
+	type args struct {
+		name          string
+		valueTemplate string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "missing last response", fields: fields{
+			TemplateEngine: mTemplateEngine,
+			response:       nil,
+			mockFunc:       func() {},
+		}, args: args{
+			name:          "",
+			valueTemplate: "",
+		}, wantErr: true},
+		{name: "template engine returns error", fields: fields{
+			TemplateEngine: mTemplateEngine,
+			response:       &http.Response{},
+			mockFunc: func() {
+				mTemplateEngine.On("Replace", "a", mock.Anything).Return("", errors.New("abc")).Once()
+			},
+		}, args: args{
+			name:          "",
+			valueTemplate: "a",
+		}, wantErr: true},
+		{name: "cookies are not found in response", fields: fields{
+			TemplateEngine: mTemplateEngine,
+			response:       &http.Response{},
+			mockFunc: func() {
+				mTemplateEngine.On("Replace", "a", mock.Anything).Return("a", nil).Once()
+			},
+		}, args: args{
+			name:          "a",
+			valueTemplate: "a",
+		}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, "")
+			s.SetTemplateEngine(tt.fields.TemplateEngine)
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.response)
+
+			tt.fields.mockFunc()
+
+			if err := s.TheResponseShouldHaveCookieOfValue(tt.args.name, tt.args.valueTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("TheResponseShouldHaveCookieOfValue() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_TheResponseShouldHaveCookie(t *testing.T) {
+	mTemplateEngine := new(mockedTemplateEngine)
+
+	type fields struct {
+		TemplateEngine template.Engine
+		response       *http.Response
+		mockFunc       func()
+	}
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "missing last response", fields: fields{
+			TemplateEngine: mTemplateEngine,
+			response:       nil,
+			mockFunc:       func() {},
+		}, args: args{
+			name: "",
+		}, wantErr: true},
+		{name: "template engine returns error", fields: fields{
+			TemplateEngine: mTemplateEngine,
+			response:       &http.Response{},
+			mockFunc: func() {
+				mTemplateEngine.On("Replace", "a", mock.Anything).Return("", errors.New("abc")).Once()
+			},
+		}, args: args{
+			name: "",
+		}, wantErr: true},
+		{name: "cookies are not found in response", fields: fields{
+			TemplateEngine: mTemplateEngine,
+			response:       &http.Response{},
+			mockFunc: func() {
+				mTemplateEngine.On("Replace", "a", mock.Anything).Return("a", nil).Once()
+			},
+		}, args: args{
+			name: "a",
+		}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, "")
+			s.SetTemplateEngine(tt.fields.TemplateEngine)
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.response)
+
+			tt.fields.mockFunc()
+
+			if err := s.TheResponseShouldHaveCookie(tt.args.name); (err != nil) != tt.wantErr {
+				t.Errorf("TheResponseShouldHaveCookie() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

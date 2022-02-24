@@ -40,6 +40,7 @@
 //
 //	func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error
 //	func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersTemplate string) error
+//	func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate string) error
 //	func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate string) error
 //	func (s *State) ISendRequest(cacheKey string) error
 //
@@ -47,6 +48,8 @@
 //
 //	func (s *State) TheResponseStatusCodeShouldBe(code int) error
 //	func (s *State) TheResponseBodyShouldHaveFormat(dataFormat dataformat.DataFormat) error
+//	func (s *State) TheResponseShouldHaveCookie(name string) error
+//	func (s *State) TheResponseShouldHaveCookieOfValue(name, valueTemplate string) error
 //	func (s *State) TheJSONResponseShouldHaveNode(expr string) error
 //	func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error
 //	func (s *State) TheJSONNodeShouldBe(expr string, goType string) error
@@ -57,7 +60,7 @@
 //	func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error
 //  func (s *State) IValidateLastResponseBodyWithSchemaReference(source string) error
 //	func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema string) error
-//	func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval time.Duration)
+//	func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval time.Duration) error
 //
 // * Preserving JSON nodes:
 //

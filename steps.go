@@ -151,7 +151,7 @@ func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate
 
 // ISetFollowingBodyForPreparedRequest sets body for previously prepared request
 // bodyTemplate may be in any format and accepts template values
-func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate string) error {
+func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey, bodyTemplate string) error {
 	body, err := s.TemplateEngine.Replace(bodyTemplate, s.Cache.All())
 	if err != nil {
 		return err
@@ -163,6 +163,34 @@ func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplat
 	}
 
 	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(body)))
+
+	s.Cache.Save(cacheKey, req)
+
+	return nil
+}
+
+// ISetFollowingCookiesForPreparedRequest sets cookies for previously prepared request
+// cookies template should be YAML or JSON deserializable on []http.Cookie
+func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate string) error {
+	var cookies []http.Cookie
+
+	userCookies, err := s.TemplateEngine.Replace(cookiesTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+	}
+
+	req, err := s.GetPreparedRequest(cacheKey)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+	}
+
+	if err = s.Deserializer.Deserialize([]byte(userCookies), &cookies); err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	for _, cookie := range cookies {
+		req.AddCookie(&cookie)
+	}
 
 	s.Cache.Save(cacheKey, req)
 
@@ -764,6 +792,56 @@ func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(time
 	}
 
 	return nil
+}
+
+// TheResponseShouldHaveCookie checks whether last HTTP(s) response has cookie of given name.
+func (s *State) TheResponseShouldHaveCookie(name string) error {
+	lastResp, err := s.GetLastResponse()
+	if err != nil {
+		return fmt.Errorf("%w: could not obtain last response, err: %s", ErrHTTPReqRes, err.Error())
+	}
+
+	defer func() {
+		if s.Debugger.IsOn() {
+
+			s.Debugger.Print(fmt.Sprintf("last HTTP(s) response cookies: %+v", lastResp.Cookies()))
+		}
+	}()
+
+	for _, cookie := range lastResp.Cookies() {
+		if cookie.Name == name {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("%w: last HTTP(s) response does not have cookie with name '%s'", ErrHTTPReqRes, name)
+}
+
+// TheResponseShouldHaveCookieOfValue checks whether last HTTP(s) response has cookie of given name and value.
+func (s *State) TheResponseShouldHaveCookieOfValue(name, valueTemplate string) error {
+	lastResp, err := s.GetLastResponse()
+	if err != nil {
+		return fmt.Errorf("%w: could not obtain last response, err: %s", ErrHTTPReqRes, err.Error())
+	}
+
+	defer func() {
+		if s.Debugger.IsOn() {
+			s.Debugger.Print(fmt.Sprintf("last HTTP(s) response cookies: %+v", lastResp.Cookies()))
+		}
+	}()
+
+	value, err := s.TemplateEngine.Replace(valueTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	for _, cookie := range lastResp.Cookies() {
+		if cookie.Name == name && cookie.Value == value {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("%w: last HTTP(s) response does not have cookie with name '%s' and value: '%s'", ErrHTTPReqRes, name, value)
 }
 
 // IWait waits for given timeInterval amount of time
