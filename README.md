@@ -1,4 +1,4 @@
-[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-58.7%25-brightgreen)
+[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-59.3%25-brightgreen)
 
 # GDUTILS
 
@@ -67,6 +67,8 @@ https://github.com/pawelWritesCode/godog-example-setup
 | TheJSONNodeShouldBeSliceOfLength | checks whether given key is slice and has given length |
 | IValidateLastResponseBodyWithSchemaReference | Validates last HTTP(s) response body against provided in reference JSON schema |
 | IValidateLastResponseBodyWithSchemaString | Validates last HTTP(s) response body against provided JSON schema |
+| IValidateJSONNodeWithSchemaString | Validates last HTTP(s) response body JSON node against provided JSON schema |
+| IValidateJSONNodeWithSchemaReference | Validates last HTTP(s) response body JSON node against provided in reference JSON schema |
 | TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo | Asserts that last HTTP(s) request-response time is <= than expected |
 | TheResponseShouldHaveCookie | Checks whether last HTTP(s) response has given cookie |
 | TheResponseShouldHaveCookieOfValue | Checks whether last HTTP(s) response has given cookie of given value |

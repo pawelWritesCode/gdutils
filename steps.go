@@ -22,6 +22,7 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/reflectutils"
 	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
 	"github.com/pawelWritesCode/gdutils/pkg/timeutils"
+	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
 
 // BodyHeaders is entity that holds information about request body and request headers.
@@ -762,6 +763,16 @@ func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema string) err
 	return s.JSONSchemaValidators.StringValidator.Validate(string(body), jsonSchema)
 }
 
+// IValidateJSONNodeWithSchemaString validates last response body JSON node against jsonSchema
+func (s *State) IValidateJSONNodeWithSchemaString(expr, jsonSchema string) error {
+	return s.iValidateJSONNodeWithSchemaGeneral(expr, jsonSchema, s.JSONSchemaValidators.StringValidator)
+}
+
+// IValidateJSONNodeWithSchemaReference validates last response body JSON node against jsonSchema as provided in reference
+func (s *State) IValidateJSONNodeWithSchemaReference(expr, reference string) error {
+	return s.iValidateJSONNodeWithSchemaGeneral(expr, reference, s.JSONSchemaValidators.ReferenceValidator)
+}
+
 // TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo asserts that last HTTP request-response time
 // is <= than expected timeInterval.
 // timeInterval should be string acceptable by time.ParseDuration func
@@ -945,4 +956,28 @@ func (s *State) GetLastResponseBody() ([]byte, error) {
 	}
 
 	return bodyBytes, nil
+}
+
+// iValidateJSONNodeWithSchemaGeneral validates last response body JSON node against jsonSchema as provided in reference
+func (s *State) iValidateJSONNodeWithSchemaGeneral(expr, reference string, validator validator.SchemaValidator) error {
+	body, err := s.GetLastResponseBody()
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err)
+	}
+
+	node, err := s.JSONPathResolver.Resolve(expr, body)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err)
+	}
+
+	jsonNode, err := json.Marshal(node)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err)
+	}
+
+	if s.Debugger.IsOn() {
+		s.Debugger.Print(fmt.Sprintf("%+v\n\n was marshaled to:\n\n %s \n\nand passed for validation", node, jsonNode))
+	}
+
+	return validator.Validate(string(jsonNode), reference)
 }

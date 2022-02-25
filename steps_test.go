@@ -1602,3 +1602,100 @@ func TestState_TheResponseShouldHaveCookie(t *testing.T) {
 		})
 	}
 }
+
+func TestState_IValidateJSONNodeWithSchemaString(t *testing.T) {
+	jsonData := `{
+	"count": 2,
+	"data": [
+		{
+			"name": "a",
+			"age": 2
+		},
+		{
+			"name": "b",
+			"age": 3
+		}
+	]
+}`
+
+	type fields struct {
+		response *http.Response
+	}
+
+	type args struct {
+		expr       string
+		jsonSchema string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		//unsuccessful examples:
+		{name: "no response body", fields: fields{response: nil}, args: args{
+			expr:       "",
+			jsonSchema: "",
+		}, wantErr: true},
+		{name: "resolver could not resolve json path", fields: fields{response: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{}`))}}, args: args{
+			expr:       "",
+			jsonSchema: "",
+		}, wantErr: true},
+		{name: "invalid json schema", fields: fields{response: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(jsonData))}}, args: args{
+			expr: "data",
+			jsonSchema: `{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "users data",
+    "description": "users data",
+    "type": "object",
+    "properties": {
+		"not_existing_key": {
+			"type": "string"
+		}
+    }
+}`,
+		}, wantErr: true},
+
+		// Successful examples:
+		{name: "valid example #1", fields: fields{response: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(jsonData))}}, args: args{
+			expr: "data",
+			jsonSchema: `{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "users data",
+    "description": "users data",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string"
+            },
+			"age": {
+                "type": "integer"
+            }
+        }
+    }
+}`,
+		}, wantErr: false},
+		{name: "valid example #2", fields: fields{response: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(jsonData))}}, args: args{
+			expr: "count",
+			jsonSchema: `{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "count integer",
+    "description": "number of items in data array",
+    "type": "integer"
+}`,
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, "")
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.response)
+
+			if err := s.IValidateJSONNodeWithSchemaString(tt.args.expr, tt.args.jsonSchema); (err != nil) != tt.wantErr {
+				t.Errorf("IValidateJSONNodeWithSchemaString() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

@@ -47,7 +47,7 @@
 // * Assertions:
 //
 //	func (s *State) TheResponseStatusCodeShouldBe(code int) error
-//	func (s *State) TheResponseBodyShouldHaveFormat(dataFormat dataformat.DataFormat) error
+//	func (s *State) TheResponseBodyShouldHaveFormat(df dataformat.DataFormat) error
 //	func (s *State) TheResponseShouldHaveCookie(name string) error
 //	func (s *State) TheResponseShouldHaveCookieOfValue(name, valueTemplate string) error
 //	func (s *State) TheJSONResponseShouldHaveNode(expr string) error
@@ -60,6 +60,8 @@
 //	func (s *State) TheResponseShouldHaveHeaderOfValue(name, value string) error
 //  func (s *State) IValidateLastResponseBodyWithSchemaReference(source string) error
 //	func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema string) error
+//	func (s *State) IValidateJSONNodeWithSchemaString(expr, jsonSchema string) error
+//	func (s *State) IValidateJSONNodeWithSchemaReference(expr, reference string) error
 //	func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval time.Duration) error
 //
 // * Preserving JSON nodes:
