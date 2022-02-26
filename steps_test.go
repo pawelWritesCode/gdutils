@@ -15,6 +15,7 @@ import (
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
+	"github.com/pawelWritesCode/gdutils/pkg/jsonpath"
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
 	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
@@ -35,6 +36,10 @@ type mockedTemplateEngine struct {
 }
 
 type mockedDeserializer struct {
+	mock.Mock
+}
+
+type mockedJsonPathResolver struct {
 	mock.Mock
 }
 
@@ -72,6 +77,12 @@ func (m *mockedHTTPContext) GetLastResponseBody() ([]byte, error) {
 	args := m.Called()
 
 	return args.Get(0).([]byte), args.Error(1)
+}
+
+func (m *mockedJsonPathResolver) Resolve(expr string, jsonBytes []byte) (interface{}, error) {
+	args := m.Called(expr, jsonBytes)
+
+	return args.Get(0).(interface{}), args.Error(1)
 }
 
 func TestApiFeature_theJSONNodeShouldBeOfValue(t *testing.T) {
@@ -1695,6 +1706,106 @@ func TestState_IValidateJSONNodeWithSchemaString(t *testing.T) {
 
 			if err := s.IValidateJSONNodeWithSchemaString(tt.args.expr, tt.args.jsonSchema); (err != nil) != tt.wantErr {
 				t.Errorf("IValidateJSONNodeWithSchemaString() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_TheJSONNodeShouldMatchRegExp(t *testing.T) {
+	mTemplateEngine := new(mockedTemplateEngine)
+	mJsonPathResolver := new(mockedJsonPathResolver)
+
+	type fields struct {
+		cacheKeys        map[string]interface{}
+		templateEngine   template.Engine
+		jsonPathResolver jsonpath.Resolver
+		respBody         string
+		mockFunc         func()
+	}
+	type args struct {
+		expr           string
+		regExpTemplate string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "template engine error", fields: fields{
+			cacheKeys:        nil,
+			templateEngine:   mTemplateEngine,
+			jsonPathResolver: nil,
+			respBody:         "",
+			mockFunc: func() {
+				mTemplateEngine.On("Replace", "abc", mock.Anything).
+					Return("", errors.New("err")).Once()
+			},
+		}, args: args{
+			expr:           "",
+			regExpTemplate: "abc",
+		}, wantErr: true},
+		{name: "json path resolver error", fields: fields{
+			cacheKeys:        nil,
+			templateEngine:   mTemplateEngine,
+			jsonPathResolver: mJsonPathResolver,
+			respBody:         "",
+			mockFunc: func() {
+				mTemplateEngine.On("Replace", "abc", mock.Anything).
+					Return("abc", nil).Once()
+
+				mJsonPathResolver.On("Resolve", "xxx", []byte("")).
+					Return(interface{}(""), errors.New("err")).Once()
+			},
+		}, args: args{
+			expr:           "xxx",
+			regExpTemplate: "abc",
+		}, wantErr: true},
+		{name: "invalid example #1", fields: fields{
+			respBody: `{
+	"name": "abcdef"
+}`,
+			mockFunc: func() {},
+		}, args: args{
+			expr:           "name",
+			regExpTemplate: "dd.*",
+		}, wantErr: true},
+
+		{name: "valid example #1", fields: fields{
+			respBody: `{
+	"name": "abcdef"
+}`,
+			mockFunc: func() {},
+		}, args: args{
+			expr:           "name",
+			regExpTemplate: "abc.*",
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, "")
+
+			if len(tt.fields.cacheKeys) > 0 {
+				for key, val := range tt.fields.cacheKeys {
+					s.Cache.Save(key, val)
+				}
+			}
+
+			if tt.fields.templateEngine != nil {
+				s.SetTemplateEngine(tt.fields.templateEngine)
+			}
+
+			if tt.fields.jsonPathResolver != nil {
+				s.SetJSONPathResolver(tt.fields.jsonPathResolver)
+			}
+
+			r := &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(tt.fields.respBody))}
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, r)
+
+			tt.fields.mockFunc()
+
+			if err := s.TheJSONNodeShouldMatchRegExp(tt.args.expr, tt.args.regExpTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("TheJSONNodeShouldMatchRegExp() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -672,6 +673,44 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 		if boolVal != boolNodeValue {
 			return fmt.Errorf("%w: node %s bool value %t is not equal to expected bool value %t", ErrGdutils, expr, boolVal, boolNodeValue)
 		}
+	}
+
+	return nil
+}
+
+// TheJSONNodeShouldMatchRegExp checks whether JSON node matches provided regExp
+func (s *State) TheJSONNodeShouldMatchRegExp(expr, regExpTemplate string) error {
+	regExpString, err := s.TemplateEngine.Replace(regExpTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	body, err := s.GetLastResponseBody()
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	iValue, err := s.JSONPathResolver.Resolve(expr, body)
+	if err != nil {
+		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
+	}
+
+	jsonValue, err := json.Marshal(iValue)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	if s.Debugger.IsOn() {
+		s.Debugger.Print(fmt.Sprintf("matching: %s, with regExp: %s", jsonValue, regExpString))
+	}
+
+	matched, err := regexp.Match(regExpString, jsonValue)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	if !matched {
+		return fmt.Errorf("%s does not contain any: %s", string(jsonValue), regExpString)
 	}
 
 	return nil

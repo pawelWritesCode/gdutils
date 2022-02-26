@@ -53,6 +53,7 @@
 //	func (s *State) TheJSONResponseShouldHaveNode(expr string) error
 //	func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error
 //	func (s *State) TheJSONNodeShouldBe(expr string, goType string) error
+//	func (s *State) TheJSONNodeShouldMatchRegExp(expr, regExpTemplate string) error
 //	func (s *State) TheJSONResponseShouldHaveNodes(nodeExprs string) error
 //	func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error
 //	func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) error
