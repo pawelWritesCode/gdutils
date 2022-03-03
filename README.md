@@ -1,4 +1,4 @@
-[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-60.5%25-brightgreen)
+[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-57.1%25-brightgreen)
 
 # GDUTILS
 
@@ -12,7 +12,7 @@ Library is suitable for steps in godog framework.
 
 ### Related project:
 
-Skeleton that allows to write e2e tests using *godog & gdutils* almost instantly with minimal configuration.
+Skeleton that allows to write e2e HTTP API tests using *godog & gdutils* almost instantly with minimal configuration.
 https://github.com/pawelWritesCode/godog-example-setup
 
 ### Available methods:
@@ -22,7 +22,7 @@ https://github.com/pawelWritesCode/godog-example-setup
 | | |
 |  **Sending HTTP(s) requests:**                                                                                  |
 | | |
-| ISendRequestToWithBodyAndHeaders |  Sends HTTP(s) request with provided body and headers. |
+| ISendRequestToWithFormatBodyAndHeaders |  Sends HTTP(s) request with provided body and headers. |
 | IPrepareNewRequestToAndSaveItAs  |  Prepare HTTP(s) request |
 | ISetFollowingHeadersForPreparedRequest  |  Sets provided headers for previously prepared request |
 | ISetFollowingCookiesForPreparedRequest  |  Sets provided cookies for previously prepared request |
@@ -40,7 +40,7 @@ https://github.com/pawelWritesCode/godog-example-setup
 | | |
 | **Preserving data:** |
 | | |
-| ISaveFromTheLastResponseJSONNodeAs | Saves from last response body JSON node under given cacheKey key |
+| ISaveFromTheLastResponseNodeAs | Saves from last response body JSON node under given cacheKey key |
 | ISaveAs | Saves into cache arbitrary passed value |
 | | |
 | **Debugging:** |
@@ -59,13 +59,13 @@ https://github.com/pawelWritesCode/godog-example-setup
 | TheResponseShouldHaveHeaderOfValue | Checks whether last HTTP(s) response has given header with provided value |
 | TheResponseStatusCodeShouldBe | Checks last HTTP(s) response status code |
 | TheResponseBodyShouldHaveType | Checks whether last HTTP(s) response body has given data format |
-| TheJSONResponseShouldHaveNode | Checks whether last response body contains given key |
-| TheJSONNodeShouldBeOfValue | Compares json node value from expression to expected by user |
-| TheJSONNodeShouldBe | Checks whether JSON node from last HTTP(s) response body is of provided type |
-| TheJSONNodeShouldNotBe | Checks whether JSON node from last response body is not of provided type |
-| TheJSONResponseShouldHaveNodes | Checks whether last HTTP(s) response body JSON has given nodes |
-| TheJSONNodeShouldMatchRegExp | Checks whether last HTTP(s) response body JSON node matches regExp |
-| TheJSONNodeShouldBeSliceOfLength | checks whether given key is slice and has given length |
+| TheResponseShouldHaveNode | Checks whether last response body contains given key |
+| TheNodeShouldBeOfValue | Compares json node value from expression to expected by user |
+| TheNodeShouldBe | Checks whether node from last HTTP(s) response body is of provided type |
+| TheNodeShouldNotBe | Checks whether node from last response body is not of provided type |
+| TheResponseShouldHaveNodes | Checks whether last HTTP(s) response body JSON has given nodes |
+| TheNodeShouldMatchRegExp | Checks whether last HTTP(s) response body JSON node matches regExp |
+| TheNodeShouldBeSliceOfLength | checks whether given key is slice and has given length |
 | IValidateLastResponseBodyWithSchemaReference | Validates last HTTP(s) response body against provided in reference JSON schema |
 | IValidateLastResponseBodyWithSchemaString | Validates last HTTP(s) response body against provided JSON schema |
 | IValidateJSONNodeWithSchemaString | Validates last HTTP(s) response body JSON node against provided JSON schema |

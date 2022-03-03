@@ -1,4 +1,4 @@
-package jsonpath
+package pathfinder
 
 import (
 	"reflect"
@@ -47,7 +47,7 @@ var jsonBytes = []byte(`{
     "expensive": 10
 }`)
 
-func TestQJSONResolver_Resolve(t *testing.T) {
+func TestQJSONFinder_Find(t *testing.T) {
 	type args struct {
 		expr      string
 		jsonBytes []byte
@@ -89,20 +89,20 @@ func TestQJSONResolver_Resolve(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			Q := QJSONResolver{}
-			got, err := Q.Resolve(tt.args.expr, tt.args.jsonBytes)
+			Q := QJSONFinder{}
+			got, err := Q.Find(tt.args.expr, tt.args.jsonBytes)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Resolve() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Find() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Resolve() got = %v, want %v", got, tt.want)
+				t.Errorf("Find() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestOliveagleJSONpath_Resolve(t *testing.T) {
+func TestOliveagleJSONFInder_Find(t *testing.T) {
 	type args struct {
 		expr      string
 		jsonBytes []byte
@@ -160,14 +160,14 @@ func TestOliveagleJSONpath_Resolve(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			o := OliveagleJSONpath{}
-			got, err := o.Resolve(tt.args.expr, tt.args.jsonBytes)
+			o := OliveagleJSONFinder{}
+			got, err := o.Find(tt.args.expr, tt.args.jsonBytes)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Resolve() error = %+v, wantErr %+v", err, tt.wantErr)
+				t.Errorf("Find() error = %+v, wantErr %+v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Resolve() got = %+v, want %+v", got, tt.want)
+				t.Errorf("Find() got = %+v, want %+v", got, tt.want)
 			}
 		})
 	}
@@ -175,8 +175,8 @@ func TestOliveagleJSONpath_Resolve(t *testing.T) {
 
 func TestDynamicJSONPathResolver_Resolve(t *testing.T) {
 	type fields struct {
-		qjson             QJSONResolver
-		oliveagleJSONpath OliveagleJSONpath
+		qjson             QJSONFinder
+		oliveagleJSONpath OliveagleJSONFinder
 	}
 	type args struct {
 		expr      string
@@ -252,17 +252,17 @@ func TestDynamicJSONPathResolver_Resolve(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := DynamicJSONPathResolver{
-				qjson:             tt.fields.qjson,
-				oliveagleJSONpath: tt.fields.oliveagleJSONpath,
+			d := DynamicJSONPathFinder{
+				qjson:               tt.fields.qjson,
+				oliveagleJSONFinder: tt.fields.oliveagleJSONpath,
 			}
-			got, err := d.Resolve(tt.args.expr, tt.args.jsonBytes)
+			got, err := d.Find(tt.args.expr, tt.args.jsonBytes)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Resolve() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Find() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Resolve() got = %v, want %v", got, tt.want)
+				t.Errorf("Find() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

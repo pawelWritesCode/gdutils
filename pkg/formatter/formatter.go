@@ -8,10 +8,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Deserializer describes ability to deserialize []byte in given format into v
-type Deserializer interface {
+// Formatter describes ability to serialize and deserialize data
+type Formatter interface {
 	// Deserialize deserializes data on v
 	Deserialize(data []byte, v interface{}) error
+
+	// Serialize serializes v
+	Serialize(v interface{}) ([]byte, error)
 }
 
 // JSONFormatter is entity that has ability to deserialize data in JSON format
@@ -43,6 +46,11 @@ func (J JSONFormatter) Deserialize(data []byte, v interface{}) error {
 	return json.Unmarshal(data, v)
 }
 
+// Serialize serializes v into JSON format.
+func (J JSONFormatter) Serialize(v interface{}) ([]byte, error) {
+	return json.Marshal(v)
+}
+
 // Deserialize data in format of YAML on v
 func (Y YAMLFormatter) Deserialize(data []byte, v interface{}) error {
 	if data == nil {
@@ -58,6 +66,11 @@ func (Y YAMLFormatter) Deserialize(data []byte, v interface{}) error {
 	}
 
 	return yaml.UnmarshalStrict(data, v)
+}
+
+// Serialize serializes v into YAML format.
+func (y YAMLFormatter) Serialize(v interface{}) ([]byte, error) {
+	return yaml.Marshal(v)
 }
 
 // Deserialize data in format of JSON or YAML on v

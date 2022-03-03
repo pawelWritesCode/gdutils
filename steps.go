@@ -15,9 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goccy/go-yaml"
 	"github.com/moul/http2curl"
 
-	"github.com/pawelWritesCode/gdutils/pkg/dataformat"
+	"github.com/pawelWritesCode/gdutils/pkg/format"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
 	"github.com/pawelWritesCode/gdutils/pkg/reflectutils"
@@ -37,21 +38,15 @@ type BodyHeaders struct {
 }
 
 /*
-	ISendRequestToWithBodyAndHeaders sends HTTP(s) requests with provided body and headers.
+	ISendRequestToWithFormatBodyAndHeaders sends HTTP(s) requests with provided body and headers.
 
 	Argument "method" indices HTTP request method for example: "POST", "GET" etc.
  	Argument "urlTemplate" should be full valid URL. May include template values.
-	Argument "bodyTemplate" should contain data (may include template values) in format acceptable by Deserializer
-	with keys "body" and "headers". Internally method will marshal request body to JSON format and add it to request.
-
-	If you want to send request body in arbitrary data format, use step-by-step flow containing following methods:
-		IPrepareNewRequestToAndSaveItAs            - creates request object and save it to cache
-		ISetFollowingHeadersForPreparedRequest     - sets header for saved request
-		ISetFollowingBodyForPreparedRequest        - sets body for saved request
-		ISendRequest 							   - sends previously saved request
-	Because method ISetFollowingBodyForPreparedRequest pass any bytes to HTTP(s) request body without any mutation.
+	Argument "df" should point at used data format.
+	Argument "bodyTemplate" should contain data (may include template values)
+	in passed as previous argument "dataFormat" format with keys "body" and "headers".
 */
-func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate, bodyTemplate string) error {
+func (s *State) ISendRequestToWithFormatBodyAndHeaders(method, urlTemplate string, dataFormat format.DataFormat, bodyTemplate string) error {
 	input, err := s.TemplateEngine.Replace(bodyTemplate, s.Cache.All())
 	if err != nil {
 		return err
@@ -63,14 +58,29 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate, bodyTempla
 	}
 
 	var bodyAndHeaders BodyHeaders
-	err = s.Deserializer.Deserialize([]byte(input), &bodyAndHeaders)
-	if err != nil {
-		return fmt.Errorf("%w: %s", ErrJson, err.Error())
+	switch dataFormat {
+	case format.JSON:
+		err = s.Formatters.JSON.Deserialize([]byte(input), &bodyAndHeaders)
+	case format.YAML:
+		err = s.Formatters.YAML.Deserialize([]byte(input), &bodyAndHeaders)
+	default:
+		err = fmt.Errorf("unknown data format: '%s'", dataFormat)
 	}
 
-	// request body will always be marshaled to JSON, if you want to send it in different format,
-	// use flow with ISetFollowingBodyForPreparedRequest method
-	reqBody, err := json.Marshal(bodyAndHeaders.Body)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	var reqBody []byte
+	switch dataFormat {
+	case format.JSON:
+		reqBody, err = s.Formatters.JSON.Serialize(bodyAndHeaders.Body)
+	case format.YAML:
+		reqBody, err = s.Formatters.YAML.Serialize(bodyAndHeaders.Body)
+	default:
+		err = fmt.Errorf("unknown data format: '%s'", dataFormat)
+	}
+
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrJson, err.Error())
 	}
@@ -111,7 +121,7 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate, bodyTempla
 func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error {
 	url, err := s.TemplateEngine.Replace(urlTemplate, s.Cache.All())
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	req, err := http.NewRequest(method, url, nil)
@@ -125,21 +135,30 @@ func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey st
 }
 
 // ISetFollowingHeadersForPreparedRequest sets provided headers for previously prepared request.
-// incoming data should be in format acceptable by injected Deserializer
+// incoming data should be in JSON or YAML format
 func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate string) error {
 	headers, err := s.TemplateEngine.Replace(headersTemplate, s.Cache.All())
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	var headersMap map[string]string
-	if err = s.Deserializer.Deserialize([]byte(headers), &headersMap); err != nil {
-		return fmt.Errorf("%w: could not parse provided headers: \n\n%s\n\nerr: %s", ErrGdutils, headers, err.Error())
+	headersBytes := []byte(headers)
+	if format.IsJSON(headersBytes) {
+		if err = s.Formatters.JSON.Deserialize(headersBytes, &headersMap); err != nil {
+			return fmt.Errorf("%w: could not parse provided headers: \n\n%s\n\nerr: %s", ErrGdutils, headers, err.Error())
+		}
+	} else if format.IsYAML(headersBytes) {
+		if err = s.Formatters.YAML.Deserialize(headersBytes, &headersMap); err != nil {
+			return fmt.Errorf("%w: could not parse provided headers: \n\n%s\n\nerr: %s", ErrGdutils, headers, err.Error())
+		}
+	} else {
+		return fmt.Errorf("%w: unknown data format", ErrGdutils)
 	}
 
 	req, err := s.GetPreparedRequest(cacheKey)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	for hName, hValue := range headersMap {
@@ -156,23 +175,22 @@ func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate
 func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey, bodyTemplate string) error {
 	body, err := s.TemplateEngine.Replace(bodyTemplate, s.Cache.All())
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	req, err := s.GetPreparedRequest(cacheKey)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(body)))
-
 	s.Cache.Save(cacheKey, req)
 
 	return nil
 }
 
 // ISetFollowingCookiesForPreparedRequest sets cookies for previously prepared request
-// cookies template should be YAML or JSON deserializable on []http.Cookie
+// cookies template should be YAML or JSON deserializable on []http.Cookie.
 func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate string) error {
 	var cookies []http.Cookie
 
@@ -186,8 +204,17 @@ func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate
 		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
 	}
 
-	if err = s.Deserializer.Deserialize([]byte(userCookies), &cookies); err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	userCookiesBytes := []byte(userCookies)
+	if format.IsJSON(userCookiesBytes) {
+		if err = s.Formatters.JSON.Deserialize(userCookiesBytes, &cookies); err != nil {
+			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		}
+	} else if format.IsYAML(userCookiesBytes) {
+		if err = s.Formatters.YAML.Deserialize(userCookiesBytes, &cookies); err != nil {
+			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		}
+	} else {
+		return fmt.Errorf("%w: unknown data format", ErrGdutils)
 	}
 
 	for _, cookie := range cookies {
@@ -199,11 +226,11 @@ func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate
 	return nil
 }
 
-// ISendRequest sends previously prepared HTTP(s) request
+// ISendRequest sends previously prepared HTTP(s) request.
 func (s *State) ISendRequest(cacheKey string) error {
 	req, err := s.GetPreparedRequest(cacheKey)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	if s.Debugger.IsOn() {
@@ -233,7 +260,7 @@ func (s *State) ISendRequest(cacheKey string) error {
 func (s *State) TheResponseStatusCodeShouldBe(code int) error {
 	lastResponse, err := s.GetLastResponse()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	if lastResponse.StatusCode != code {
@@ -243,31 +270,43 @@ func (s *State) TheResponseStatusCodeShouldBe(code int) error {
 	return nil
 }
 
-// TheResponseBodyShouldHaveFormat checks whether last response body has given data format
-// available data formats are listed as package constants
-func (s *State) TheResponseBodyShouldHaveFormat(dataFormat dataformat.DataFormat) error {
+// TheResponseBodyShouldHaveFormat checks whether last response body has given data format.
+// Available data formats are listed in format package.
+func (s *State) TheResponseBodyShouldHaveFormat(dataFormat format.DataFormat) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	switch dataFormat {
-	case dataformat.FormatJSON:
-		return dataformat.IsJSON(body)
-
-	//This case checks whether last response body is not any of known types - then it assumes it is plain text
-	case dataformat.FormatPlainText:
-		if err := dataformat.IsJSON(body); err != nil {
+	case format.JSON:
+		isJSON := format.IsJSON(body)
+		if isJSON {
 			return nil
 		}
 
-		return fmt.Errorf("%w: last response body has type %s", ErrHTTPReqRes, dataformat.FormatJSON)
+		return fmt.Errorf("%w: response body is not %s", ErrGdutils, format.JSON)
+	case format.YAML:
+		isYAML := format.IsYAML(body)
+		if isYAML {
+			return nil
+		}
+
+		return fmt.Errorf("%w: response body is not %s", ErrGdutils, format.YAML)
+	//This case checks whether last response body is not any of known types - then it assumes it is plain text
+	case format.PlainText:
+		if !(format.IsJSON(body) || format.IsYAML(body)) {
+			return nil
+		}
+
+		return fmt.Errorf("%w: response body is one of: %s or %s", ErrGdutils, format.JSON, format.YAML)
 	default:
-		return fmt.Errorf("%w: unknown last response body data type, available values: %s, %s", ErrHTTPReqRes, dataformat.FormatJSON, dataformat.FormatPlainText)
+		return fmt.Errorf("%w: unknown last response body data type, available values: %s, %s, %s",
+			ErrHTTPReqRes, format.JSON, format.YAML, format.PlainText)
 	}
 }
 
-// ISaveAs saves into cache arbitrary passed value
+// ISaveAs saves into cache arbitrary passed value.
 func (s *State) ISaveAs(value, cacheKey string) error {
 	if len(value) == 0 {
 		return fmt.Errorf("%w: pass any value", ErrGdutils)
@@ -282,22 +321,30 @@ func (s *State) ISaveAs(value, cacheKey string) error {
 	return nil
 }
 
-// ISaveFromTheLastResponseJSONNodeAs saves from last response body JSON node under given cacheKey key.
-// expr should be valid according to injected JSONPathResolver
-func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error {
+// ISaveFromTheLastResponseNodeAs saves from last response body node under given cacheKey key.
+// expr should be valid according to injected PathResolver of given data type
+func (s *State) ISaveFromTheLastResponseNodeAs(dataFormat format.DataFormat, expr, cacheKey string) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
 	}
 
-	iVal, err := s.JSONPathResolver.Resolve(expr, body)
+	var iVal interface{}
+	switch dataFormat {
+	case format.JSON:
+		iVal, err = s.PathFinders.JSON.Find(expr, body)
+	case format.YAML:
+		iVal, err = s.PathFinders.YAML.Find(expr, body)
+	default:
+		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+	}
 
 	if err != nil {
 		if s.Debugger.IsOn() {
 			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 		}
 
-		return fmt.Errorf("%w, err: %s", ErrQJSON, err.Error())
+		return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
 	}
 
 	s.Cache.Save(cacheKey, iVal)
@@ -306,7 +353,7 @@ func (s *State) ISaveFromTheLastResponseJSONNodeAs(expr, cacheKey string) error 
 }
 
 // IGenerateARandomIntInTheRangeToAndSaveItAs generates random integer from provided range
-// and preserve it under given cacheKey key
+// and preserve it under given cacheKey key.
 func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
 	randomInteger, err := mathutils.RandomInt(from, to)
 	if err != nil {
@@ -319,7 +366,7 @@ func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKe
 }
 
 // IGenerateARandomFloatInTheRangeToAndSaveItAs generates random float from provided range
-// and preserve it under given cacheKey key
+// and preserve it under given cacheKey key.
 func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
 	randInt, err := mathutils.RandomInt(from, to)
 	if err != nil {
@@ -353,9 +400,10 @@ func (s *State) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset string) fun
 	}
 }
 
-// IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs creates generator func for creating random sentences
-// each sentence has length from - to as provided in params and is saved in provided cacheKey
-// Given I generate a random sentence in the range from "5" to "10" words and save it as "ABC"
+/*
+	IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs creates generator func for creating random sentences
+	each sentence has length from - to as provided in params and is saved in provided cacheKey
+*/
 func (s *State) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error {
 	return func(from, to int, cacheKey string) error {
 		if from > to {
@@ -416,38 +464,55 @@ func (s *State) IGenerateCurrentTimeAndTravelByAndSaveItAs(timeDirection timeuti
 	return s.IGetTimeAndTravelByAndSaveItAs(time.Now(), timeDirection, timeDuration, cacheKey)
 }
 
-// TheJSONResponseShouldHaveNode checks whether last response body contains given node.
-// expr should be valid according to injected JSONPathResolver
-func (s *State) TheJSONResponseShouldHaveNode(expr string) error {
+// TheResponseShouldHaveNode checks whether last response body contains given node.
+// expr should be valid according to injected PathFinder for given data format
+func (s *State) TheResponseShouldHaveNode(dataFormat format.DataFormat, expr string) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
-	_, err = s.JSONPathResolver.Resolve(expr, body)
+	switch dataFormat {
+	case format.JSON:
+		_, err = s.PathFinders.JSON.Find(expr, body)
+	case format.YAML:
+		_, err = s.PathFinders.YAML.Find(expr, body)
+	default:
+		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+	}
+
 	if err != nil {
 		if s.Debugger.IsOn() {
 			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 		}
 
-		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
+		return fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, expr, err.Error())
 	}
 
 	return nil
 }
 
-// TheJSONNodeShouldNotBe checks whether JSON node from last response body is not of provided type.
+// TheNodeShouldNotBe checks whether node from last response body is not of provided type.
 // goType may be one of: nil, string, int, float, bool, map, slice,
-// expr should be valid according to injected JSONPathResolver
-func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
+// expr should be valid according to injected PathFinder for given data format.
+func (s *State) TheNodeShouldNotBe(dataFormat format.DataFormat, expr string, goType string) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
-	iNodeVal, err := s.JSONPathResolver.Resolve(expr, body)
+	var iNodeVal interface{}
+	switch dataFormat {
+	case format.JSON:
+		iNodeVal, err = s.PathFinders.JSON.Find(expr, body)
+	case format.YAML:
+		iNodeVal, err = s.PathFinders.YAML.Find(expr, body)
+	default:
+		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+	}
+
 	if err != nil {
-		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
+		return fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, expr, err.Error())
 	}
 
 	vNodeVal := reflect.ValueOf(iNodeVal)
@@ -503,15 +568,15 @@ func (s *State) TheJSONNodeShouldNotBe(expr string, goType string) error {
 	return nil
 }
 
-// TheJSONNodeShouldBe checks whether JSON node from last response body is of provided type
+// TheNodeShouldBe checks whether node from last response body is of provided type
 // goType may be one of: nil, string, int, float, bool, map, slice
-// expr should be valid according to qjson library
-func (s *State) TheJSONNodeShouldBe(expr string, goType string) error {
+// expr should be valid according to injected PathResolver
+func (s *State) TheNodeShouldBe(dataFormat format.DataFormat, expr string, goType string) error {
 	errInvalidType := fmt.Errorf("%w: %s value is not \"%s\", but expected to be", ErrGdutils, expr, goType)
 
 	switch goType {
 	case "nil", "string", "int", "float", "bool", "map", "slice":
-		if err := s.TheJSONNodeShouldNotBe(expr, goType); err == nil {
+		if err := s.TheNodeShouldNotBe(dataFormat, expr, goType); err == nil {
 			return errInvalidType
 		}
 
@@ -521,23 +586,31 @@ func (s *State) TheJSONNodeShouldBe(expr string, goType string) error {
 	}
 }
 
-// TheJSONResponseShouldHaveNodes checks whether last request body has keys defined in string separated by comma
-// nodeExprs should be valid according to injected JSONPathResolver expressions separated by comma (,)
-func (s *State) TheJSONResponseShouldHaveNodes(expressions string) error {
+// TheResponseShouldHaveNodes checks whether last request body has keys defined in string separated by comma
+// nodeExprs should be valid according to injected PathFinder expressions separated by comma (,)
+func (s *State) TheResponseShouldHaveNodes(dataFormat format.DataFormat, expressions string) error {
 	keysSlice := strings.Split(expressions, ",")
 
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	errs := make([]error, 0, len(keysSlice))
 	for _, key := range keysSlice {
 		trimmedKey := strings.TrimSpace(key)
-		_, err := s.JSONPathResolver.Resolve(trimmedKey, body)
+
+		switch dataFormat {
+		case format.JSON:
+			_, err = s.PathFinders.JSON.Find(trimmedKey, body)
+		case format.YAML:
+			_, err = s.PathFinders.YAML.Find(trimmedKey, body)
+		default:
+			return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+		}
 
 		if err != nil {
-			errs = append(errs, fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, trimmedKey, err.Error()))
+			errs = append(errs, fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, trimmedKey, err.Error()))
 		}
 	}
 
@@ -557,21 +630,30 @@ func (s *State) TheJSONResponseShouldHaveNodes(expressions string) error {
 	return nil
 }
 
-// TheJSONNodeShouldBeSliceOfLength checks whether given key is slice and has given length
-// expr should be valid according to injected JSONPathResolver
-func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error {
+// TheNodeShouldBeSliceOfLength checks whether given key is slice and has given length
+// expr should be valid according to injected PathFinder for provided dataFormat
+func (s *State) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, expr string, length int) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
-	iValue, err := s.JSONPathResolver.Resolve(expr, body)
+	var iValue interface{}
+	switch dataFormat {
+	case format.JSON:
+		iValue, err = s.PathFinders.JSON.Find(expr, body)
+	case format.YAML:
+		iValue, err = s.PathFinders.YAML.Find(expr, body)
+	default:
+		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+	}
+
 	if err != nil {
 		if s.Debugger.IsOn() {
 			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 		}
 
-		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
+		return fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, expr, err.Error())
 	}
 
 	v := reflect.ValueOf(iValue)
@@ -587,16 +669,16 @@ func (s *State) TheJSONNodeShouldBeSliceOfLength(expr string, length int) error 
 		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 	}
 
-	return fmt.Errorf("%w: %s does not point at slice(array) in last HTTP(s) response JSON body", ErrGdutils, expr)
+	return fmt.Errorf("%w: %s does not point at slice(array) in last HTTP(s) response body", ErrGdutils, expr)
 }
 
-// TheJSONNodeShouldBeOfValue compares json node value from expression to expected by user dataValue of given by user dataType
-// available data types are listed in switch section in each case directive
-// expr should be valid according to injected JSONPathResolver
-func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) error {
+// TheNodeShouldBeOfValue compares json node value from expression to expected by user dataValue of given by user dataType
+// Available data types are listed in switch section in each case directive.
+// expr should be valid according to injected PathFinder for provided dataFormat.
+func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, expr, dataType, dataValue string) error {
 	nodeValueReplaced, err := s.TemplateEngine.Replace(dataValue, s.Cache.All())
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	if s.Debugger.IsOn() {
@@ -605,7 +687,7 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	if s.Debugger.IsOn() {
@@ -614,9 +696,18 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 		}()
 	}
 
-	iValue, err := s.JSONPathResolver.Resolve(expr, body)
+	var iValue interface{}
+	switch dataFormat {
+	case format.JSON:
+		iValue, err = s.PathFinders.JSON.Find(expr, body)
+	case format.YAML:
+		iValue, err = s.PathFinders.YAML.Find(expr, body)
+	default:
+		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+	}
+
 	if err != nil {
-		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
+		return fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, expr, err.Error())
 	}
 
 	switch dataType {
@@ -632,7 +723,12 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 	case "int":
 		floatVal, ok := iValue.(float64)
 		if !ok {
-			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
+			uint64Val, ok := iValue.(uint64)
+			if !ok {
+				return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
+			}
+
+			floatVal = float64(uint64Val)
 		}
 
 		intVal := int(floatVal)
@@ -662,7 +758,15 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 	case "bool":
 		boolVal, ok := iValue.(bool)
 		if !ok {
-			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
+			strVal, ok := iValue.(string)
+			if !ok {
+				return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
+			}
+
+			boolVal, err = strconv.ParseBool(strVal)
+			if err != nil {
+				return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
+			}
 		}
 
 		boolNodeValue, err := strconv.ParseBool(nodeValueReplaced)
@@ -678,8 +782,8 @@ func (s *State) TheJSONNodeShouldBeOfValue(expr, dataType, dataValue string) err
 	return nil
 }
 
-// TheJSONNodeShouldMatchRegExp checks whether JSON node matches provided regExp
-func (s *State) TheJSONNodeShouldMatchRegExp(expr, regExpTemplate string) error {
+// TheNodeShouldMatchRegExp checks whether last response body node matches provided regExp.
+func (s *State) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, expr, regExpTemplate string) error {
 	regExpString, err := s.TemplateEngine.Replace(regExpTemplate, s.Cache.All())
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
@@ -690,12 +794,21 @@ func (s *State) TheJSONNodeShouldMatchRegExp(expr, regExpTemplate string) error 
 		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
-	iValue, err := s.JSONPathResolver.Resolve(expr, body)
-	if err != nil {
-		return fmt.Errorf("%w, node '%s', err: %s", ErrQJSON, expr, err.Error())
+	var iValue interface{}
+	switch dataFormat {
+	case format.JSON:
+		iValue, err = s.PathFinders.JSON.Find(expr, body)
+	case format.YAML:
+		iValue, err = s.PathFinders.YAML.Find(expr, body)
+	default:
+		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
 	}
 
-	jsonValue, err := json.Marshal(iValue)
+	if err != nil {
+		return fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, expr, err.Error())
+	}
+
+	jsonValue, err := s.Formatters.JSON.Serialize(iValue)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
@@ -716,7 +829,7 @@ func (s *State) TheJSONNodeShouldMatchRegExp(expr, regExpTemplate string) error 
 	return nil
 }
 
-// TheResponseShouldHaveHeader checks whether last HTTP response has given header
+// TheResponseShouldHaveHeader checks whether last HTTP response has given header.
 func (s *State) TheResponseShouldHaveHeader(name string) error {
 	defer func() {
 		if s.Debugger.IsOn() {
@@ -731,7 +844,7 @@ func (s *State) TheResponseShouldHaveHeader(name string) error {
 
 	lastResp, err := s.GetLastResponse()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 	}
 
 	header := lastResp.Header.Get(name)
@@ -746,7 +859,7 @@ func (s *State) TheResponseShouldHaveHeader(name string) error {
 	return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
 }
 
-// TheResponseShouldHaveHeaderOfValue checks whether last HTTP response has given header with provided valueTemplate
+// TheResponseShouldHaveHeaderOfValue checks whether last HTTP response has given header with provided valueTemplate.
 func (s *State) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) error {
 	defer func() {
 		if s.Debugger.IsOn() {
@@ -781,7 +894,7 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) e
 	return fmt.Errorf("%w: %s header exists but, expected value: %s, is not equal to actual: %s", ErrHTTPReqRes, name, value, header)
 }
 
-// IValidateLastResponseBodyWithSchemaReference validates last response body against JSON schema as provided in reference.
+// IValidateLastResponseBodyWithSchemaReference validates last response body against schema as provided in reference.
 // reference may be: URL or full/relative path
 func (s *State) IValidateLastResponseBodyWithSchemaReference(reference string) error {
 	body, err := s.GetLastResponseBody()
@@ -789,27 +902,27 @@ func (s *State) IValidateLastResponseBodyWithSchemaReference(reference string) e
 		return fmt.Errorf("%w: %s", ErrGdutils, err)
 	}
 
-	return s.JSONSchemaValidators.ReferenceValidator.Validate(string(body), reference)
+	return s.SchemaValidators.ReferenceValidator.Validate(string(body), reference)
 }
 
-// IValidateLastResponseBodyWithSchemaString validates last response body against jsonSchema.
-func (s *State) IValidateLastResponseBodyWithSchemaString(jsonSchema string) error {
+// IValidateLastResponseBodyWithSchemaString validates last response body against schema.
+func (s *State) IValidateLastResponseBodyWithSchemaString(schema string) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrGdutils, err)
 	}
 
-	return s.JSONSchemaValidators.StringValidator.Validate(string(body), jsonSchema)
+	return s.SchemaValidators.StringValidator.Validate(string(body), schema)
 }
 
-// IValidateJSONNodeWithSchemaString validates last response body JSON node against jsonSchema
-func (s *State) IValidateJSONNodeWithSchemaString(expr, jsonSchema string) error {
-	return s.iValidateJSONNodeWithSchemaGeneral(expr, jsonSchema, s.JSONSchemaValidators.StringValidator)
+// IValidateNodeWithSchemaString validates last response body JSON node against schema
+func (s *State) IValidateNodeWithSchemaString(dataFormat format.DataFormat, expr, schema string) error {
+	return s.iValidateNodeWithSchemaGeneral(dataFormat, expr, schema, s.SchemaValidators.StringValidator)
 }
 
-// IValidateJSONNodeWithSchemaReference validates last response body JSON node against jsonSchema as provided in reference
-func (s *State) IValidateJSONNodeWithSchemaReference(expr, reference string) error {
-	return s.iValidateJSONNodeWithSchemaGeneral(expr, reference, s.JSONSchemaValidators.ReferenceValidator)
+// IValidateNodeWithSchemaReference validates last response body node against schema as provided in reference
+func (s *State) IValidateNodeWithSchemaReference(dataFormat format.DataFormat, expr, reference string) error {
+	return s.iValidateNodeWithSchemaGeneral(dataFormat, expr, reference, s.SchemaValidators.ReferenceValidator)
 }
 
 // TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo asserts that last HTTP request-response time
@@ -901,30 +1014,53 @@ func (s *State) IWait(timeInterval time.Duration) error {
 	return nil
 }
 
-// IPrintLastResponseBody prints last response from request
+// IPrintLastResponseBody prints last response from request.
 func (s *State) IPrintLastResponseBody() error {
-	var tmp map[string]interface{}
+	var tmp interface{}
 
 	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return err
 	}
 
-	err = json.Unmarshal(body, &tmp)
+	if format.IsYAML(body) {
+		err = yaml.Unmarshal(body, &tmp)
 
-	if err != nil {
-		s.Debugger.Print(string(body))
+		if err != nil {
+			s.Debugger.Print(string(body))
+			return nil
+		}
+
+		indentedRespBody, err := yaml.Marshal(tmp)
+		if err != nil {
+			s.Debugger.Print(string(body))
+			return nil
+		}
+
+		s.Debugger.Print(string(indentedRespBody))
 		return nil
 	}
 
-	indentedRespBody, err := json.MarshalIndent(tmp, "", "\t")
+	if format.IsJSON(body) {
+		err = json.Unmarshal(body, &tmp)
 
-	if err != nil {
-		s.Debugger.Print(string(body))
+		if err != nil {
+			s.Debugger.Print(string(body))
+			return nil
+		}
+
+		indentedRespBody, err := json.MarshalIndent(tmp, "", "\t")
+		if err != nil {
+			s.Debugger.Print(string(body))
+			return nil
+		}
+
+		s.Debugger.Print(string(indentedRespBody))
 		return nil
 	}
 
-	s.Debugger.Print(string(indentedRespBody))
+	s.Debugger.Print(string(body))
+
 	return nil
 }
 
@@ -997,19 +1133,28 @@ func (s *State) GetLastResponseBody() ([]byte, error) {
 	return bodyBytes, nil
 }
 
-// iValidateJSONNodeWithSchemaGeneral validates last response body JSON node against jsonSchema as provided in reference
-func (s *State) iValidateJSONNodeWithSchemaGeneral(expr, reference string, validator validator.SchemaValidator) error {
+// iValidateNodeWithSchemaGeneral validates last response body node against schema as provided in reference.
+func (s *State) iValidateNodeWithSchemaGeneral(dataFormat format.DataFormat, expr, reference string, validator validator.SchemaValidator) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrGdutils, err)
 	}
 
-	node, err := s.JSONPathResolver.Resolve(expr, body)
+	var node interface{}
+	switch dataFormat {
+	case format.JSON:
+		node, err = s.PathFinders.JSON.Find(expr, body)
+	case format.YAML:
+		node, err = s.PathFinders.YAML.Find(expr, body)
+	default:
+		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+	}
+
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrGdutils, err)
 	}
 
-	jsonNode, err := json.Marshal(node)
+	jsonNode, err := s.Formatters.JSON.Serialize(node)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrGdutils, err)
 	}

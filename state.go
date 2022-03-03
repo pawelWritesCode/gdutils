@@ -5,11 +5,11 @@ import (
 	"net/http"
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
-	"github.com/pawelWritesCode/gdutils/pkg/dataformat"
 	"github.com/pawelWritesCode/gdutils/pkg/debugger"
 	"github.com/pawelWritesCode/gdutils/pkg/formatter"
 	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
-	"github.com/pawelWritesCode/gdutils/pkg/jsonpath"
+	"github.com/pawelWritesCode/gdutils/pkg/pathfinder"
+	"github.com/pawelWritesCode/gdutils/pkg/schema"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
@@ -28,23 +28,42 @@ type State struct {
 	// TemplateEngine is entity that has ability to work with template values.
 	TemplateEngine template.Engine
 
-	// JSONSchemaValidators holds validators available to validate JSON Schemas
-	JSONSchemaValidators JSONSchemaValidators
+	// SchemaValidators holds validators available to validate JSON Schemas
+	SchemaValidators SchemaValidators
 
-	// JSONPathResolver is entity that has ability to obtain data from JSON
-	JSONPathResolver jsonpath.Resolver
+	// PathFinders are entities that has ability to obtain data from different data formats
+	PathFinders PathFinders
 
-	// Deserializer is entity that has ability to deserialize data in expected format
-	Deserializer formatter.Deserializer
+	// Formatters are entities that has ability to deserialize data from one of available formats
+	Formatters Formatters
 }
 
-// JSONSchemaValidators is container for JSON schema validators
-type JSONSchemaValidators struct {
-	// StringValidator represents entity that has ability to validate document against string of JSON schema
+// Formatters is container for entities that know how to serialize and deserialize data.
+type Formatters struct {
+	// JSON is entity that has ability to serialize and deserialize JSON bytes.
+	JSON formatter.Formatter
+
+	// YAML is entity that has ability to serialize and deserialize YAML bytes.
+	YAML formatter.Formatter
+}
+
+// SchemaValidators is container for JSON schema validators.
+type SchemaValidators struct {
+	// StringValidator represents entity that has ability to validate document against string of containing schema.
 	StringValidator validator.SchemaValidator
-	// ReferenceValidator represents entity that has ability to validate document against JSON schema
-	// provided by reference like URL or relative/full OS path
+
+	// ReferenceValidator represents entity that has ability to validate document against string with reference
+	// to schema, which may be URL or relative/full OS path for example.
 	ReferenceValidator validator.SchemaValidator
+}
+
+// PathFinders is container for different data types pathfinders.
+type PathFinders struct {
+	// JSON is entity that has ability to obtain data from bytes in JSON format
+	JSON pathfinder.PathFinder
+
+	// YAML is entity that has ability to obtain data from bytes in YAML format
+	YAML pathfinder.PathFinder
 }
 
 // NewDefaultState returns *State with default services.
@@ -55,28 +74,35 @@ func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}
 
-	jsonSchemaValidators := JSONSchemaValidators{
-		StringValidator:    dataformat.NewJSONSchemaRawValidator(),
-		ReferenceValidator: dataformat.NewDefaultJSONSchemaReferenceValidator(jsonSchemaDir),
+	jsonSchemaValidators := SchemaValidators{
+		StringValidator:    schema.NewJSONSchemaRawValidator(),
+		ReferenceValidator: schema.NewDefaultJSONSchemaReferenceValidator(jsonSchemaDir),
 	}
 
-	resolver := jsonpath.NewDynamicJSONPathResolver(jsonpath.NewQJSONResolver(), jsonpath.NewOliveagleJSONpath())
-	deserializer := formatter.NewAwareFormatter(formatter.NewJSONFormatter(), formatter.NewYAMLFormatter())
+	pathResolvers := PathFinders{
+		JSON: pathfinder.NewDynamicJSONPathFinder(pathfinder.NewQJSONFinder(), pathfinder.NewOliveagleJSONFinder()),
+		YAML: pathfinder.NewGoccyGoYamlFinder(),
+	}
 
-	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidators, resolver, deserializer, isDebug)
+	deserializers := Formatters{
+		JSON: formatter.NewJSONFormatter(),
+		YAML: formatter.NewYAMLFormatter(),
+	}
+
+	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidators, pathResolvers, deserializers, isDebug)
 }
 
 // NewState returns *State
-func NewState(cli *http.Client, c cache.Cache, jv JSONSchemaValidators, r jsonpath.Resolver, d formatter.Deserializer, isDebug bool) *State {
+func NewState(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, d Formatters, isDebug bool) *State {
 	defaultDebugger := debugger.New(isDebug)
 	return &State{
-		Debugger:             defaultDebugger,
-		Cache:                c,
-		RequestDoer:          cli,
-		TemplateEngine:       template.New(),
-		JSONSchemaValidators: jv,
-		JSONPathResolver:     r,
-		Deserializer:         d,
+		Debugger:         defaultDebugger,
+		Cache:            c,
+		RequestDoer:      cli,
+		TemplateEngine:   template.New(),
+		SchemaValidators: jv,
+		PathFinders:      p,
+		Formatters:       d,
 	}
 }
 
@@ -106,17 +132,32 @@ func (s *State) SetTemplateEngine(t template.Engine) {
 	s.TemplateEngine = t
 }
 
-// SetJSONSchemaValidators sets new JSONSchemaValidators for State
-func (s *State) SetJSONSchemaValidators(j JSONSchemaValidators) {
-	s.JSONSchemaValidators = j
+// SetSchemaStringValidator sets new schema StringValidator for State.
+func (s *State) SetSchemaStringValidator(j validator.SchemaValidator) {
+	s.SchemaValidators.StringValidator = j
 }
 
-// SetJSONPathResolver sets new JSON path resolver for State
-func (s *State) SetJSONPathResolver(j jsonpath.Resolver) {
-	s.JSONPathResolver = j
+// SetSchemaReferenceValidator sets new schema ReferenceValidator for State.
+func (s *State) SetSchemaReferenceValidator(j validator.SchemaValidator) {
+	s.SchemaValidators.ReferenceValidator = j
 }
 
-// SetDeserializer sets new deserializer for State
-func (s *State) SetDeserializer(d formatter.Deserializer) {
-	s.Deserializer = d
+// SetJSONPathFinder sets new JSON pathfinder for State
+func (s *State) SetJSONPathFinder(r pathfinder.PathFinder) {
+	s.PathFinders.JSON = r
+}
+
+// SetYAMLPathFinder sets new YAML pathfinder for State
+func (s *State) SetYAMLPathFinder(r pathfinder.PathFinder) {
+	s.PathFinders.YAML = r
+}
+
+// SetJSONFormatter sets new JSON formatter for State
+func (s *State) SetJSONFormatter(jf formatter.Formatter) {
+	s.Formatters.JSON = jf
+}
+
+// SetYAMLFormatter sets new YAML formatter for State
+func (s *State) SetYAMLFormatter(yd formatter.Formatter) {
+	s.Formatters.YAML = yd
 }
