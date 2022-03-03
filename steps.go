@@ -42,11 +42,10 @@ type BodyHeaders struct {
 
 	Argument "method" indices HTTP request method for example: "POST", "GET" etc.
  	Argument "urlTemplate" should be full valid URL. May include template values.
-	Argument "df" should point at used data format.
 	Argument "bodyTemplate" should contain data (may include template values)
-	in passed as previous argument "dataFormat" format with keys "body" and "headers".
+	in JSON or YAML format with keys "body" and "headers".
 */
-func (s *State) ISendRequestToWithFormatBodyAndHeaders(method, urlTemplate string, dataFormat format.DataFormat, bodyTemplate string) error {
+func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate string) error {
 	input, err := s.TemplateEngine.Replace(bodyTemplate, s.Cache.All())
 	if err != nil {
 		return err
@@ -58,6 +57,15 @@ func (s *State) ISendRequestToWithFormatBodyAndHeaders(method, urlTemplate strin
 	}
 
 	var bodyAndHeaders BodyHeaders
+	var dataFormat format.DataFormat
+	if format.IsJSON([]byte(input)) {
+		dataFormat = format.JSON
+	} else if format.IsYAML([]byte(input)) {
+		dataFormat = format.YAML
+	} else {
+		return fmt.Errorf("%w: data is passed in unknown format", ErrGdutils)
+	}
+
 	switch dataFormat {
 	case format.JSON:
 		err = s.Formatters.JSON.Deserialize([]byte(input), &bodyAndHeaders)

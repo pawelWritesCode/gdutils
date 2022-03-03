@@ -22,7 +22,7 @@ https://github.com/pawelWritesCode/godog-example-setup
 | | |
 |  **Sending HTTP(s) requests:**                                                                                  |
 | | |
-| ISendRequestToWithFormatBodyAndHeaders |  Sends HTTP(s) request with provided body and headers. |
+| ISendRequestToWithBodyAndHeaders |  Sends HTTP(s) request with provided body and headers. |
 | IPrepareNewRequestToAndSaveItAs  |  Prepare HTTP(s) request |
 | ISetFollowingHeadersForPreparedRequest  |  Sets provided headers for previously prepared request |
 | ISetFollowingCookiesForPreparedRequest  |  Sets provided cookies for previously prepared request |

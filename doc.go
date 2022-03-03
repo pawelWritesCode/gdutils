@@ -37,7 +37,7 @@
 //
 // * Sending HTTP(s) requests:
 //
-//	func (s *State) ISendRequestToWithFormatBodyAndHeaders(method, urlTemplate string, dataFormat format.DataFormat, bodyTemplate string) error
+//	func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate string) error
 //
 // or
 //
