@@ -43,6 +43,7 @@
 //
 //	func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error
 //	func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersTemplate string) error
+//	func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate string) error
 //	func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate string) error
 //	func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate string) error
 //	func (s *State) ISendRequest(cacheKey string) error

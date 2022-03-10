@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/rand"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -21,6 +25,7 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/format"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
+	"github.com/pawelWritesCode/gdutils/pkg/osutils"
 	"github.com/pawelWritesCode/gdutils/pkg/reflectutils"
 	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
 	"github.com/pawelWritesCode/gdutils/pkg/timeutils"
@@ -197,8 +202,8 @@ func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey, bodyTemplate strin
 	return nil
 }
 
-// ISetFollowingCookiesForPreparedRequest sets cookies for previously prepared request
-// cookies template should be YAML or JSON deserializable on []http.Cookie.
+// ISetFollowingCookiesForPreparedRequest sets cookies for previously prepared request.
+// cookiesTemplate should be YAML or JSON deserializable on []http.Cookie.
 func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate string) error {
 	var cookies []http.Cookie
 
@@ -228,6 +233,86 @@ func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate
 	for _, cookie := range cookies {
 		req.AddCookie(&cookie)
 	}
+
+	s.Cache.Save(cacheKey, req)
+
+	return nil
+}
+
+/*
+	ISetFollowingFormForPreparedRequest sets form for previously prepared request.
+	Internally method sets proper Content-Type: multipart/form-data header.
+	formTemplate should be YAML or JSON deserializable on map[string]string.
+*/
+func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate string) error {
+	form, err := s.TemplateEngine.Replace(formTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	req, err := s.GetPreparedRequest(cacheKey)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	var formKeyVal map[string]string
+	formBytes := []byte(form)
+	if format.IsJSON(formBytes) {
+		err = s.Formatters.JSON.Deserialize(formBytes, &formKeyVal)
+	} else if format.IsYAML(formBytes) {
+		err = s.Formatters.YAML.Deserialize(formBytes, &formKeyVal)
+	} else {
+		err = fmt.Errorf("provided formTemplate has unknown data format, available formats: %s, %s",
+			format.JSON, format.YAML)
+	}
+
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	for key, value := range formKeyVal {
+		reference, foundReference := s.fileRecognizer.Recognize(value)
+		if foundReference {
+			if reference.Reference.Type == osutils.ReferenceTypeOSPath {
+				file, err := os.Open(reference.Reference.Value)
+				if err != nil {
+					return fmt.Errorf("%w, err: could not open file with reference %s", ErrGdutils, reference.Reference.Value)
+				}
+
+				part, err := writer.CreateFormFile(key, filepath.Base(file.Name()))
+				if err != nil {
+					return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
+				}
+
+				_, err = io.Copy(part, file)
+				if err != nil {
+					return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
+				}
+			}
+
+			continue
+		}
+
+		fw, err := writer.CreateFormField(key)
+		if err != nil {
+			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		}
+
+		_, err = io.Copy(fw, strings.NewReader(value))
+		if err != nil {
+			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		}
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Body = ioutil.NopCloser(bytes.NewReader(body.Bytes()))
 
 	s.Cache.Save(cacheKey, req)
 
@@ -902,12 +987,21 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) e
 	return fmt.Errorf("%w: %s header exists but, expected value: %s, is not equal to actual: %s", ErrHTTPReqRes, name, value, header)
 }
 
-// IValidateLastResponseBodyWithSchemaReference validates last response body against schema as provided in reference.
-// reference may be: URL or full/relative path
-func (s *State) IValidateLastResponseBodyWithSchemaReference(reference string) error {
+// IValidateLastResponseBodyWithSchemaReference validates last response body against schema as provided in referenceTemplate.
+// referenceTemplate may be: URL or full/relative path
+func (s *State) IValidateLastResponseBodyWithSchemaReference(referenceTemplate string) error {
+	reference, err := s.TemplateEngine.Replace(referenceTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
 	body, err := s.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrGdutils, err)
+	}
+
+	if s.Debugger.IsOn() {
+		s.Debugger.Print(fmt.Sprintf("'%s' was replaced as: '%s'\n", referenceTemplate, reference))
 	}
 
 	return s.SchemaValidators.ReferenceValidator.Validate(string(body), reference)
@@ -928,8 +1022,17 @@ func (s *State) IValidateNodeWithSchemaString(dataFormat format.DataFormat, expr
 	return s.iValidateNodeWithSchemaGeneral(dataFormat, expr, schema, s.SchemaValidators.StringValidator)
 }
 
-// IValidateNodeWithSchemaReference validates last response body node against schema as provided in reference
-func (s *State) IValidateNodeWithSchemaReference(dataFormat format.DataFormat, expr, reference string) error {
+// IValidateNodeWithSchemaReference validates last response body node against schema as provided in referenceTemplate
+func (s *State) IValidateNodeWithSchemaReference(dataFormat format.DataFormat, expr, referenceTemplate string) error {
+	reference, err := s.TemplateEngine.Replace(referenceTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+	}
+
+	if s.Debugger.IsOn() {
+		s.Debugger.Print(fmt.Sprintf("'%s' was replaced as: '%s'\n", referenceTemplate, reference))
+	}
+
 	return s.iValidateNodeWithSchemaGeneral(dataFormat, expr, reference, s.SchemaValidators.ReferenceValidator)
 }
 
