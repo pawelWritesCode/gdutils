@@ -3,6 +3,7 @@ package gdutils
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -67,6 +68,8 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 		dataFormat = format.JSON
 	} else if format.IsYAML([]byte(input)) {
 		dataFormat = format.YAML
+	} else if format.IsXML([]byte(input)) {
+		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
 	} else {
 		return fmt.Errorf("%w: data is passed in unknown format", ErrGdutils)
 	}
@@ -165,6 +168,8 @@ func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate
 		if err = s.Formatters.YAML.Deserialize(headersBytes, &headersMap); err != nil {
 			return fmt.Errorf("%w: could not parse provided headers: \n\n%s\n\nerr: %s", ErrGdutils, headers, err.Error())
 		}
+	} else if format.IsXML(headersBytes) {
+		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
 	} else {
 		return fmt.Errorf("%w: unknown data format", ErrGdutils)
 	}
@@ -226,6 +231,8 @@ func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate
 		if err = s.Formatters.YAML.Deserialize(userCookiesBytes, &cookies); err != nil {
 			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
 		}
+	} else if format.IsXML(userCookiesBytes) {
+		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
 	} else {
 		return fmt.Errorf("%w: unknown data format", ErrGdutils)
 	}
@@ -261,6 +268,8 @@ func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate strin
 		err = s.Formatters.JSON.Deserialize(formBytes, &formKeyVal)
 	} else if format.IsYAML(formBytes) {
 		err = s.Formatters.YAML.Deserialize(formBytes, &formKeyVal)
+	} else if format.IsXML(formBytes) {
+		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
 	} else {
 		err = fmt.Errorf("provided formTemplate has unknown data format, available formats: %s, %s",
 			format.JSON, format.YAML)
@@ -386,63 +395,24 @@ func (s *State) TheResponseBodyShouldHaveFormat(dataFormat format.DataFormat) er
 		}
 
 		return fmt.Errorf("%w: response body is not %s", ErrGdutils, format.YAML)
-	//This case checks whether last response body is not any of known types - then it assumes it is plain text
-	case format.PlainText:
-		if !(format.IsJSON(body) || format.IsYAML(body)) {
+	case format.XML:
+		isXml := format.IsXML(body)
+		if isXml {
 			return nil
 		}
 
-		return fmt.Errorf("%w: response body is one of: %s or %s", ErrGdutils, format.JSON, format.YAML)
-	default:
-		return fmt.Errorf("%w: unknown last response body data type, available values: %s, %s, %s",
-			ErrHTTPReqRes, format.JSON, format.YAML, format.PlainText)
-	}
-}
-
-// ISaveAs saves into cache arbitrary passed value.
-func (s *State) ISaveAs(value, cacheKey string) error {
-	if len(value) == 0 {
-		return fmt.Errorf("%w: pass any value", ErrGdutils)
-	}
-
-	if len(cacheKey) == 0 {
-		return fmt.Errorf("%w: cacheKey should be not empty value", ErrGdutils)
-	}
-
-	s.Cache.Save(cacheKey, value)
-
-	return nil
-}
-
-// ISaveFromTheLastResponseNodeAs saves from last response body node under given cacheKey key.
-// expr should be valid according to injected PathResolver of given data type
-func (s *State) ISaveFromTheLastResponseNodeAs(dataFormat format.DataFormat, expr, cacheKey string) error {
-	body, err := s.GetLastResponseBody()
-	if err != nil {
-		return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
-	}
-
-	var iVal interface{}
-	switch dataFormat {
-	case format.JSON:
-		iVal, err = s.PathFinders.JSON.Find(expr, body)
-	case format.YAML:
-		iVal, err = s.PathFinders.YAML.Find(expr, body)
-	default:
-		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
-	}
-
-	if err != nil {
-		if s.Debugger.IsOn() {
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
+		return fmt.Errorf("%w: response body is not %s", ErrGdutils, format.XML)
+	//This case checks whether last response body is not any of known types - then it assumes it is plain text
+	case format.PlainText:
+		if !(format.IsJSON(body) || format.IsYAML(body) || format.IsXML(body)) {
+			return nil
 		}
 
-		return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("%w: response body is one of: %s, %s or %s", ErrGdutils, format.JSON, format.YAML, format.XML)
+	default:
+		return fmt.Errorf("%w: unknown last response body data type, available values: %s, %s, %s, %s",
+			ErrHTTPReqRes, format.JSON, format.YAML, format.XML, format.PlainText)
 	}
-
-	s.Cache.Save(cacheKey, iVal)
-
-	return nil
 }
 
 // IGenerateARandomIntInTheRangeToAndSaveItAs generates random integer from provided range
@@ -570,6 +540,8 @@ func (s *State) TheResponseShouldHaveNode(dataFormat format.DataFormat, expr str
 		_, err = s.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
 		_, err = s.PathFinders.YAML.Find(expr, body)
+	case format.XML:
+		_, err = s.PathFinders.XML.Find(expr, body)
 	default:
 		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
 	}
@@ -600,6 +572,8 @@ func (s *State) TheNodeShouldNotBe(dataFormat format.DataFormat, expr string, go
 		iNodeVal, err = s.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
 		iNodeVal, err = s.PathFinders.YAML.Find(expr, body)
+	case format.XML:
+		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
 	default:
 		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
 	}
@@ -698,6 +672,8 @@ func (s *State) TheResponseShouldHaveNodes(dataFormat format.DataFormat, express
 			_, err = s.PathFinders.JSON.Find(trimmedKey, body)
 		case format.YAML:
 			_, err = s.PathFinders.YAML.Find(trimmedKey, body)
+		case format.XML:
+			_, err = s.PathFinders.XML.Find(trimmedKey, body)
 		default:
 			return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
 		}
@@ -737,6 +713,8 @@ func (s *State) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, expr 
 		iValue, err = s.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
 		iValue, err = s.PathFinders.YAML.Find(expr, body)
+	case format.XML:
+		iValue, err = s.PathFinders.XML.Find(expr, body)
 	default:
 		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
 	}
@@ -795,6 +773,8 @@ func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, expr, dataT
 		iValue, err = s.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
 		iValue, err = s.PathFinders.YAML.Find(expr, body)
+	case format.XML:
+		iValue, err = s.PathFinders.XML.Find(expr, body)
 	default:
 		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
 	}
@@ -814,6 +794,21 @@ func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, expr, dataT
 			return fmt.Errorf("%w: node %s string value: %s is not equal to expected string value: %s", ErrGdutils, expr, strVal, nodeValueReplaced)
 		}
 	case "int":
+		intNodeValue, err := strconv.Atoi(nodeValueReplaced)
+		if err != nil {
+			return fmt.Errorf("%w: replaced node %s value %s could not be converted to int", ErrGdutils, expr, nodeValueReplaced)
+		}
+
+		if strVal, ok := iValue.(string); ok {
+			if intVal, errAtoi := strconv.Atoi(strVal); errAtoi == nil {
+				if intVal != intNodeValue {
+					return fmt.Errorf("%w: node %s int value: %d is not equal to expected int value: %d", ErrGdutils, expr, intVal, intNodeValue)
+				}
+
+				return nil
+			}
+		}
+
 		floatVal, ok := iValue.(float64)
 		if !ok {
 			uint64Val, ok := iValue.(uint64)
@@ -825,24 +820,28 @@ func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, expr, dataT
 		}
 
 		intVal := int(floatVal)
-		intNodeValue, err := strconv.Atoi(nodeValueReplaced)
-
-		if err != nil {
-			return fmt.Errorf("%w: replaced node %s value %s could not be converted to int", ErrGdutils, expr, nodeValueReplaced)
-		}
-
 		if intVal != intNodeValue {
 			return fmt.Errorf("%w: node %s int value: %d is not equal to expected int value: %d", ErrGdutils, expr, intVal, intNodeValue)
 		}
 	case "float":
-		floatVal, ok := iValue.(float64)
-		if !ok {
-			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
-		}
-
 		floatNodeValue, err := strconv.ParseFloat(nodeValueReplaced, 64)
 		if err != nil {
 			return fmt.Errorf("%w: replaced node %s value %s could not be converted to float64", ErrGdutils, expr, nodeValueReplaced)
+		}
+
+		if strVal, ok := iValue.(string); ok {
+			if floatVal, errParseFloat := strconv.ParseFloat(strVal, 64); errParseFloat == nil {
+				if floatVal != floatNodeValue {
+					return fmt.Errorf("%w: node %s float value: %f is not equal to expected int value: %f", ErrGdutils, expr, floatVal, floatNodeValue)
+				}
+
+				return nil
+			}
+		}
+
+		floatVal, ok := iValue.(float64)
+		if !ok {
+			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
 		}
 
 		if floatVal != floatNodeValue {
@@ -893,6 +892,8 @@ func (s *State) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, expr, reg
 		iValue, err = s.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
 		iValue, err = s.PathFinders.YAML.Find(expr, body)
+	case format.XML:
+		iValue, err = s.PathFinders.XML.Find(expr, body)
 	default:
 		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
 	}
@@ -1118,6 +1119,54 @@ func (s *State) TheResponseShouldHaveCookieOfValue(name, valueTemplate string) e
 	return fmt.Errorf("%w: last HTTP(s) response does not have cookie with name '%s' and value: '%s'", ErrHTTPReqRes, name, value)
 }
 
+// ISaveAs saves into cache arbitrary passed value.
+func (s *State) ISaveAs(value, cacheKey string) error {
+	if len(value) == 0 {
+		return fmt.Errorf("%w: pass any value", ErrGdutils)
+	}
+
+	if len(cacheKey) == 0 {
+		return fmt.Errorf("%w: cacheKey should be not empty value", ErrGdutils)
+	}
+
+	s.Cache.Save(cacheKey, value)
+
+	return nil
+}
+
+// ISaveFromTheLastResponseNodeAs saves from last response body node under given cacheKey key.
+// expr should be valid according to injected PathResolver of given data type
+func (s *State) ISaveFromTheLastResponseNodeAs(dataFormat format.DataFormat, expr, cacheKey string) error {
+	body, err := s.GetLastResponseBody()
+	if err != nil {
+		return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
+	}
+
+	var iVal interface{}
+	switch dataFormat {
+	case format.JSON:
+		iVal, err = s.PathFinders.JSON.Find(expr, body)
+	case format.YAML:
+		iVal, err = s.PathFinders.YAML.Find(expr, body)
+	case format.XML:
+		iVal, err = s.PathFinders.XML.Find(expr, body)
+	default:
+		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+	}
+
+	if err != nil {
+		if s.Debugger.IsOn() {
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
+		}
+
+		return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
+	}
+
+	s.Cache.Save(cacheKey, iVal)
+
+	return nil
+}
+
 // IWait waits for given timeInterval amount of time
 func (s *State) IWait(timeInterval time.Duration) error {
 	time.Sleep(timeInterval)
@@ -1134,17 +1183,20 @@ func (s *State) IPrintLastResponseBody() error {
 		return err
 	}
 
-	if format.IsYAML(body) {
-		err = yaml.Unmarshal(body, &tmp)
-
+	defer func() {
 		if err != nil {
 			s.Debugger.Print(string(body))
+		}
+	}()
+
+	if format.IsYAML(body) {
+		err = s.Formatters.YAML.Deserialize(body, &tmp)
+		if err != nil {
 			return nil
 		}
 
 		indentedRespBody, err := yaml.Marshal(tmp)
 		if err != nil {
-			s.Debugger.Print(string(body))
 			return nil
 		}
 
@@ -1153,16 +1205,13 @@ func (s *State) IPrintLastResponseBody() error {
 	}
 
 	if format.IsJSON(body) {
-		err = json.Unmarshal(body, &tmp)
-
+		err = s.Formatters.JSON.Deserialize(body, &tmp)
 		if err != nil {
-			s.Debugger.Print(string(body))
 			return nil
 		}
 
 		indentedRespBody, err := json.MarshalIndent(tmp, "", "\t")
 		if err != nil {
-			s.Debugger.Print(string(body))
 			return nil
 		}
 
@@ -1170,8 +1219,21 @@ func (s *State) IPrintLastResponseBody() error {
 		return nil
 	}
 
-	s.Debugger.Print(string(body))
+	if format.IsXML(body) {
+		err = s.Formatters.XML.Deserialize(body, &tmp)
+		if err != nil {
+			return nil
+		}
 
+		indentedRespBody, err := xml.MarshalIndent(tmp, "", "\t")
+		if err != nil {
+			return nil
+		}
+
+		s.Debugger.Print(string(indentedRespBody))
+	}
+
+	s.Debugger.Print(string(body))
 	return nil
 }
 
@@ -1257,6 +1319,8 @@ func (s *State) iValidateNodeWithSchemaGeneral(dataFormat format.DataFormat, exp
 		node, err = s.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
 		node, err = s.PathFinders.YAML.Find(expr, body)
+	case format.XML:
+		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
 	default:
 		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
 	}

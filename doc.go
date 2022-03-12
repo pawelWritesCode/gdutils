@@ -17,8 +17,10 @@
 //	func (s *State) SetSchemaReferenceValidator(j validator.SchemaValidator)
 //	func (s *State) SetJSONPathFinder(r pathfinder.PathFinder)
 //	func (s *State) SetJSONFormatter(jf formatter.Formatter)
+//	func (s *State) SetXMLPathFinder(r pathfinder.PathFinder)
 //	func (s *State) SetYAMLPathFinder(r pathfinder.PathFinder)
 //	func (s *State) SetYAMLFormatter(yd formatter.Formatter)
+//	func (s *State) SetXMLFormatter(xf formatter.Formatter)
 //
 // Those services will be used in utility methods.
 // For example, if you want to use your own debugger, create your own struct, implement debugger.Debugger interface on it,

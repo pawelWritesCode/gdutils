@@ -51,3 +51,38 @@ name: "abc"`)}, want: true},
 		})
 	}
 }
+
+func TestIsXML(t *testing.T) {
+	type args struct {
+		bytes []byte
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "json", args: args{bytes: []byte(`{"name": "abc"}`)}, want: false},
+		{name: "plain text", args: args{bytes: []byte(`abcd efgh`)}, want: false},
+		{name: "xml", args: args{bytes: []byte(`<?xml version="1.0"?>
+<catalog>
+   <book id="bk101">
+      <author>Gambardella, Matthew</author>
+      <title>XML Developer's Guide</title>
+      <genre>Computer</genre>
+      <price>44.95</price>
+      <publish_date>2000-10-01</publish_date>
+      <description>An in-depth look at creating applications 
+      with XML.</description>
+   </book>
+</catalog>`)}, want: true},
+		{name: "yaml", args: args{bytes: []byte(`---
+name: "abc"`)}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsXML(tt.args.bytes); got != tt.want {
+				t.Errorf("IsXML() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

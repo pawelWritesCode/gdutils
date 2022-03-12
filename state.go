@@ -49,6 +49,9 @@ type Formatters struct {
 
 	// YAML is entity that has ability to serialize and deserialize YAML bytes.
 	YAML formatter.Formatter
+
+	// XML is entity that has ability to serialize and deserialize XML bytes.
+	XML formatter.Formatter
 }
 
 // SchemaValidators is container for JSON schema validators.
@@ -68,6 +71,9 @@ type PathFinders struct {
 
 	// YAML is entity that has ability to obtain data from bytes in YAML format.
 	YAML pathfinder.PathFinder
+
+	// XML is entity that has ability to obtain data from bytes in XML format.
+	XML pathfinder.PathFinder
 }
 
 // NewDefaultState returns *State with default services.
@@ -83,21 +89,23 @@ func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 		ReferenceValidator: schema.NewDefaultJSONSchemaReferenceValidator(jsonSchemaDir),
 	}
 
-	pathResolvers := PathFinders{
+	pathFinders := PathFinders{
 		JSON: pathfinder.NewDynamicJSONPathFinder(pathfinder.NewQJSONFinder(), pathfinder.NewOliveagleJSONFinder()),
 		YAML: pathfinder.NewGoccyGoYamlFinder(),
+		XML:  pathfinder.NewAntchfxXMLFinder(),
 	}
 
-	deserializers := Formatters{
+	formatters := Formatters{
 		JSON: formatter.NewJSONFormatter(),
 		YAML: formatter.NewYAMLFormatter(),
+		XML:  formatter.NewXMLFormatter(),
 	}
 
-	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidators, pathResolvers, deserializers, isDebug)
+	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidators, pathFinders, formatters, isDebug)
 }
 
 // NewState returns *State
-func NewState(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, d Formatters, isDebug bool) *State {
+func NewState(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, f Formatters, isDebug bool) *State {
 	fileRecognizer := osutils.NewOSFileRecognizer("file://", osutils.NewFileValidator())
 	defaultDebugger := debugger.New(isDebug)
 	return &State{
@@ -107,7 +115,7 @@ func NewState(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinder
 		TemplateEngine:   template.New(),
 		SchemaValidators: jv,
 		PathFinders:      p,
-		Formatters:       d,
+		Formatters:       f,
 		fileRecognizer:   fileRecognizer,
 	}
 }
@@ -158,6 +166,11 @@ func (s *State) SetYAMLPathFinder(r pathfinder.PathFinder) {
 	s.PathFinders.YAML = r
 }
 
+// SetXMLPathFinder sets new XML pathfinder for State.
+func (s *State) SetXMLPathFinder(r pathfinder.PathFinder) {
+	s.PathFinders.XML = r
+}
+
 // SetJSONFormatter sets new JSON formatter for State.
 func (s *State) SetJSONFormatter(jf formatter.Formatter) {
 	s.Formatters.JSON = jf
@@ -166,4 +179,9 @@ func (s *State) SetJSONFormatter(jf formatter.Formatter) {
 // SetYAMLFormatter sets new YAML formatter for State.
 func (s *State) SetYAMLFormatter(yd formatter.Formatter) {
 	s.Formatters.YAML = yd
+}
+
+// SetXMLFormatter sets new XML formatter for State.
+func (s *State) SetXMLFormatter(xf formatter.Formatter) {
+	s.Formatters.XML = xf
 }

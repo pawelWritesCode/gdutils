@@ -1,8 +1,8 @@
-[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-52.1%25-brightgreen)
+[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-61.1%25-brightgreen)
 
 # GDUTILS
 
-## Simple library with methods useful for e2e testing of HTTP(s) API.
+## Simple library with methods useful for e2e testing of HTTP(s) API using JSON/YAML/XML.
 
 Library is suitable for steps in godog framework.
 
