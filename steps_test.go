@@ -308,6 +308,43 @@ name: "ivo"
 			dataType:  "bool",
 			dataValue: "true",
 		}, wantErr: false},
+
+		{name: "XML node string", fields: fields{lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
+<root>
+	<name>aa</name>
+</root>`))}}, args: args{
+			df:        format.XML,
+			expr:      "//name",
+			dataType:  "string",
+			dataValue: "aa",
+		}, wantErr: false},
+		{name: "XML node bool", fields: fields{lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
+<root>
+	<isLow>true</isLow>
+</root>`))}}, args: args{
+			df:        format.XML,
+			expr:      "//isLow",
+			dataType:  "bool",
+			dataValue: "true",
+		}, wantErr: false},
+		{name: "XML node int", fields: fields{lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
+<root>
+	<height>10</height>
+</root>`))}}, args: args{
+			df:        format.XML,
+			expr:      "//height",
+			dataType:  "int",
+			dataValue: "10",
+		}, wantErr: false},
+		{name: "XML node float", fields: fields{lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
+<root>
+	<height>10.02</height>
+</root>`))}}, args: args{
+			df:        format.XML,
+			expr:      "//height",
+			dataType:  "float",
+			dataValue: "10.02",
+		}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -661,6 +698,9 @@ users:
 	- huey
 	- dewey`))},
 		}, args: args{node: "$.users", goType: "xxx"}, wantErr: true},
+		{name: "format XML is not supported", fields: fields{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(``))},
+		}, args: args{df: format.XML, node: "$.users", goType: "xxx"}, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -941,6 +981,9 @@ users:
 	- huey
 	- dewey`))},
 		}, args: args{node: "$.users", goType: "xxx"}, wantErr: true},
+		{name: "format XML is not supported", fields: fields{
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(``))},
+		}, args: args{df: format.XML, node: "$.users", goType: "xxx"}, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1075,6 +1118,40 @@ user:
    last_name: b
 `))},
 		}, args: args{df: format.YAML, node: "$.user", variableName: "USER"}, wantErr: false},
+
+		//XML
+		{name: "invalid node #1", fields: fields{
+			cache: cache.NewConcurrentCache(),
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
+<user>
+	<name>abc</name>
+	<lastName>xxx</lastName>
+</user>`))},
+		}, args: args{df: format.XML, node: "//token", variableName: "TOKEN"}, wantErr: true},
+		{name: "invalid node #2", fields: fields{
+			cache: cache.NewConcurrentCache(),
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
+<user>
+	<name>abc</name>
+	<lastName>xxx</lastName>
+</user>`))},
+		}, args: args{df: format.XML, node: "//lastname", variableName: "LAST_NAME"}, wantErr: true},
+		{name: "valid node #1", fields: fields{
+			cache: cache.NewConcurrentCache(),
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
+<user>
+	<name>abc</name>
+	<lastName>xxx</lastName>
+</user>`))},
+		}, args: args{df: format.XML, node: "//lastName", variableName: "LAST_NAME"}, wantErr: false},
+		{name: "valid node #2", fields: fields{
+			cache: cache.NewConcurrentCache(),
+			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
+<user>
+	<name>abc</name>
+	<lastName>xxx</lastName>
+</user>`))},
+		}, args: args{df: format.XML, node: "//user[1]//name", variableName: "USER"}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1305,6 +1382,12 @@ func TestState_ISetFollowingHeadersForPreparedRequest(t *testing.T) {
 			name:    "cache key does not point at request",
 			fields:  fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
 			args:    args{cacheKey: "xxx", headersTemplate: `{"Content-Type": "application/json"}`},
+			wantErr: true,
+		},
+		{
+			name:    "unsupported XML format",
+			fields:  fields{IsDebug: false, reqMethod: "GET", reqUri: "/", cacheKey: "abc"},
+			args:    args{cacheKey: "abc", headersTemplate: `<data>abc</data>`},
 			wantErr: true,
 		},
 		{
@@ -1825,6 +1908,16 @@ func TestState_ISetFollowingCookiesForPreparedRequest(t *testing.T) {
 			cacheKey:        "a",
 			cookiesTemplate: "",
 		}, wantErr: true},
+		{name: "unsupported XML format", fields: fields{mockFunc: func() {
+			mTemplateEngine.On("Replace", "b", mock.Anything).
+				Return("<data>xml</data>", nil).Once()
+
+			mTemplateEngine.On("Replace", "https://www.example.com", mock.Anything).
+				Return("https://www.example.com", nil).Once()
+		}}, args: args{
+			cacheKey:        "a",
+			cookiesTemplate: "b",
+		}, wantErr: true},
 		{name: "deserializer returns error", fields: fields{mockFunc: func() {
 			mTemplateEngine.On("Replace", "", mock.Anything).
 				Return("", nil).Once()
@@ -2247,6 +2340,28 @@ name: abcdef`,
 			expr:           "$.name",
 			regExpTemplate: "abc.*",
 		}, wantErr: false},
+		{name: "valid XML example #1", fields: fields{
+			respBody: `
+<name>abcdef</name>`,
+			mockFunc: func() {
+
+			},
+		}, args: args{
+			df:             format.XML,
+			expr:           "//name",
+			regExpTemplate: "abc.*",
+		}, wantErr: false},
+		{name: "invalid XML example #1", fields: fields{
+			respBody: `
+<name>abcdef</name>`,
+			mockFunc: func() {
+
+			},
+		}, args: args{
+			df:             format.XML,
+			expr:           "//name",
+			regExpTemplate: "dd.*",
+		}, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2273,6 +2388,399 @@ name: abcdef`,
 
 			if err := s.TheNodeShouldMatchRegExp(tt.args.df, tt.args.expr, tt.args.regExpTemplate); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldMatchRegExp() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_TheResponseBodyShouldHaveFormat(t *testing.T) {
+	yaml := `
+---
+user:
+   name: four
+   last_name: b
+`
+
+	xml := `<this>is xml</this>`
+	plainText := `this is plain text`
+	json := `{"this_is": "json"}`
+	type fields struct {
+		body []byte
+	}
+
+	type args struct {
+		dataFormat format.DataFormat
+	}
+	tests := []struct {
+		name    string
+		args    args
+		fields  fields
+		wantErr bool
+	}{
+		{name: "json #1", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(json)}, wantErr: false},
+		{name: "json #2", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(plainText)}, wantErr: true},
+		{name: "json #3", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(xml)}, wantErr: true},
+		{name: "json #4", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(yaml)}, wantErr: true},
+
+		{name: "yaml #1", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(json)}, wantErr: true},
+		{name: "yaml #2", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(plainText)}, wantErr: true},
+		{name: "yaml #3", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(xml)}, wantErr: true},
+		{name: "yaml #4", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(yaml)}, wantErr: false},
+
+		{name: "XML #1", args: args{dataFormat: format.XML}, fields: fields{body: []byte(json)}, wantErr: true},
+		{name: "XML #2", args: args{dataFormat: format.XML}, fields: fields{body: []byte(plainText)}, wantErr: true},
+		{name: "XML #3", args: args{dataFormat: format.XML}, fields: fields{body: []byte(xml)}, wantErr: false},
+		{name: "XML #4", args: args{dataFormat: format.XML}, fields: fields{body: []byte(yaml)}, wantErr: true},
+
+		{name: "plain text #1", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(json)}, wantErr: true},
+		{name: "plain text #2", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(plainText)}, wantErr: false},
+		{name: "plain text #3", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(xml)}, wantErr: true},
+		{name: "plain text #4", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(yaml)}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, "")
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
+
+			if err := s.TheResponseBodyShouldHaveFormat(tt.args.dataFormat); (err != nil) != tt.wantErr {
+				t.Errorf("TheResponseBodyShouldHaveFormat() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_TheResponseShouldHaveNodes(t *testing.T) {
+	json := `{
+	"users": [
+		{
+			"name": "abc"
+		},
+		{
+			"name": "xxx"
+		}
+	]
+}`
+
+	yaml := `---
+users:
+- name: abc
+- name: xxx
+`
+
+	xml := `<?xml version="1.0"?>
+<users>
+	<user>
+		<name>abc</name>
+	</user>
+	<user>
+		<name>xxx</name>
+	</user>
+</users>`
+
+	type fields struct {
+		body []byte
+	}
+	type args struct {
+		dataFormat  format.DataFormat
+		expressions string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "missing last response body", fields: fields{}, args: args{}, wantErr: true},
+		{name: "missing json field", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "age",
+		}, wantErr: true},
+		{name: "one proper field", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "users",
+		}, wantErr: false},
+		{name: "the same field different library", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "users, $.users",
+		}, wantErr: false},
+		{name: "two proper fields #1", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "users, users[0]",
+		}, wantErr: false},
+		{name: "two proper fields #2", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "users[0].name, users[1].name",
+		}, wantErr: false},
+
+		{name: "missing XML field", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "age",
+		}, wantErr: true},
+		{name: "one proper field", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//users",
+		}, wantErr: false},
+		{name: "the same field", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//users, //users",
+		}, wantErr: false},
+		{name: "two proper fields #1", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//users, //users//user[1]",
+		}, wantErr: false},
+		{name: "two proper fields #2", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//user[1]//name, //user[2]//name",
+		}, wantErr: false},
+
+		{name: "missing yaml field", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.age",
+		}, wantErr: true},
+		{name: "one proper field", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.users",
+		}, wantErr: false},
+		{name: "the same field", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.users, $.users",
+		}, wantErr: false},
+		{name: "two proper fields #1", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.users, $.users[0]",
+		}, wantErr: false},
+		{name: "two proper fields #2", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.users[0].name, $.users[1].name",
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, "")
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
+
+			if err := s.TheResponseShouldHaveNodes(tt.args.dataFormat, tt.args.expressions); (err != nil) != tt.wantErr {
+				t.Errorf("TheResponseShouldHaveNodes() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_TheResponseShouldHaveNode(t *testing.T) {
+	json := `{
+	"users": [
+		{
+			"name": "abc"
+		},
+		{
+			"name": "xxx"
+		}
+	]
+}`
+
+	yaml := `---
+users:
+- name: abc
+- name: xxx
+`
+
+	xml := `<?xml version="1.0"?>
+<users>
+	<user>
+		<name>abc</name>
+	</user>
+	<user>
+		<name>xxx</name>
+	</user>
+</users>`
+
+	type fields struct {
+		body []byte
+	}
+	type args struct {
+		dataFormat  format.DataFormat
+		expressions string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "missing last response body", fields: fields{}, args: args{}, wantErr: true},
+		{name: "missing json field", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "age",
+		}, wantErr: true},
+		{name: "proper field #1", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "users",
+		}, wantErr: false},
+		{name: "proper field #2", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "$.users[0]",
+		}, wantErr: false},
+		{name: "proper field #3", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "users[1].name",
+		}, wantErr: false},
+
+		{name: "missing XML field", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "age",
+		}, wantErr: true},
+		{name: "one proper field #1", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//users",
+		}, wantErr: false},
+		{name: "proper field #2", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//users//user[1]",
+		}, wantErr: false},
+		{name: "proper field #3", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//user[2]//name",
+		}, wantErr: false},
+
+		{name: "missing yaml field", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.age",
+		}, wantErr: true},
+		{name: "one proper field #1", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.users",
+		}, wantErr: false},
+		{name: "one proper field #2", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.users[0].name",
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, "")
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
+
+			if err := s.TheResponseShouldHaveNode(tt.args.dataFormat, tt.args.expressions); (err != nil) != tt.wantErr {
+				t.Errorf("TheResponseShouldHaveNode() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_TheNodeShouldBeSliceOfLength(t *testing.T) {
+	json := `{
+	"count": 2,
+	"data": [
+		{
+			"name": "abc"
+		},
+		{
+			"name": "xxx"
+		}
+	]
+}`
+
+	yaml := `---
+count: 2
+data:
+	- name: abc
+	- name: xxx`
+
+	xml := `<?xml version="1.0"?>
+<root>
+	<count>2</count>
+	<data>
+		<user>
+			<name>abc</name>
+		</user>
+		<user>
+			<name>xxx</name>
+		</user>
+	</data>
+</root>`
+
+	type fields struct {
+		body []byte
+	}
+	type args struct {
+		dataFormat format.DataFormat
+		expr       string
+		length     int
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		//JSON
+		{name: "no body", fields: fields{body: nil}, args: args{}, wantErr: true},
+		{name: "expression does not point at slice", fields: fields{body: []byte(json)}, args: args{
+			dataFormat: format.JSON,
+			expr:       "count",
+			length:     0,
+		}, wantErr: true},
+		{name: "expression does point at slice but expected invalid length", fields: fields{body: []byte(json)}, args: args{
+			dataFormat: format.JSON,
+			expr:       "data",
+			length:     1,
+		}, wantErr: true},
+		{name: "expression does point at slice and expected proper length", fields: fields{body: []byte(json)}, args: args{
+			dataFormat: format.JSON,
+			expr:       "data",
+			length:     2,
+		}, wantErr: false},
+
+		//YAML
+		{name: "expression does not point at slice", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat: format.YAML,
+			expr:       "$.count",
+			length:     0,
+		}, wantErr: true},
+		{name: "expression does point at slice but expected invalid length", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat: format.YAML,
+			expr:       "$.data",
+			length:     1,
+		}, wantErr: true},
+		{name: "expression does point at slice and expected proper length", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat: format.YAML,
+			expr:       "$.data",
+			length:     2,
+		}, wantErr: false},
+
+		//XML
+		{name: "expression does not point at slice", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat: format.XML,
+			expr:       "//count",
+			length:     0,
+		}, wantErr: true},
+		{name: "expression does point at slice but expected invalid length", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat: format.XML,
+			expr:       "//data//name",
+			length:     1,
+		}, wantErr: true},
+		{name: "expression does point at slice and expected proper length #1", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat: format.XML,
+			expr:       "//data//name",
+			length:     2,
+		}, wantErr: false},
+		{name: "expression does point at slice and expected proper length #2", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat: format.XML,
+			expr:       "//user",
+			length:     2,
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultState(false, "")
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
+
+			if err := s.TheNodeShouldBeSliceOfLength(tt.args.dataFormat, tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
+				t.Errorf("TheNodeShouldBeSliceOfLength() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -3,6 +3,7 @@ package formatter
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 
 	"gopkg.in/yaml.v2"
@@ -17,11 +18,14 @@ type Formatter interface {
 	Serialize(v interface{}) ([]byte, error)
 }
 
-// JSONFormatter is entity that has ability to deserialize data in JSON format
+// JSONFormatter is entity that has ability to work with JSON format
 type JSONFormatter struct{}
 
-// YAMLFormatter is entity that has ability to deserialize data in YAML format
+// YAMLFormatter is entity that has ability to work with YAML format
 type YAMLFormatter struct{}
+
+// XMLFormatter is entity that has ability to work with XML format
+type XMLFormatter struct{}
 
 // AwareFormatter is entity that has ability to deserialize data in JSON or YAML format
 type AwareFormatter struct {
@@ -35,6 +39,10 @@ func NewJSONFormatter() JSONFormatter {
 
 func NewYAMLFormatter() YAMLFormatter {
 	return YAMLFormatter{}
+}
+
+func NewXMLFormatter() XMLFormatter {
+	return XMLFormatter{}
 }
 
 func NewAwareFormatter(JSONFormatter JSONFormatter, YAMLFormatter YAMLFormatter) AwareFormatter {
@@ -84,4 +92,22 @@ func (a AwareFormatter) Deserialize(data []byte, v interface{}) error {
 	}
 
 	return errors.New("could not deserialize on any of: json, xml, yaml")
+}
+
+// Deserialize data in format of XML on v.
+func (X XMLFormatter) Deserialize(data []byte, v interface{}) error {
+	if data == nil {
+		return errors.New("data should not be nil")
+	}
+
+	if len(data) == 0 {
+		return errors.New("data should not be empty []byte()")
+	}
+
+	return xml.Unmarshal(data, v)
+}
+
+// Serialize serializes v into XML format.
+func (X XMLFormatter) Serialize(v interface{}) ([]byte, error) {
+	return xml.Marshal(v)
 }

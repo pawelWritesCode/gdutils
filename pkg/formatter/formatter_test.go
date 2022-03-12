@@ -175,3 +175,59 @@ headers:
 		})
 	}
 }
+
+func TestXMLFormatter_Deserialize(t *testing.T) {
+	type args struct {
+		data []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "no data #1", args: args{
+			data: nil,
+		}, wantErr: true},
+		{name: "no data #2", args: args{
+			data: []byte(""),
+		}, wantErr: true},
+		{name: "invalid data", args: args{
+			data: []byte("abc"),
+		}, wantErr: true},
+		{name: "proper data format #1", args: args{
+			data: []byte(`{
+        "body": {
+            "firstName": "{{.RANDOM_FIRST_NAME}}",
+            "lastName": "{{.RANDOM_LAST_NAME}}",
+            "age": 12
+        },
+        "headers": {
+            "Content-Type": "application/json"
+        }
+    }`),
+		}, wantErr: true},
+		{name: "proper data format #2", args: args{
+			data: []byte(`---
+body:
+  firstName: "{{.RANDOM_FIRST_NAME}}"
+  lastName: "{{.RANDOM_LAST_NAME}}"
+  age: 12
+headers:
+  Content-Type: application/json`),
+		}, wantErr: true},
+
+		{name: "XML format data #1", args: args{
+			data: []byte("<body>abc</body>"),
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			X := XMLFormatter{}
+			v := bodyHeaders{}
+
+			if err := X.Deserialize(tt.args.data, &v); (err != nil) != tt.wantErr {
+				t.Errorf("Deserialize() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

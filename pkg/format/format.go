@@ -2,6 +2,7 @@ package format
 
 import (
 	"encoding/json"
+	"encoding/xml"
 
 	"github.com/goccy/go-yaml"
 )
@@ -12,6 +13,9 @@ const (
 
 	// YAML describes Yaml data format.
 	YAML DataFormat = "YAML"
+
+	// XML describes XML data format.
+	XML DataFormat = "XML"
 
 	// PlainText describes plan text data format.
 	PlainText DataFormat = "plain text"
@@ -36,5 +40,12 @@ func IsYAML(bytes []byte) bool {
 
 	var y map[string]interface{}
 	err := yaml.Unmarshal(bytes, &y)
+	return err == nil
+}
+
+// IsXML checks whether bytes are in XML format.
+func IsXML(bytes []byte) bool {
+	var v interface{}
+	err := xml.Unmarshal(bytes, &v)
 	return err == nil
 }

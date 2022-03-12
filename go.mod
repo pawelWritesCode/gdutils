@@ -3,6 +3,7 @@ module github.com/pawelWritesCode/gdutils
 go 1.16
 
 require (
+	github.com/antchfx/xmlquery v1.3.9 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/goccy/go-yaml v1.9.5 // indirect
