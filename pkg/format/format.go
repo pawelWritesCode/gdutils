@@ -38,7 +38,7 @@ func IsYAML(bytes []byte) bool {
 		return false
 	}
 
-	var y map[string]interface{}
+	var y interface{}
 	err := yaml.Unmarshal(bytes, &y)
 	return err == nil
 }

@@ -42,6 +42,11 @@ func TestIsYAML(t *testing.T) {
 </catalog>`)}, want: false},
 		{name: "yaml", args: args{bytes: []byte(`---
 name: "abc"`)}, want: true},
+		{name: "yaml", args: args{bytes: []byte(`- id: 1
+  age: 39
+- id: 2
+  age: 23
+`)}, want: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
