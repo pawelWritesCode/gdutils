@@ -108,6 +108,7 @@ func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 func NewState(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, f Formatters, isDebug bool) *State {
 	fileRecognizer := osutils.NewOSFileRecognizer("file://", osutils.NewFileValidator())
 	defaultDebugger := debugger.New(isDebug)
+
 	return &State{
 		Debugger:         defaultDebugger,
 		Cache:            c,

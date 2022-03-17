@@ -1,7 +1,10 @@
 // Package debugger holds definition of Debugger.
 package debugger
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Debugger represents debugger.
 type Debugger interface {
@@ -53,5 +56,7 @@ func (d *DebuggerService) Reset(isOn bool) {
 
 // Print prints provided info.
 func (d *DebuggerService) Print(info string) {
-	fmt.Printf("%s: %s\n", "debug", info)
+	fmt.Printf(strings.Repeat("-", 20)+" DEBUG + ", strings.Repeat("-", 20)+"\n")
+	fmt.Println(info)
+	fmt.Printf(strings.Repeat("-", 47))
 }

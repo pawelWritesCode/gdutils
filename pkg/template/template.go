@@ -7,8 +7,14 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
+)
 
-	"github.com/pawelWritesCode/gdutils/pkg/cache"
+var (
+	// ErrMissingStorage represents error when storage with data is missing
+	ErrMissingStorage = errors.New("missing storage")
+
+	// ErrMissingStorageValue represents error when storage doesn't have required data in it
+	ErrMissingStorageValue = errors.New("missing storage value")
 )
 
 // Engine is entity that has ability to work with templates.
@@ -28,7 +34,7 @@ func New() TemplateManager {
 // templateValue should exist between two brackets {{ }} preceded with dot, for example: "my name is: {{.NAME}}".
 func (tm TemplateManager) Replace(templateValue string, storage map[string]interface{}) (string, error) {
 	if storage == nil {
-		return "", errors.New("missing values storage for template manager")
+		return "", fmt.Errorf("%w: passed nil storage for TemplateManager, storage should not be nil", ErrMissingStorage)
 	}
 
 	templ := template.Must(template.New("abc").Parse(templateValue))
@@ -41,7 +47,7 @@ func (tm TemplateManager) Replace(templateValue string, storage map[string]inter
 	strVal := buff.String()
 
 	if strings.Contains(strVal, "<no value>") {
-		return "", fmt.Errorf("%w, at least one of provided values is not present in storage", cache.ErrMissingKey)
+		return "", fmt.Errorf("%w: string contains references to template values that are not present in provided storage", ErrMissingStorageValue)
 	}
 
 	return strVal, nil
