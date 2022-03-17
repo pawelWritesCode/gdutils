@@ -54,12 +54,12 @@ type BodyHeaders struct {
 func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate string) error {
 	input, err := s.TemplateEngine.Replace(bodyTemplate, s.Cache.All())
 	if err != nil {
-		return err
+		return fmt.Errorf("template engine has problem with 'headers and body' template, err: %w", err)
 	}
 
 	url, err := s.TemplateEngine.Replace(urlTemplate, s.Cache.All())
 	if err != nil {
-		return err
+		return fmt.Errorf("template engine has problem with 'url' template, err: %w", err)
 	}
 
 	var bodyAndHeaders BodyHeaders
@@ -69,9 +69,9 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 	} else if format.IsYAML([]byte(input)) {
 		dataFormat = format.YAML
 	} else if format.IsXML([]byte(input)) {
-		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
+		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("%w: data is passed in unknown format", ErrGdutils)
+		return fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
 	}
 
 	switch dataFormat {
@@ -80,11 +80,11 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 	case format.YAML:
 		err = s.Formatters.YAML.Deserialize([]byte(input), &bodyAndHeaders)
 	default:
-		err = fmt.Errorf("unknown data format: '%s'", dataFormat)
+		err = fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("can't deserialize 'headers and body' data, err: %w", err)
 	}
 
 	var reqBody []byte
@@ -94,16 +94,16 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 	case format.YAML:
 		reqBody, err = s.Formatters.YAML.Serialize(bodyAndHeaders.Body)
 	default:
-		err = fmt.Errorf("unknown data format: '%s'", dataFormat)
+		err = fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrJson, err.Error())
+		return fmt.Errorf("can't serialize data to send it with HTTP(s) request, err: %w", err)
 	}
 
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+		return fmt.Errorf("can't create request due to err: %w", err)
 	}
 
 	for headerName, headerValue := range bodyAndHeaders.Headers {
@@ -119,7 +119,7 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 
 	resp, err := s.RequestDoer.Do(req)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+		return fmt.Errorf("failed to send request %s %s, reason: %w", req.Method, req.URL.String(), err)
 	}
 
 	s.Cache.Save(httpcache.LastHTTPResponseTimestamp, time.Now())
@@ -127,7 +127,7 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 
 	if s.Debugger.IsOn() {
 		respBody, _ := s.GetLastResponseBody()
-		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
+		s.Debugger.Print(fmt.Sprintf("%s %s response body:\n\n%s\n", req.Method, req.URL.String(), respBody))
 	}
 
 	return nil
@@ -137,12 +137,12 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error {
 	url, err := s.TemplateEngine.Replace(urlTemplate, s.Cache.All())
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("template engine has problem with 'url' template, err: %w", err)
 	}
 
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		return fmt.Errorf("%w: could not create new request, reason: %s", ErrHTTPReqRes, err.Error())
+		return fmt.Errorf("can't create request due to err: %w", err)
 	}
 
 	s.Cache.Save(cacheKey, req)
@@ -155,28 +155,28 @@ func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey st
 func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate string) error {
 	headers, err := s.TemplateEngine.Replace(headersTemplate, s.Cache.All())
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("template engine has problem with 'headers' template, err: %w", err)
 	}
 
 	var headersMap map[string]string
 	headersBytes := []byte(headers)
 	if format.IsJSON(headersBytes) {
 		if err = s.Formatters.JSON.Deserialize(headersBytes, &headersMap); err != nil {
-			return fmt.Errorf("%w: could not parse provided headers: \n\n%s\n\nerr: %s", ErrGdutils, headers, err.Error())
+			return fmt.Errorf("could not deserialize provided headers, err: %w", err)
 		}
 	} else if format.IsYAML(headersBytes) {
 		if err = s.Formatters.YAML.Deserialize(headersBytes, &headersMap); err != nil {
-			return fmt.Errorf("%w: could not parse provided headers: \n\n%s\n\nerr: %s", ErrGdutils, headers, err.Error())
+			return fmt.Errorf("could not deserialize provided headers, err: %w", err)
 		}
 	} else if format.IsXML(headersBytes) {
-		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
+		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("%w: unknown data format", ErrGdutils)
+		return fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
 	}
 
 	req, err := s.GetPreparedRequest(cacheKey)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain prepared request, err: %w", err)
 	}
 
 	for hName, hValue := range headersMap {
@@ -193,12 +193,12 @@ func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate
 func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey, bodyTemplate string) error {
 	body, err := s.TemplateEngine.Replace(bodyTemplate, s.Cache.All())
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("template engine has problem with 'body' template, err: %w", err)
 	}
 
 	req, err := s.GetPreparedRequest(cacheKey)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain prepared request, err: %w", err)
 	}
 
 	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(body)))
@@ -214,27 +214,27 @@ func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate
 
 	userCookies, err := s.TemplateEngine.Replace(cookiesTemplate, s.Cache.All())
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+		return fmt.Errorf("template engine has problem with 'cookies' template, err: %w", err)
 	}
 
 	req, err := s.GetPreparedRequest(cacheKey)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+		return fmt.Errorf("could not obtain prepared request, err: %w", err)
 	}
 
 	userCookiesBytes := []byte(userCookies)
 	if format.IsJSON(userCookiesBytes) {
 		if err = s.Formatters.JSON.Deserialize(userCookiesBytes, &cookies); err != nil {
-			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+			return fmt.Errorf("could not deserialize provided cookies, err: %w", err)
 		}
 	} else if format.IsYAML(userCookiesBytes) {
 		if err = s.Formatters.YAML.Deserialize(userCookiesBytes, &cookies); err != nil {
-			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+			return fmt.Errorf("could not deserialize provided cookies, err: %w", err)
 		}
 	} else if format.IsXML(userCookiesBytes) {
-		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
+		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("%w: unknown data format", ErrGdutils)
+		return fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
 	}
 
 	for _, cookie := range cookies {
@@ -254,12 +254,12 @@ func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate
 func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate string) error {
 	form, err := s.TemplateEngine.Replace(formTemplate, s.Cache.All())
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
 	}
 
 	req, err := s.GetPreparedRequest(cacheKey)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain prepared request, err: %w", err)
 	}
 
 	var formKeyVal map[string]string
@@ -269,14 +269,13 @@ func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate strin
 	} else if format.IsYAML(formBytes) {
 		err = s.Formatters.YAML.Deserialize(formBytes, &formKeyVal)
 	} else if format.IsXML(formBytes) {
-		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
+		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		err = fmt.Errorf("provided formTemplate has unknown data format, available formats: %s, %s",
-			format.JSON, format.YAML)
+		return fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return err
 	}
 
 	body := &bytes.Buffer{}
@@ -287,17 +286,17 @@ func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate strin
 			if reference.Reference.Type == osutils.ReferenceTypeOSPath {
 				file, err := os.Open(reference.Reference.Value)
 				if err != nil {
-					return fmt.Errorf("%w, err: could not open file with reference %s", ErrGdutils, reference.Reference.Value)
+					return fmt.Errorf("could not open file with reference %s, err: %w", reference.Reference.Value, err)
 				}
 
 				part, err := writer.CreateFormFile(key, filepath.Base(file.Name()))
 				if err != nil {
-					return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
+					return fmt.Errorf("writer could not create form file, err: %w", err)
 				}
 
 				_, err = io.Copy(part, file)
 				if err != nil {
-					return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
+					return fmt.Errorf("internal problem with copying, err: %w", err)
 				}
 			}
 
@@ -306,18 +305,18 @@ func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate strin
 
 		fw, err := writer.CreateFormField(key)
 		if err != nil {
-			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+			return fmt.Errorf("writer could not create form field, err: %w", err)
 		}
 
 		_, err = io.Copy(fw, strings.NewReader(value))
 		if err != nil {
-			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+			return fmt.Errorf("internal problem with copying, err: %w", err)
 		}
 	}
 
 	err = writer.Close()
 	if err != nil {
-		return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("problem with closing writer, err: %w", err)
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -332,7 +331,7 @@ func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate strin
 func (s *State) ISendRequest(cacheKey string) error {
 	req, err := s.GetPreparedRequest(cacheKey)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain prepared request, err: %w", err)
 	}
 
 	if s.Debugger.IsOn() {
@@ -344,7 +343,7 @@ func (s *State) ISendRequest(cacheKey string) error {
 
 	resp, err := s.RequestDoer.Do(req)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+		return fmt.Errorf("failed to send request %s %s, reason: %w", req.Method, req.URL.String(), err)
 	}
 
 	s.Cache.Save(httpcache.LastHTTPResponseTimestamp, time.Now())
@@ -362,11 +361,11 @@ func (s *State) ISendRequest(cacheKey string) error {
 func (s *State) TheResponseStatusCodeShouldBe(code int) error {
 	lastResponse, err := s.GetLastResponse()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
 	}
 
 	if lastResponse.StatusCode != code {
-		return fmt.Errorf("%w: expected status code %d, but got %d", ErrHTTPReqRes, code, lastResponse.StatusCode)
+		return fmt.Errorf("expected status code %d, but got %d", code, lastResponse.StatusCode)
 	}
 
 	return nil
@@ -377,7 +376,7 @@ func (s *State) TheResponseStatusCodeShouldBe(code int) error {
 func (s *State) TheResponseBodyShouldHaveFormat(dataFormat format.DataFormat) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
 	switch dataFormat {
@@ -387,31 +386,31 @@ func (s *State) TheResponseBodyShouldHaveFormat(dataFormat format.DataFormat) er
 			return nil
 		}
 
-		return fmt.Errorf("%w: response body is not %s", ErrGdutils, format.JSON)
+		return fmt.Errorf("response body doesn't have format %s", format.JSON)
 	case format.YAML:
 		isYAML := format.IsYAML(body)
 		if isYAML {
 			return nil
 		}
 
-		return fmt.Errorf("%w: response body is not %s", ErrGdutils, format.YAML)
+		return fmt.Errorf("response body doesn't have format %s", format.YAML)
 	case format.XML:
 		isXml := format.IsXML(body)
 		if isXml {
 			return nil
 		}
 
-		return fmt.Errorf("%w: response body is not %s", ErrGdutils, format.XML)
+		return fmt.Errorf("response body doesn't have format", format.XML)
 	//This case checks whether last response body is not any of known types - then it assumes it is plain text
 	case format.PlainText:
 		if !(format.IsJSON(body) || format.IsYAML(body) || format.IsXML(body)) {
 			return nil
 		}
 
-		return fmt.Errorf("%w: response body is one of: %s, %s or %s", ErrGdutils, format.JSON, format.YAML, format.XML)
+		return fmt.Errorf("response body is not plain text, it has one of following formats: %s, %s or %s", format.JSON, format.YAML, format.XML)
 	default:
-		return fmt.Errorf("%w: unknown last response body data type, available values: %s, %s, %s, %s",
-			ErrHTTPReqRes, format.JSON, format.YAML, format.XML, format.PlainText)
+		return fmt.Errorf("unknown last response body data format, available formats: %s, %s, %s, %s",
+			format.JSON, format.YAML, format.XML, format.PlainText)
 	}
 }
 
@@ -420,7 +419,7 @@ func (s *State) TheResponseBodyShouldHaveFormat(dataFormat format.DataFormat) er
 func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
 	randomInteger, err := mathutils.RandomInt(from, to)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("problem during generating pseudo random integer, err: %w", err)
 	}
 
 	s.Cache.Save(cacheKey, randomInteger)
@@ -433,14 +432,14 @@ func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKe
 func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
 	randInt, err := mathutils.RandomInt(from, to)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("problem during generating pseudo random float, randomInt err: %w", err)
 	}
 
 	float01 := rand.Float64()
 	strFloat := fmt.Sprintf("%.2f", float01*float64(randInt))
 	floatVal, err := strconv.ParseFloat(strFloat, 64)
 	if err != nil {
-		return fmt.Errorf("%w: error during parsing float, err: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("problem during generating pseudo random float, parsing err: %w", err)
 	}
 
 	s.Cache.Save(cacheKey, floatVal)
@@ -454,7 +453,7 @@ func (s *State) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset string) fun
 	return func(from, to int, cacheKey string) error {
 		randInt, err := mathutils.RandomInt(from, to)
 		if err != nil {
-			return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+			return fmt.Errorf("problem during generating random runes, randomInt err: %w", err)
 		}
 
 		s.Cache.Save(cacheKey, string(stringutils.RunesFromCharset(randInt, []rune(charset))))
@@ -470,23 +469,23 @@ func (s *State) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset string) fun
 func (s *State) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error {
 	return func(from, to int, cacheKey string) error {
 		if from > to {
-			return fmt.Errorf("%w could not generate sentence because of invalid range provided, from '%d' should not be greater than to: '%d'", ErrGdutils, from, to)
+			return fmt.Errorf("could not generate sentence because of invalid range provided, from '%d' should not be greater than to: '%d'", from, to)
 		}
 
 		if wordMinLength > wordMaxLength {
-			return fmt.Errorf("%w could not generate sentence because of invalid range provided, wordMinLength '%d' should not be greater than wordMaxLength '%d'", ErrGdutils, wordMinLength, wordMaxLength)
+			return fmt.Errorf("could not generate sentence because of invalid range provided, wordMinLength '%d' should not be greater than wordMaxLength '%d'", wordMinLength, wordMaxLength)
 		}
 
 		numberOfWords, err := mathutils.RandomInt(from, to)
 		if err != nil {
-			return fmt.Errorf("%w: %s", ErrGdutils, err)
+			return fmt.Errorf("problem during generating random sentence, randomInt err: %w", err)
 		}
 
 		sentence := ""
 		for i := 0; i < numberOfWords; i++ {
 			lengthOfWord, err := mathutils.RandomInt(wordMinLength, wordMaxLength)
 			if err != nil {
-				return fmt.Errorf("%w: %s", ErrGdutils, err)
+				return fmt.Errorf("problem during generating random sentence, word randomInt err: %w", err)
 			}
 
 			word := stringutils.RunesFromCharset(lengthOfWord, []rune(charset))
@@ -513,7 +512,7 @@ func (s *State) IGetTimeAndTravelByAndSaveItAs(t time.Time, timeDirection timeut
 	case timeutils.TimeDirectionForward:
 		newTime = t.Add(timeDuration)
 	default:
-		return fmt.Errorf("unknown timeDirection: %s, allowed: %s, %s", timeDirection, timeutils.TimeDirectionForward, timeutils.TimeDirectionBackward)
+		return fmt.Errorf("unknown time direction: %s, allowed: %s, %s", timeDirection, timeutils.TimeDirectionForward, timeutils.TimeDirectionBackward)
 	}
 
 	s.Cache.Save(cacheKey, newTime)
@@ -529,10 +528,15 @@ func (s *State) IGenerateCurrentTimeAndTravelByAndSaveItAs(timeDirection timeuti
 
 // TheResponseShouldHaveNode checks whether last response body contains given node.
 // expr should be valid according to injected PathFinder for given data format
-func (s *State) TheResponseShouldHaveNode(dataFormat format.DataFormat, expr string) error {
+func (s *State) TheResponseShouldHaveNode(dataFormat format.DataFormat, exprTemplate string) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
+	}
+
+	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
 	}
 
 	switch dataFormat {
@@ -543,7 +547,8 @@ func (s *State) TheResponseShouldHaveNode(dataFormat format.DataFormat, expr str
 	case format.XML:
 		_, err = s.PathFinders.XML.Find(expr, body)
 	default:
-		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+			dataFormat, format.JSON, format.YAML, format.XML)
 	}
 
 	if err != nil {
@@ -551,7 +556,59 @@ func (s *State) TheResponseShouldHaveNode(dataFormat format.DataFormat, expr str
 			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 		}
 
-		return fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, expr, err.Error())
+		return fmt.Errorf("node '%s', err: %w", expr, err)
+	}
+
+	return nil
+}
+
+// TheResponseShouldHaveNodes checks whether last request body has keys defined in string separated by comma
+// nodeExprs should be valid according to injected PathFinder expressions separated by comma (,)
+func (s *State) TheResponseShouldHaveNodes(dataFormat format.DataFormat, expressionsTemplate string) error {
+	expressions, err := s.TemplateEngine.Replace(expressionsTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
+	}
+
+	keysSlice := strings.Split(expressions, ",")
+
+	body, err := s.GetLastResponseBody()
+	if err != nil {
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
+	}
+
+	errs := make([]error, 0, len(keysSlice))
+	for _, key := range keysSlice {
+		trimmedKey := strings.TrimSpace(key)
+
+		switch dataFormat {
+		case format.JSON:
+			_, err = s.PathFinders.JSON.Find(trimmedKey, body)
+		case format.YAML:
+			_, err = s.PathFinders.YAML.Find(trimmedKey, body)
+		case format.XML:
+			_, err = s.PathFinders.XML.Find(trimmedKey, body)
+		default:
+			return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+				dataFormat, format.JSON, format.YAML, format.XML)
+		}
+
+		if err != nil {
+			errs = append(errs, fmt.Errorf("node '%s', err: %s", trimmedKey, err.Error()))
+		}
+	}
+
+	if len(errs) > 0 {
+		var errString string
+		for _, err := range errs {
+			errString += fmt.Sprintf("%s\n", err)
+		}
+
+		if s.Debugger.IsOn() {
+			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
+		}
+
+		return errors.New(errString)
 	}
 
 	return nil
@@ -560,10 +617,15 @@ func (s *State) TheResponseShouldHaveNode(dataFormat format.DataFormat, expr str
 // TheNodeShouldNotBe checks whether node from last response body is not of provided type.
 // goType may be one of: nil, string, int, float, bool, map, slice,
 // expr should be valid according to injected PathFinder for given data format.
-func (s *State) TheNodeShouldNotBe(dataFormat format.DataFormat, expr string, goType string) error {
+func (s *State) TheNodeShouldNotBe(dataFormat format.DataFormat, exprTemplate string, goType string) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
+	}
+
+	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
 	}
 
 	var iNodeVal interface{}
@@ -573,17 +635,18 @@ func (s *State) TheNodeShouldNotBe(dataFormat format.DataFormat, expr string, go
 	case format.YAML:
 		iNodeVal, err = s.PathFinders.YAML.Find(expr, body)
 	case format.XML:
-		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
+		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	default:
-		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+			dataFormat, format.JSON, format.YAML, format.XML)
 	}
 
 	if err != nil {
-		return fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, expr, err.Error())
+		return err
 	}
 
 	vNodeVal := reflect.ValueOf(iNodeVal)
-	errInvalidType := fmt.Errorf("%w: %s value is \"%s\", but expected not to be", ErrGdutils, expr, goType)
+	errInvalidType := fmt.Errorf("%s value is \"%s\", but expected not to be", expr, goType)
 	switch goType {
 	case "nil":
 		if !vNodeVal.IsValid() || reflectutils.IsValueNil(vNodeVal) {
@@ -629,7 +692,7 @@ func (s *State) TheNodeShouldNotBe(dataFormat format.DataFormat, expr string, go
 			return errInvalidType
 		}
 	default:
-		return fmt.Errorf("%w: %s is unknown type for this step", ErrGdutils, goType)
+		return fmt.Errorf("%s is not one of available types", goType)
 	}
 
 	return nil
@@ -639,72 +702,29 @@ func (s *State) TheNodeShouldNotBe(dataFormat format.DataFormat, expr string, go
 // goType may be one of: nil, string, int, float, bool, map, slice
 // expr should be valid according to injected PathResolver
 func (s *State) TheNodeShouldBe(dataFormat format.DataFormat, expr string, goType string) error {
-	errInvalidType := fmt.Errorf("%w: %s value is not \"%s\", but expected to be", ErrGdutils, expr, goType)
-
 	switch goType {
 	case "nil", "string", "int", "float", "bool", "map", "slice":
 		if err := s.TheNodeShouldNotBe(dataFormat, expr, goType); err == nil {
-			return errInvalidType
+			return fmt.Errorf("%s value is not \"%s\", but expected to be", expr, goType)
 		}
 
 		return nil
 	default:
-		return fmt.Errorf("%w: %s is unknown type for this step", ErrGdutils, goType)
+		return fmt.Errorf("%s is not one of available types", goType)
 	}
-}
-
-// TheResponseShouldHaveNodes checks whether last request body has keys defined in string separated by comma
-// nodeExprs should be valid according to injected PathFinder expressions separated by comma (,)
-func (s *State) TheResponseShouldHaveNodes(dataFormat format.DataFormat, expressions string) error {
-	keysSlice := strings.Split(expressions, ",")
-
-	body, err := s.GetLastResponseBody()
-	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
-	}
-
-	errs := make([]error, 0, len(keysSlice))
-	for _, key := range keysSlice {
-		trimmedKey := strings.TrimSpace(key)
-
-		switch dataFormat {
-		case format.JSON:
-			_, err = s.PathFinders.JSON.Find(trimmedKey, body)
-		case format.YAML:
-			_, err = s.PathFinders.YAML.Find(trimmedKey, body)
-		case format.XML:
-			_, err = s.PathFinders.XML.Find(trimmedKey, body)
-		default:
-			return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
-		}
-
-		if err != nil {
-			errs = append(errs, fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, trimmedKey, err.Error()))
-		}
-	}
-
-	if len(errs) > 0 {
-		var errString string
-		for _, err := range errs {
-			errString += fmt.Sprintf("%s\n", err)
-		}
-
-		if s.Debugger.IsOn() {
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
-		}
-
-		return errors.New(errString)
-	}
-
-	return nil
 }
 
 // TheNodeShouldBeSliceOfLength checks whether given key is slice and has given length
 // expr should be valid according to injected PathFinder for provided dataFormat
-func (s *State) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, expr string, length int) error {
+func (s *State) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, exprTemplate string, length int) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
+	}
+
+	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
 
 	var iValue interface{}
@@ -716,7 +736,8 @@ func (s *State) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, expr 
 	case format.XML:
 		iValue, err = s.PathFinders.XML.Find(expr, body)
 	default:
-		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+			dataFormat, format.JSON, format.YAML, format.XML)
 	}
 
 	if err != nil {
@@ -724,13 +745,13 @@ func (s *State) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, expr 
 			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 		}
 
-		return fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, expr, err.Error())
+		return fmt.Errorf("node '%s', err: %s", expr, err.Error())
 	}
 
 	v := reflect.ValueOf(iValue)
 	if v.Kind() == reflect.Slice {
 		if v.Len() != length {
-			return fmt.Errorf("%w: %s slice has length: %d, expected: %d", ErrGdutils, expr, v.Len(), length)
+			return fmt.Errorf("%s slice has length: %d, expected: %d", expr, v.Len(), length)
 		}
 
 		return nil
@@ -740,25 +761,30 @@ func (s *State) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, expr 
 		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 	}
 
-	return fmt.Errorf("%w: %s does not point at slice(array) in last HTTP(s) response body", ErrGdutils, expr)
+	return fmt.Errorf("%s does not point at slice(array) in last HTTP(s) response body", expr)
 }
 
 // TheNodeShouldBeOfValue compares json node value from expression to expected by user dataValue of given by user dataType
 // Available data types are listed in switch section in each case directive.
 // expr should be valid according to injected PathFinder for provided dataFormat.
-func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, expr, dataType, dataValue string) error {
+func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, exprTemplate, dataType, dataValue string) error {
 	nodeValueReplaced, err := s.TemplateEngine.Replace(dataValue, s.Cache.All())
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("template engine has problem with 'value' template, err: %w", err)
 	}
 
 	if s.Debugger.IsOn() {
 		s.Debugger.Print(fmt.Sprintf("replaced value %s\n", nodeValueReplaced))
 	}
 
+	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
+	}
+
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
 	if s.Debugger.IsOn() {
@@ -776,33 +802,34 @@ func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, expr, dataT
 	case format.XML:
 		iValue, err = s.PathFinders.XML.Find(expr, body)
 	default:
-		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+			dataFormat, format.JSON, format.YAML, format.XML)
 	}
 
 	if err != nil {
-		return fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, expr, err.Error())
+		return fmt.Errorf("node '%s', err: %s", expr, err.Error())
 	}
 
 	switch dataType {
 	case "string":
 		strVal, ok := iValue.(string)
 		if !ok {
-			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
+			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
 
 		if strVal != nodeValueReplaced {
-			return fmt.Errorf("%w: node %s string value: %s is not equal to expected string value: %s", ErrGdutils, expr, strVal, nodeValueReplaced)
+			return fmt.Errorf("node %s string value: %s is not equal to expected string value: %s", expr, strVal, nodeValueReplaced)
 		}
 	case "int":
 		intNodeValue, err := strconv.Atoi(nodeValueReplaced)
 		if err != nil {
-			return fmt.Errorf("%w: replaced node %s value %s could not be converted to int", ErrGdutils, expr, nodeValueReplaced)
+			return fmt.Errorf("replaced node %s value %s could not be converted to int", expr, nodeValueReplaced)
 		}
 
 		if strVal, ok := iValue.(string); ok {
 			if intVal, errAtoi := strconv.Atoi(strVal); errAtoi == nil {
 				if intVal != intNodeValue {
-					return fmt.Errorf("%w: node %s int value: %d is not equal to expected int value: %d", ErrGdutils, expr, intVal, intNodeValue)
+					return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intVal, intNodeValue)
 				}
 
 				return nil
@@ -813,7 +840,7 @@ func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, expr, dataT
 		if !ok {
 			uint64Val, ok := iValue.(uint64)
 			if !ok {
-				return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
+				return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 			}
 
 			floatVal = float64(uint64Val)
@@ -821,18 +848,18 @@ func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, expr, dataT
 
 		intVal := int(floatVal)
 		if intVal != intNodeValue {
-			return fmt.Errorf("%w: node %s int value: %d is not equal to expected int value: %d", ErrGdutils, expr, intVal, intNodeValue)
+			return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intVal, intNodeValue)
 		}
 	case "float":
 		floatNodeValue, err := strconv.ParseFloat(nodeValueReplaced, 64)
 		if err != nil {
-			return fmt.Errorf("%w: replaced node %s value %s could not be converted to float64", ErrGdutils, expr, nodeValueReplaced)
+			return fmt.Errorf("replaced node %s value %s could not be converted to float64", expr, nodeValueReplaced)
 		}
 
 		if strVal, ok := iValue.(string); ok {
 			if floatVal, errParseFloat := strconv.ParseFloat(strVal, 64); errParseFloat == nil {
 				if floatVal != floatNodeValue {
-					return fmt.Errorf("%w: node %s float value: %f is not equal to expected int value: %f", ErrGdutils, expr, floatVal, floatNodeValue)
+					return fmt.Errorf("node %s float value: %f is not equal to expected int value: %f", expr, floatVal, floatNodeValue)
 				}
 
 				return nil
@@ -841,33 +868,33 @@ func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, expr, dataT
 
 		floatVal, ok := iValue.(float64)
 		if !ok {
-			return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
+			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 		}
 
 		if floatVal != floatNodeValue {
-			return fmt.Errorf("%w: node %s float value %f is not equal to expected float value %f", ErrGdutils, expr, floatVal, floatNodeValue)
+			return fmt.Errorf("node %s float value %f is not equal to expected float value %f", expr, floatVal, floatNodeValue)
 		}
 	case "bool":
 		boolVal, ok := iValue.(bool)
 		if !ok {
 			strVal, ok := iValue.(string)
 			if !ok {
-				return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
+				return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 			}
 
 			boolVal, err = strconv.ParseBool(strVal)
 			if err != nil {
-				return fmt.Errorf("%w: expected %s to be %s, got %v", ErrGdutils, expr, dataType, iValue)
+				return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
 			}
 		}
 
 		boolNodeValue, err := strconv.ParseBool(nodeValueReplaced)
 		if err != nil {
-			return fmt.Errorf("%w: replaced node %s value %s could not be converted to bool", ErrGdutils, expr, nodeValueReplaced)
+			return fmt.Errorf("replaced node %s value %s could not be converted to bool", expr, nodeValueReplaced)
 		}
 
 		if boolVal != boolNodeValue {
-			return fmt.Errorf("%w: node %s bool value %t is not equal to expected bool value %t", ErrGdutils, expr, boolVal, boolNodeValue)
+			return fmt.Errorf("node %s bool value %t is not equal to expected bool value %t", expr, boolVal, boolNodeValue)
 		}
 	}
 
@@ -875,15 +902,20 @@ func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, expr, dataT
 }
 
 // TheNodeShouldMatchRegExp checks whether last response body node matches provided regExp.
-func (s *State) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, expr, regExpTemplate string) error {
+func (s *State) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error {
 	regExpString, err := s.TemplateEngine.Replace(regExpTemplate, s.Cache.All())
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("template engine has problem with 'regExp' template, err: %w", err)
+	}
+
+	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
 
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
 	var iValue interface{}
@@ -895,16 +927,17 @@ func (s *State) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, expr, reg
 	case format.XML:
 		iValue, err = s.PathFinders.XML.Find(expr, body)
 	default:
-		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+			dataFormat, format.JSON, format.YAML, format.XML)
 	}
 
 	if err != nil {
-		return fmt.Errorf("%w, node '%s', err: %s", ErrGdutils, expr, err.Error())
+		return fmt.Errorf("node '%s', err: %s", expr, err.Error())
 	}
 
 	jsonValue, err := s.Formatters.JSON.Serialize(iValue)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("problem during serialization, err: %w", err)
 	}
 
 	if s.Debugger.IsOn() {
@@ -913,7 +946,7 @@ func (s *State) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, expr, reg
 
 	matched, err := regexp.Match(regExpString, jsonValue)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("problem with regExp matching, err: %w", err)
 	}
 
 	if !matched {
@@ -938,7 +971,7 @@ func (s *State) TheResponseShouldHaveHeader(name string) error {
 
 	lastResp, err := s.GetLastResponse()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
 	}
 
 	header := lastResp.Header.Get(name)
@@ -950,7 +983,7 @@ func (s *State) TheResponseShouldHaveHeader(name string) error {
 		s.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %+v", lastResp.Header))
 	}
 
-	return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
+	return fmt.Errorf("could not find header %s in last HTTP response", name)
 }
 
 // TheResponseShouldHaveHeaderOfValue checks whether last HTTP response has given header with provided valueTemplate.
@@ -968,24 +1001,24 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) e
 
 	lastResp, err := s.GetLastResponse()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrHTTPReqRes, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
 	}
 
 	header := lastResp.Header.Get(name)
 	value, err := s.TemplateEngine.Replace(valueTemplate, s.Cache.All())
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("template engine has problem with 'value' template, err: %w", err)
 	}
 
 	if header == "" && value == "" {
-		return fmt.Errorf("%w: could not find header %s in last HTTP response", ErrHTTPReqRes, name)
+		return fmt.Errorf("could not find header %s in last HTTP response", name)
 	}
 
 	if header == value {
 		return nil
 	}
 
-	return fmt.Errorf("%w: %s header exists but, expected value: %s, is not equal to actual: %s", ErrHTTPReqRes, name, value, header)
+	return fmt.Errorf("%s header exists but, expected value: %s, is not equal to actual: %s", name, value, header)
 }
 
 // IValidateLastResponseBodyWithSchemaReference validates last response body against schema as provided in referenceTemplate.
@@ -993,12 +1026,12 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) e
 func (s *State) IValidateLastResponseBodyWithSchemaReference(referenceTemplate string) error {
 	reference, err := s.TemplateEngine.Replace(referenceTemplate, s.Cache.All())
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("template engine has problem with 'reference' template, err: %w", err)
 	}
 
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err)
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
 	if s.Debugger.IsOn() {
@@ -1012,29 +1045,20 @@ func (s *State) IValidateLastResponseBodyWithSchemaReference(referenceTemplate s
 func (s *State) IValidateLastResponseBodyWithSchemaString(schema string) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err)
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
 	return s.SchemaValidators.StringValidator.Validate(string(body), schema)
 }
 
 // IValidateNodeWithSchemaString validates last response body JSON node against schema
-func (s *State) IValidateNodeWithSchemaString(dataFormat format.DataFormat, expr, schema string) error {
-	return s.iValidateNodeWithSchemaGeneral(dataFormat, expr, schema, s.SchemaValidators.StringValidator)
+func (s *State) IValidateNodeWithSchemaString(dataFormat format.DataFormat, exprTemplate, schemaTemplate string) error {
+	return s.iValidateNodeWithSchemaGeneral(dataFormat, exprTemplate, schemaTemplate, s.SchemaValidators.StringValidator)
 }
 
 // IValidateNodeWithSchemaReference validates last response body node against schema as provided in referenceTemplate
-func (s *State) IValidateNodeWithSchemaReference(dataFormat format.DataFormat, expr, referenceTemplate string) error {
-	reference, err := s.TemplateEngine.Replace(referenceTemplate, s.Cache.All())
-	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
-	}
-
-	if s.Debugger.IsOn() {
-		s.Debugger.Print(fmt.Sprintf("'%s' was replaced as: '%s'\n", referenceTemplate, reference))
-	}
-
-	return s.iValidateNodeWithSchemaGeneral(dataFormat, expr, reference, s.SchemaValidators.ReferenceValidator)
+func (s *State) IValidateNodeWithSchemaReference(dataFormat format.DataFormat, exprTemplate, referenceTemplate string) error {
+	return s.iValidateNodeWithSchemaGeneral(dataFormat, exprTemplate, referenceTemplate, s.SchemaValidators.ReferenceValidator)
 }
 
 // TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo asserts that last HTTP request-response time
@@ -1043,27 +1067,27 @@ func (s *State) IValidateNodeWithSchemaReference(dataFormat format.DataFormat, e
 func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval time.Duration) error {
 	lastReqTimestampI, err := s.Cache.GetSaved(httpcache.LastHTTPRequestTimestamp)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("problem during obtaining last HTTP request timestamp, err: %w", err)
 	}
 
 	lastReqTimestamp, ok := lastReqTimestampI.(time.Time)
 	if !ok {
-		return fmt.Errorf("%w: last request timestamp: '%+v' should be time.Time", ErrHTTPReqRes, lastReqTimestampI)
+		return fmt.Errorf("last request timestamp: '%+v' should be time.Time", lastReqTimestampI)
 	}
 
 	lastResTimestampI, err := s.Cache.GetSaved(httpcache.LastHTTPResponseTimestamp)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("problem during obtaining last HTTP response timestamp, err: %w", err)
 	}
 
 	lastResTimestamp, ok := lastResTimestampI.(time.Time)
 	if !ok {
-		return fmt.Errorf("%w: last response timestamp: '%+v' should be time.Time", ErrHTTPReqRes, lastResTimestampI)
+		return fmt.Errorf("last response timestamp: '%+v' should be time.Time", lastReqTimestampI)
 	}
 
 	timeBetweenReqRes := lastResTimestamp.Sub(lastReqTimestamp)
 	if timeBetweenReqRes > timeInterval {
-		return fmt.Errorf("%w: time between last request - response should be less than %+v, but it took %+v", ErrHTTPReqRes, timeInterval, timeBetweenReqRes)
+		return fmt.Errorf("time between last request - response should be less than %+v, but it took %+v", timeInterval, timeBetweenReqRes)
 	}
 
 	return nil
@@ -1073,7 +1097,7 @@ func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(time
 func (s *State) TheResponseShouldHaveCookie(name string) error {
 	lastResp, err := s.GetLastResponse()
 	if err != nil {
-		return fmt.Errorf("%w: could not obtain last response, err: %s", ErrHTTPReqRes, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
 	}
 
 	defer func() {
@@ -1089,14 +1113,14 @@ func (s *State) TheResponseShouldHaveCookie(name string) error {
 		}
 	}
 
-	return fmt.Errorf("%w: last HTTP(s) response does not have cookie with name '%s'", ErrHTTPReqRes, name)
+	return fmt.Errorf("last HTTP(s) response does not have cookie with name '%s'", name)
 }
 
 // TheResponseShouldHaveCookieOfValue checks whether last HTTP(s) response has cookie of given name and value.
 func (s *State) TheResponseShouldHaveCookieOfValue(name, valueTemplate string) error {
 	lastResp, err := s.GetLastResponse()
 	if err != nil {
-		return fmt.Errorf("%w: could not obtain last response, err: %s", ErrHTTPReqRes, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
 	}
 
 	defer func() {
@@ -1107,7 +1131,7 @@ func (s *State) TheResponseShouldHaveCookieOfValue(name, valueTemplate string) e
 
 	value, err := s.TemplateEngine.Replace(valueTemplate, s.Cache.All())
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("template engine has problem with 'value' template, err: %w", err)
 	}
 
 	for _, cookie := range lastResp.Cookies() {
@@ -1116,17 +1140,22 @@ func (s *State) TheResponseShouldHaveCookieOfValue(name, valueTemplate string) e
 		}
 	}
 
-	return fmt.Errorf("%w: last HTTP(s) response does not have cookie with name '%s' and value: '%s'", ErrHTTPReqRes, name, value)
+	return fmt.Errorf("last HTTP(s) response does not have cookie with name '%s' and value: '%s'", name, value)
 }
 
-// ISaveAs saves into cache arbitrary passed value.
-func (s *State) ISaveAs(value, cacheKey string) error {
-	if len(value) == 0 {
-		return fmt.Errorf("%w: pass any value", ErrGdutils)
+// ISaveAs saves into cache arbitrary passed data.
+func (s *State) ISaveAs(valueTemplate, cacheKey string) error {
+	if len(valueTemplate) == 0 {
+		return fmt.Errorf("pass any value")
 	}
 
 	if len(cacheKey) == 0 {
-		return fmt.Errorf("%w: cacheKey should be not empty value", ErrGdutils)
+		return fmt.Errorf("cacheKey should not be empty value")
+	}
+
+	value, err := s.TemplateEngine.Replace(valueTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'value' template, err: %w", err)
 	}
 
 	s.Cache.Save(cacheKey, value)
@@ -1136,10 +1165,15 @@ func (s *State) ISaveAs(value, cacheKey string) error {
 
 // ISaveFromTheLastResponseNodeAs saves from last response body node under given cacheKey key.
 // expr should be valid according to injected PathResolver of given data type
-func (s *State) ISaveFromTheLastResponseNodeAs(dataFormat format.DataFormat, expr, cacheKey string) error {
+func (s *State) ISaveFromTheLastResponseNodeAs(dataFormat format.DataFormat, exprTemplate, cacheKey string) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
+	}
+
+	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
 
 	var iVal interface{}
@@ -1151,7 +1185,8 @@ func (s *State) ISaveFromTheLastResponseNodeAs(dataFormat format.DataFormat, exp
 	case format.XML:
 		iVal, err = s.PathFinders.XML.Find(expr, body)
 	default:
-		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+			dataFormat, format.JSON, format.YAML, format.XML)
 	}
 
 	if err != nil {
@@ -1159,7 +1194,7 @@ func (s *State) ISaveFromTheLastResponseNodeAs(dataFormat format.DataFormat, exp
 			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
 		}
 
-		return fmt.Errorf("%w, err: %s", ErrGdutils, err.Error())
+		return err
 	}
 
 	s.Cache.Save(cacheKey, iVal)
@@ -1180,7 +1215,7 @@ func (s *State) IPrintLastResponseBody() error {
 
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
 	defer func() {
@@ -1255,12 +1290,12 @@ func (s *State) IStopDebugMode() error {
 func (s *State) GetPreparedRequest(cacheKey string) (*http.Request, error) {
 	reqInterface, err := s.Cache.GetSaved(cacheKey)
 	if err != nil {
-		return &http.Request{}, fmt.Errorf("%w: %s", ErrGdutils, err.Error())
+		return &http.Request{}, fmt.Errorf("could not obtain %s from cache, err: %w", cacheKey, err)
 	}
 
 	req, ok := reqInterface.(*http.Request)
 	if !ok {
-		return &http.Request{}, fmt.Errorf("%w: value under key %s in cache doesn't contain *http.Request", ErrPreservedData, cacheKey)
+		return &http.Request{}, fmt.Errorf("value under key %s in cache doesn't contain *http.Request", cacheKey)
 	}
 
 	return req, nil
@@ -1270,16 +1305,16 @@ func (s *State) GetPreparedRequest(cacheKey string) (*http.Request, error) {
 func (s *State) GetLastResponse() (*http.Response, error) {
 	respInterface, err := s.Cache.GetSaved(httpcache.LastHTTPResponseCacheKey)
 	if err != nil {
-		return nil, fmt.Errorf("%w: missing last HTTP(s) response, err: %s", ErrHTTPReqRes, err.Error())
+		return nil, fmt.Errorf("missing last HTTP(s) response, err: %s", err.Error())
 	}
 
 	lastResp, ok := respInterface.(*http.Response)
 	if !ok {
-		return nil, fmt.Errorf("%w: last HTTP(s) response data structure is not type *http.Response", ErrHTTPReqRes)
+		return nil, fmt.Errorf("last HTTP(s) response data structure is not type *http.Response")
 	}
 
 	if lastResp == nil {
-		return nil, fmt.Errorf("%w: missing last HTTP(s) response", ErrHTTPReqRes)
+		return nil, fmt.Errorf("missing last HTTP(s) response")
 	}
 
 	return lastResp, nil
@@ -1290,7 +1325,7 @@ func (s *State) GetLastResponse() (*http.Response, error) {
 func (s *State) GetLastResponseBody() ([]byte, error) {
 	lastResponse, err := s.GetLastResponse()
 	if err != nil {
-		return []byte(""), err
+		return []byte(""), fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
 	var bodyBytes []byte
@@ -1307,10 +1342,24 @@ func (s *State) GetLastResponseBody() ([]byte, error) {
 }
 
 // iValidateNodeWithSchemaGeneral validates last response body node against schema as provided in reference.
-func (s *State) iValidateNodeWithSchemaGeneral(dataFormat format.DataFormat, expr, reference string, validator validator.SchemaValidator) error {
+func (s *State) iValidateNodeWithSchemaGeneral(dataFormat format.DataFormat, exprTemplate, referenceTemplate string, validator validator.SchemaValidator) error {
 	body, err := s.GetLastResponseBody()
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err)
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
+	}
+
+	reference, err := s.TemplateEngine.Replace(referenceTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'reference' template, err: %w", err)
+	}
+
+	if s.Debugger.IsOn() {
+		s.Debugger.Print(fmt.Sprintf("'%s' was replaced as: '%s'\n", referenceTemplate, reference))
+	}
+
+	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
 
 	var node interface{}
@@ -1320,18 +1369,19 @@ func (s *State) iValidateNodeWithSchemaGeneral(dataFormat format.DataFormat, exp
 	case format.YAML:
 		node, err = s.PathFinders.YAML.Find(expr, body)
 	case format.XML:
-		return fmt.Errorf("%w: this method does not support format %s", ErrGdutils, format.XML)
+		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	default:
-		return fmt.Errorf("%w: unknown data format: %s", ErrGdutils, dataFormat)
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+			dataFormat, format.JSON, format.YAML, format.XML)
 	}
 
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err)
+		return err
 	}
 
 	jsonNode, err := s.Formatters.JSON.Serialize(node)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrGdutils, err)
+		return fmt.Errorf("problem during formatting data to JSON, err: %w", err)
 	}
 
 	if s.Debugger.IsOn() {

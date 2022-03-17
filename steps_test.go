@@ -1692,7 +1692,9 @@ func TestState_IGenerateArandomSentenceInTheRangeFromToWordsAndSaveItAsUnicode(t
 }
 
 func TestState_ISaveAs(t *testing.T) {
-	type fields struct{}
+	type fields struct {
+		cacheData map[string]interface{}
+	}
 	type args struct {
 		value    string
 		cacheKey string
@@ -1702,6 +1704,7 @@ func TestState_ISaveAs(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
+		want    string
 	}{
 		{name: "value and cacheKey should be not empty string", fields: fields{}, args: args{
 			value:    "",
@@ -1718,11 +1721,33 @@ func TestState_ISaveAs(t *testing.T) {
 		{name: "valid value", fields: fields{}, args: args{
 			value:    "a",
 			cacheKey: "a",
-		}, wantErr: false},
+		}, wantErr: false, want: "a"},
+		{name: "template value", fields: fields{
+			cacheData: map[string]interface{}{
+				"FIRST_NAME": "ABC",
+				"LAST_NAME":  "XXX",
+			},
+		}, args: args{
+			value:    "{{.FIRST_NAME}} {{.LAST_NAME}}",
+			cacheKey: "a",
+		}, wantErr: false, want: "ABC XXX"},
+		{name: "template value", fields: fields{
+			cacheData: map[string]interface{}{
+				"HEIGHT": 10,
+			},
+		}, args: args{
+			value:    "my height is {{.HEIGHT}}",
+			cacheKey: "a",
+		}, wantErr: false, want: "my height is 10"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewDefaultState(false, "")
+
+			for k, v := range tt.fields.cacheData {
+				s.Cache.Save(k, v)
+			}
+
 			if err := s.ISaveAs(tt.args.value, tt.args.cacheKey); (err != nil) != tt.wantErr {
 				t.Errorf("ISaveAs() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -1738,8 +1763,8 @@ func TestState_ISaveAs(t *testing.T) {
 					t.Errorf("%+v value is not string", v)
 				}
 
-				if vStr != tt.args.value {
-					t.Errorf("expected %s, got %s", tt.args.value, vStr)
+				if vStr != tt.want {
+					t.Errorf("expected %s, got %s", tt.want, vStr)
 				}
 			}
 		})
@@ -2479,7 +2504,8 @@ users:
 </users>`
 
 	type fields struct {
-		body []byte
+		body      []byte
+		cacheKeys map[string]interface{}
 	}
 	type args struct {
 		dataFormat  format.DataFormat
@@ -2512,6 +2538,13 @@ users:
 			dataFormat:  format.JSON,
 			expressions: "users[0].name, users[1].name",
 		}, wantErr: false},
+		{name: "two proper fields template value #1", fields: fields{body: []byte(json), cacheKeys: map[string]interface{}{
+			"USER1_ID": 0,
+			"USER2_ID": 1,
+		}}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "users[{{.USER1_ID}}].name, users[{{.USER2_ID}}].name",
+		}, wantErr: false},
 
 		{name: "missing XML field", fields: fields{body: []byte(xml)}, args: args{
 			dataFormat:  format.XML,
@@ -2532,6 +2565,13 @@ users:
 		{name: "two proper fields #2", fields: fields{body: []byte(xml)}, args: args{
 			dataFormat:  format.XML,
 			expressions: "//user[1]//name, //user[2]//name",
+		}, wantErr: false},
+		{name: "two proper fields template value #1", fields: fields{body: []byte(xml), cacheKeys: map[string]interface{}{
+			"USER1_ID": 1,
+			"USER2_ID": 2,
+		}}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//user[{{.USER1_ID}}]//name, //user[{{.USER2_ID}}]//name",
 		}, wantErr: false},
 
 		{name: "missing yaml field", fields: fields{body: []byte(yaml)}, args: args{
@@ -2554,10 +2594,21 @@ users:
 			dataFormat:  format.YAML,
 			expressions: "$.users[0].name, $.users[1].name",
 		}, wantErr: false},
+		{name: "two proper fields template value #1", fields: fields{body: []byte(yaml), cacheKeys: map[string]interface{}{
+			"USER1_ID": 0,
+			"USER2_ID": 1,
+		}}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.users[{{.USER1_ID}}].name, $.users[{{.USER2_ID}}].name",
+		}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewDefaultState(false, "")
+
+			for k, v := range tt.fields.cacheKeys {
+				s.Cache.Save(k, v)
+			}
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
 
@@ -2597,7 +2648,8 @@ users:
 </users>`
 
 	type fields struct {
-		body []byte
+		body      []byte
+		cacheData map[string]interface{}
 	}
 	type args struct {
 		dataFormat  format.DataFormat
@@ -2626,6 +2678,12 @@ users:
 			dataFormat:  format.JSON,
 			expressions: "users[1].name",
 		}, wantErr: false},
+		{name: "proper field with template value #1", fields: fields{body: []byte(json), cacheData: map[string]interface{}{
+			"USER_ID": 1,
+		}}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "users[{{.USER_ID}}].name",
+		}, wantErr: false},
 
 		{name: "missing XML field", fields: fields{body: []byte(xml)}, args: args{
 			dataFormat:  format.XML,
@@ -2643,6 +2701,12 @@ users:
 			dataFormat:  format.XML,
 			expressions: "//user[2]//name",
 		}, wantErr: false},
+		{name: "proper field with template value #1", fields: fields{body: []byte(xml), cacheData: map[string]interface{}{
+			"USER_ID": 2,
+		}}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//user[{{.USER_ID}}]//name",
+		}, wantErr: false},
 
 		{name: "missing yaml field", fields: fields{body: []byte(yaml)}, args: args{
 			dataFormat:  format.YAML,
@@ -2656,10 +2720,20 @@ users:
 			dataFormat:  format.YAML,
 			expressions: "$.users[0].name",
 		}, wantErr: false},
+		{name: "one proper field with template value #1", fields: fields{body: []byte(yaml), cacheData: map[string]interface{}{
+			"USER_ID": 0,
+		}}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.users[{{.USER_ID}}].name",
+		}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewDefaultState(false, "")
+
+			for k, v := range tt.fields.cacheData {
+				s.Cache.Save(k, v)
+			}
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
 
