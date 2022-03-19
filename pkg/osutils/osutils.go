@@ -78,15 +78,15 @@ func (fv FileValidator) Validate(in interface{}) error {
 	_, err := os.Stat(p)
 
 	isNotExist := os.IsNotExist(err)
-	if !isNotExist {
-		return nil
+	if isNotExist {
+		return fmt.Errorf("%s does not point at any file in your local OS", p)
 	}
 
-	return fmt.Errorf("%s does not point at any file in your local OS", p)
+	return nil
 }
 
 // Recognize accepts any string and look after reference to file as defined during construction phase in prefix field.
-// second bool argument tells whether reference was found
+// second bool argument tells whether reference was found and is valid
 func (fr OSFileRecognizer) Recognize(input string) (FileReference, bool) {
 	fileReference := FileReference{}
 	idx := strings.Index(input, fr.prefix)
@@ -94,6 +94,9 @@ func (fr OSFileRecognizer) Recognize(input string) (FileReference, bool) {
 	isFound := idx != -1
 
 	if isFound {
+		fileReference.FoundPrefix.Value = fr.prefix
+		fileReference.FoundPrefix.Index = idx
+
 		ref := input[idx+len(fr.prefix):]
 
 		fileErr := fr.fileValidator.Validate(ref)
@@ -103,9 +106,12 @@ func (fr OSFileRecognizer) Recognize(input string) (FileReference, bool) {
 
 		fileReference.Reference.Type = ReferenceTypeOSPath
 		fileReference.Reference.Value = ref
-		fileReference.FoundPrefix.Value = fr.prefix
-		fileReference.FoundPrefix.Index = idx
 	}
 
 	return fileReference, isFound
+}
+
+// IsFoundReference tells whether reference to file was detected. It may not be valid
+func (fr FileReference) IsFoundReference() bool {
+	return len(fr.FoundPrefix.Value) > 0
 }

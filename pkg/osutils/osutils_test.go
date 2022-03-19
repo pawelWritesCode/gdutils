@@ -51,7 +51,11 @@ func TestFileRecognizer_Recognize(t *testing.T) {
 			mockFunc: func() {
 				mFileValidator.On("Validate", "abc").Return(errors.New("error")).Once()
 			},
-		}, args: args{input: "file://abc"}, want: FileReference{}, want1: false},
+		}, args: args{input: "file://abc"}, want: FileReference{
+			FoundPrefix: FoundPrefix{
+				Value: "file://",
+			},
+		}, want1: false},
 
 		{name: "input contains file reference #1", fields: fields{
 			fileValidator: mFileValidator,
