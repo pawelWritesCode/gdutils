@@ -1,6 +1,7 @@
 package format
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 
@@ -25,27 +26,37 @@ const (
 type DataFormat string
 
 // IsJSON checks whether bytes are in JSON format.
-func IsJSON(bytes []byte) bool {
+func IsJSON(b []byte) bool {
 	var js json.RawMessage
-	err := json.Unmarshal(bytes, &js)
+	err := json.Unmarshal(b, &js)
 
 	return err == nil
 }
 
 //IsYAML checks whether bytes are in YAML format.
-func IsYAML(bytes []byte) bool {
-	if IsJSON(bytes) {
+func IsYAML(b []byte) bool {
+	if IsJSON(b) {
 		return false
 	}
 
-	var y map[string]interface{}
-	err := yaml.Unmarshal(bytes, &y)
-	return err == nil
+	if IsXML(b) {
+		return false
+	}
+
+	// yaml.UnmarshalWithOptions parses successfully any plain text,
+	// to detect text that is not in yaml format, we assume, there must be,
+	// at least one key: value pair in yaml
+	if !bytes.Contains(b, []byte(":")) {
+		return false
+	}
+
+	var y interface{}
+	return yaml.UnmarshalWithOptions(b, &y, yaml.Strict()) == nil
 }
 
 // IsXML checks whether bytes are in XML format.
-func IsXML(bytes []byte) bool {
+func IsXML(b []byte) bool {
 	var v interface{}
-	err := xml.Unmarshal(bytes, &v)
+	err := xml.Unmarshal(b, &v)
 	return err == nil
 }

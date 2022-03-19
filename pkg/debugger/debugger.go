@@ -56,7 +56,7 @@ func (d *DebuggerService) Reset(isOn bool) {
 
 // Print prints provided info.
 func (d *DebuggerService) Print(info string) {
-	fmt.Printf(strings.Repeat("-", 20)+" DEBUG + ", strings.Repeat("-", 20)+"\n")
+	fmt.Printf(strings.Repeat("-", 35) + " DEBUG " + strings.Repeat("-", 35) + "\n")
 	fmt.Println(info)
-	fmt.Printf(strings.Repeat("-", 47))
+	fmt.Printf(strings.Repeat("-", 77) + "\n")
 }

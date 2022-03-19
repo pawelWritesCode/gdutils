@@ -88,7 +88,7 @@ func (n newDebugger) Reset(isOn bool) {
 }
 
 func TestState_ResetState(t *testing.T) {
-	s := NewDefaultState(true, "")
+	s := NewDefaultAPIContext(true, "")
 	s.Cache.Save("test", 1)
 
 	s.ResetState(false)
@@ -103,7 +103,7 @@ func TestState_ResetState(t *testing.T) {
 }
 
 func TestState_SetDebugger(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 
 	_, isDefaultDebugger := s.Debugger.(*debugger.DebuggerService)
 	if !isDefaultDebugger {
@@ -119,7 +119,7 @@ func TestState_SetDebugger(t *testing.T) {
 }
 
 func TestState_SetCache(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 
 	_, isDefaultCache := s.Cache.(*cache.ConcurrentCache)
 	if !isDefaultCache {
@@ -135,7 +135,7 @@ func TestState_SetCache(t *testing.T) {
 }
 
 func TestState_SetRequestDoer(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 
 	_, isDefaultHttpCli := s.RequestDoer.(*http.Client)
 	if !isDefaultHttpCli {
@@ -151,7 +151,7 @@ func TestState_SetRequestDoer(t *testing.T) {
 }
 
 func TestState_SetTemplateEngine(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 	_, isDefault := s.TemplateEngine.(template.TemplateManager)
 	if !isDefault {
 		t.Errorf("default TemplateEngine is not template.TemplateManager")
@@ -166,7 +166,7 @@ func TestState_SetTemplateEngine(t *testing.T) {
 }
 
 func TestState_SetSchemaStringValidator(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 
 	_, isDefault := s.SchemaValidators.StringValidator.(schema.JSONSchemaRawValidator)
 	if !isDefault {
@@ -182,7 +182,7 @@ func TestState_SetSchemaStringValidator(t *testing.T) {
 }
 
 func TestState_SetSchemaReferenceValidator(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 
 	_, isDefault := s.SchemaValidators.ReferenceValidator.(schema.JSONSchemaReferenceValidator)
 	if !isDefault {
@@ -198,7 +198,7 @@ func TestState_SetSchemaReferenceValidator(t *testing.T) {
 }
 
 func TestState_SetJSONPathFinder(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 
 	_, isDefault := s.PathFinders.JSON.(*pathfinder.DynamicJSONPathFinder)
 	if !isDefault {
@@ -214,7 +214,7 @@ func TestState_SetJSONPathFinder(t *testing.T) {
 }
 
 func TestState_SetYAMLPathFinder(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 
 	_, isDefault := s.PathFinders.YAML.(pathfinder.GoccyGoYamlFinder)
 	if !isDefault {
@@ -230,7 +230,7 @@ func TestState_SetYAMLPathFinder(t *testing.T) {
 }
 
 func TestState_SetXMLPathFinder(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 
 	_, isDefault := s.PathFinders.XML.(pathfinder.AntchfxXMLFinder)
 	if !isDefault {
@@ -246,7 +246,7 @@ func TestState_SetXMLPathFinder(t *testing.T) {
 }
 
 func TestState_SetJSONFormatter(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 
 	_, isDefault := s.Formatters.JSON.(formatter.JSONFormatter)
 	if !isDefault {
@@ -262,7 +262,7 @@ func TestState_SetJSONFormatter(t *testing.T) {
 }
 
 func TestState_SetYAMLFormatter(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 
 	_, isDefault := s.Formatters.YAML.(formatter.YAMLFormatter)
 	if !isDefault {
@@ -278,7 +278,7 @@ func TestState_SetYAMLFormatter(t *testing.T) {
 }
 
 func TestState_SetXMLFormatter(t *testing.T) {
-	s := NewDefaultState(false, "")
+	s := NewDefaultAPIContext(false, "")
 
 	_, isDefault := s.Formatters.XML.(formatter.XMLFormatter)
 	if !isDefault {

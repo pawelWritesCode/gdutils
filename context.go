@@ -15,27 +15,27 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
 
-// State struct represents data shared across one scenario.
-type State struct {
-	// Debugger represents scenario debugger.
+// APIContext holds utility services for working with HTTP(s) API.
+type APIContext struct {
+	// Debugger represents debugger.
 	Debugger debugger.Debugger
 
-	// Cache is storage for scenario data.
+	// Cache is storage for data.
 	Cache cache.Cache
 
-	// RequestDoer is service that has ability to send HTTP(s) requests
+	// RequestDoer is service that has ability to send HTTP(s) requests.
 	RequestDoer httpctx.RequestDoer
 
 	// TemplateEngine is entity that has ability to work with template values.
 	TemplateEngine template.Engine
 
-	// SchemaValidators holds validators available to validate JSON Schemas.
+	// SchemaValidators holds validators available to validate data against schemas.
 	SchemaValidators SchemaValidators
 
 	// PathFinders are entities that has ability to obtain data from different data formats.
 	PathFinders PathFinders
 
-	// Formatters are entities that has ability to deserialize data from one of available formats.
+	// Formatters are entities that has ability to format data in particular format.
 	Formatters Formatters
 
 	// fileRecognizer is entity that has ability to recognize file reference.
@@ -76,9 +76,9 @@ type PathFinders struct {
 	XML pathfinder.PathFinder
 }
 
-// NewDefaultState returns *State with default services.
+// NewDefaultAPIContext returns *APIContext with default services.
 // jsonSchemaDir may be empty string or valid full path to directory with JSON schemas.
-func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
+func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext {
 	defaultCache := cache.NewConcurrentCache()
 	defaultHttpClient := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -101,16 +101,17 @@ func NewDefaultState(isDebug bool, jsonSchemaDir string) *State {
 		XML:  formatter.NewXMLFormatter(),
 	}
 
-	return NewState(defaultHttpClient, defaultCache, jsonSchemaValidators, pathFinders, formatters, isDebug)
-}
-
-// NewState returns *State
-func NewState(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, f Formatters, isDebug bool) *State {
-	fileRecognizer := osutils.NewOSFileRecognizer("file://", osutils.NewFileValidator())
 	defaultDebugger := debugger.New(isDebug)
 
-	return &State{
-		Debugger:         defaultDebugger,
+	return NewAPIContext(defaultHttpClient, defaultCache, jsonSchemaValidators, pathFinders, formatters, defaultDebugger)
+}
+
+// NewAPIContext returns *APIContext
+func NewAPIContext(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, f Formatters, d debugger.Debugger) *APIContext {
+	fileRecognizer := osutils.NewOSFileRecognizer("file://", osutils.NewFileValidator())
+
+	return &APIContext{
+		Debugger:         d,
 		Cache:            c,
 		RequestDoer:      cli,
 		TemplateEngine:   template.New(),
@@ -121,68 +122,68 @@ func NewState(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinder
 	}
 }
 
-// ResetState resets State struct instance to default values.
-func (s *State) ResetState(isDebug bool) {
-	s.Cache.Reset()
-	s.Debugger.Reset(isDebug)
+// ResetState resets state of APIContext to initial.
+func (apiCtx *APIContext) ResetState(isDebug bool) {
+	apiCtx.Cache.Reset()
+	apiCtx.Debugger.Reset(isDebug)
 }
 
-// SetDebugger sets new debugger for State.
-func (s *State) SetDebugger(d debugger.Debugger) {
-	s.Debugger = d
+// SetDebugger sets new debugger for APIContext.
+func (apiCtx *APIContext) SetDebugger(d debugger.Debugger) {
+	apiCtx.Debugger = d
 }
 
-// SetCache sets new Cache for State.
-func (s *State) SetCache(c cache.Cache) {
-	s.Cache = c
+// SetCache sets new Cache for APIContext.
+func (apiCtx *APIContext) SetCache(c cache.Cache) {
+	apiCtx.Cache = c
 }
 
-// SetRequestDoer sets new RequestDoer for State.
-func (s *State) SetRequestDoer(r httpctx.RequestDoer) {
-	s.RequestDoer = r
+// SetRequestDoer sets new RequestDoer for APIContext.
+func (apiCtx *APIContext) SetRequestDoer(r httpctx.RequestDoer) {
+	apiCtx.RequestDoer = r
 }
 
-// SetTemplateEngine sets new template Engine for State.
-func (s *State) SetTemplateEngine(t template.Engine) {
-	s.TemplateEngine = t
+// SetTemplateEngine sets new template Engine for APIContext.
+func (apiCtx *APIContext) SetTemplateEngine(t template.Engine) {
+	apiCtx.TemplateEngine = t
 }
 
-// SetSchemaStringValidator sets new schema StringValidator for State.
-func (s *State) SetSchemaStringValidator(j validator.SchemaValidator) {
-	s.SchemaValidators.StringValidator = j
+// SetSchemaStringValidator sets new schema StringValidator for APIContext.
+func (apiCtx *APIContext) SetSchemaStringValidator(j validator.SchemaValidator) {
+	apiCtx.SchemaValidators.StringValidator = j
 }
 
-// SetSchemaReferenceValidator sets new schema ReferenceValidator for State.
-func (s *State) SetSchemaReferenceValidator(j validator.SchemaValidator) {
-	s.SchemaValidators.ReferenceValidator = j
+// SetSchemaReferenceValidator sets new schema ReferenceValidator for APIContext.
+func (apiCtx *APIContext) SetSchemaReferenceValidator(j validator.SchemaValidator) {
+	apiCtx.SchemaValidators.ReferenceValidator = j
 }
 
-// SetJSONPathFinder sets new JSON pathfinder for State.
-func (s *State) SetJSONPathFinder(r pathfinder.PathFinder) {
-	s.PathFinders.JSON = r
+// SetJSONPathFinder sets new JSON pathfinder for APIContext.
+func (apiCtx *APIContext) SetJSONPathFinder(r pathfinder.PathFinder) {
+	apiCtx.PathFinders.JSON = r
 }
 
-// SetYAMLPathFinder sets new YAML pathfinder for State.
-func (s *State) SetYAMLPathFinder(r pathfinder.PathFinder) {
-	s.PathFinders.YAML = r
+// SetYAMLPathFinder sets new YAML pathfinder for APIContext.
+func (apiCtx *APIContext) SetYAMLPathFinder(r pathfinder.PathFinder) {
+	apiCtx.PathFinders.YAML = r
 }
 
-// SetXMLPathFinder sets new XML pathfinder for State.
-func (s *State) SetXMLPathFinder(r pathfinder.PathFinder) {
-	s.PathFinders.XML = r
+// SetXMLPathFinder sets new XML pathfinder for APIContext.
+func (apiCtx *APIContext) SetXMLPathFinder(r pathfinder.PathFinder) {
+	apiCtx.PathFinders.XML = r
 }
 
-// SetJSONFormatter sets new JSON formatter for State.
-func (s *State) SetJSONFormatter(jf formatter.Formatter) {
-	s.Formatters.JSON = jf
+// SetJSONFormatter sets new JSON formatter for APIContext.
+func (apiCtx *APIContext) SetJSONFormatter(jf formatter.Formatter) {
+	apiCtx.Formatters.JSON = jf
 }
 
-// SetYAMLFormatter sets new YAML formatter for State.
-func (s *State) SetYAMLFormatter(yd formatter.Formatter) {
-	s.Formatters.YAML = yd
+// SetYAMLFormatter sets new YAML formatter for APIContext.
+func (apiCtx *APIContext) SetYAMLFormatter(yd formatter.Formatter) {
+	apiCtx.Formatters.YAML = yd
 }
 
-// SetXMLFormatter sets new XML formatter for State.
-func (s *State) SetXMLFormatter(xf formatter.Formatter) {
-	s.Formatters.XML = xf
+// SetXMLFormatter sets new XML formatter for APIContext.
+func (apiCtx *APIContext) SetXMLFormatter(xf formatter.Formatter) {
+	apiCtx.Formatters.XML = xf
 }

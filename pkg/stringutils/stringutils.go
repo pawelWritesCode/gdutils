@@ -1,4 +1,5 @@
 // Package stringutils holds utility methods for working with strings.
+// Each exported charset usually does not contain all symbols in it.
 package stringutils
 
 import (
@@ -16,7 +17,7 @@ const (
 		CharsetRunes + CharsetDesered + CharsetShavian
 
 	// CharsetASCII represents set containing only ASCII characters.
-	CharsetASCII = " !#$%&'()*+,-.0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ^_`abcdefghijklmnopqrstuvwxyz|~"
+	CharsetASCII = " !#$%&()*+,-.0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ^_abcdefghijklmnopqrstuvwxyz|~"
 
 	// CharsetPolish represents set of only polish letters.
 	CharsetPolish = "ĄąĆćĘęŁłŃńÓóŚśŹźŻżabcdefghijklmnoprstuwvxyzABCDEFGHIJKLMNOPRSTUWVXYZ"

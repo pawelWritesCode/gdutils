@@ -51,13 +51,13 @@ type BodyHeaders struct {
 	Argument "bodyTemplate" should contain data (may include template values)
 	in JSON or YAML format with keys "body" and "headers".
 */
-func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate string) error {
-	input, err := s.TemplateEngine.Replace(bodyTemplate, s.Cache.All())
+func (apiCtx *APIContext) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate string) error {
+	input, err := apiCtx.TemplateEngine.Replace(bodyTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'headers and body' template, err: %w", err)
 	}
 
-	url, err := s.TemplateEngine.Replace(urlTemplate, s.Cache.All())
+	url, err := apiCtx.TemplateEngine.Replace(urlTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'url' template, err: %w", err)
 	}
@@ -71,16 +71,16 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 	} else if format.IsXML([]byte(input)) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	switch dataFormat {
 	case format.JSON:
-		err = s.Formatters.JSON.Deserialize([]byte(input), &bodyAndHeaders)
+		err = apiCtx.Formatters.JSON.Deserialize([]byte(input), &bodyAndHeaders)
 	case format.YAML:
-		err = s.Formatters.YAML.Deserialize([]byte(input), &bodyAndHeaders)
+		err = apiCtx.Formatters.YAML.Deserialize([]byte(input), &bodyAndHeaders)
 	default:
-		err = fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
+		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
@@ -90,11 +90,11 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 	var reqBody []byte
 	switch dataFormat {
 	case format.JSON:
-		reqBody, err = s.Formatters.JSON.Serialize(bodyAndHeaders.Body)
+		reqBody, err = apiCtx.Formatters.JSON.Serialize(bodyAndHeaders.Body)
 	case format.YAML:
-		reqBody, err = s.Formatters.YAML.Serialize(bodyAndHeaders.Body)
+		reqBody, err = apiCtx.Formatters.YAML.Serialize(bodyAndHeaders.Body)
 	default:
-		err = fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
+		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
@@ -110,32 +110,32 @@ func (s *State) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bod
 		req.Header.Set(headerName, headerValue)
 	}
 
-	if s.Debugger.IsOn() {
+	if apiCtx.Debugger.IsOn() {
 		command, _ := http2curl.GetCurlCommand(req)
-		s.Debugger.Print(command.String())
+		apiCtx.Debugger.Print(command.String())
 	}
 
-	s.Cache.Save(httpcache.LastHTTPRequestTimestamp, time.Now())
+	apiCtx.Cache.Save(httpcache.LastHTTPRequestTimestamp, time.Now())
 
-	resp, err := s.RequestDoer.Do(req)
+	resp, err := apiCtx.RequestDoer.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send request %s %s, reason: %w", req.Method, req.URL.String(), err)
 	}
 
-	s.Cache.Save(httpcache.LastHTTPResponseTimestamp, time.Now())
-	s.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseTimestamp, time.Now())
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
 
-	if s.Debugger.IsOn() {
-		respBody, _ := s.GetLastResponseBody()
-		s.Debugger.Print(fmt.Sprintf("%s %s response body:\n\n%s\n", req.Method, req.URL.String(), respBody))
+	if apiCtx.Debugger.IsOn() {
+		respBody, _ := apiCtx.GetLastResponseBody()
+		apiCtx.Debugger.Print(fmt.Sprintf("%s %s response body (status code: %d):\n\n%s\n", req.Method, req.URL.String(), resp.StatusCode, respBody))
 	}
 
 	return nil
 }
 
 // IPrepareNewRequestToAndSaveItAs prepares new request and saves it in cache under cacheKey
-func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error {
-	url, err := s.TemplateEngine.Replace(urlTemplate, s.Cache.All())
+func (apiCtx *APIContext) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error {
+	url, err := apiCtx.TemplateEngine.Replace(urlTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'url' template, err: %w", err)
 	}
@@ -145,15 +145,15 @@ func (s *State) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey st
 		return fmt.Errorf("can't create request due to err: %w", err)
 	}
 
-	s.Cache.Save(cacheKey, req)
+	apiCtx.Cache.Save(cacheKey, req)
 
 	return nil
 }
 
 // ISetFollowingHeadersForPreparedRequest sets provided headers for previously prepared request.
 // incoming data should be in JSON or YAML format
-func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate string) error {
-	headers, err := s.TemplateEngine.Replace(headersTemplate, s.Cache.All())
+func (apiCtx *APIContext) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate string) error {
+	headers, err := apiCtx.TemplateEngine.Replace(headersTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'headers' template, err: %w", err)
 	}
@@ -161,20 +161,20 @@ func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate
 	var headersMap map[string]string
 	headersBytes := []byte(headers)
 	if format.IsJSON(headersBytes) {
-		if err = s.Formatters.JSON.Deserialize(headersBytes, &headersMap); err != nil {
+		if err = apiCtx.Formatters.JSON.Deserialize(headersBytes, &headersMap); err != nil {
 			return fmt.Errorf("could not deserialize provided headers, err: %w", err)
 		}
 	} else if format.IsYAML(headersBytes) {
-		if err = s.Formatters.YAML.Deserialize(headersBytes, &headersMap); err != nil {
+		if err = apiCtx.Formatters.YAML.Deserialize(headersBytes, &headersMap); err != nil {
 			return fmt.Errorf("could not deserialize provided headers, err: %w", err)
 		}
 	} else if format.IsXML(headersBytes) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
-	req, err := s.GetPreparedRequest(cacheKey)
+	req, err := apiCtx.GetPreparedRequest(cacheKey)
 	if err != nil {
 		return fmt.Errorf("could not obtain prepared request, err: %w", err)
 	}
@@ -183,65 +183,65 @@ func (s *State) ISetFollowingHeadersForPreparedRequest(cacheKey, headersTemplate
 		req.Header.Set(hName, hValue)
 	}
 
-	s.Cache.Save(cacheKey, req)
+	apiCtx.Cache.Save(cacheKey, req)
 
 	return nil
 }
 
 // ISetFollowingBodyForPreparedRequest sets body for previously prepared request
 // bodyTemplate may be in any format and accepts template values
-func (s *State) ISetFollowingBodyForPreparedRequest(cacheKey, bodyTemplate string) error {
-	body, err := s.TemplateEngine.Replace(bodyTemplate, s.Cache.All())
+func (apiCtx *APIContext) ISetFollowingBodyForPreparedRequest(cacheKey, bodyTemplate string) error {
+	body, err := apiCtx.TemplateEngine.Replace(bodyTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'body' template, err: %w", err)
 	}
 
-	req, err := s.GetPreparedRequest(cacheKey)
+	req, err := apiCtx.GetPreparedRequest(cacheKey)
 	if err != nil {
 		return fmt.Errorf("could not obtain prepared request, err: %w", err)
 	}
 
 	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(body)))
-	s.Cache.Save(cacheKey, req)
+	apiCtx.Cache.Save(cacheKey, req)
 
 	return nil
 }
 
 // ISetFollowingCookiesForPreparedRequest sets cookies for previously prepared request.
 // cookiesTemplate should be YAML or JSON deserializable on []http.Cookie.
-func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate string) error {
+func (apiCtx *APIContext) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate string) error {
 	var cookies []http.Cookie
 
-	userCookies, err := s.TemplateEngine.Replace(cookiesTemplate, s.Cache.All())
+	userCookies, err := apiCtx.TemplateEngine.Replace(cookiesTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'cookies' template, err: %w", err)
 	}
 
-	req, err := s.GetPreparedRequest(cacheKey)
+	req, err := apiCtx.GetPreparedRequest(cacheKey)
 	if err != nil {
 		return fmt.Errorf("could not obtain prepared request, err: %w", err)
 	}
 
 	userCookiesBytes := []byte(userCookies)
 	if format.IsJSON(userCookiesBytes) {
-		if err = s.Formatters.JSON.Deserialize(userCookiesBytes, &cookies); err != nil {
+		if err = apiCtx.Formatters.JSON.Deserialize(userCookiesBytes, &cookies); err != nil {
 			return fmt.Errorf("could not deserialize provided cookies, err: %w", err)
 		}
 	} else if format.IsYAML(userCookiesBytes) {
-		if err = s.Formatters.YAML.Deserialize(userCookiesBytes, &cookies); err != nil {
+		if err = apiCtx.Formatters.YAML.Deserialize(userCookiesBytes, &cookies); err != nil {
 			return fmt.Errorf("could not deserialize provided cookies, err: %w", err)
 		}
 	} else if format.IsXML(userCookiesBytes) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	for _, cookie := range cookies {
 		req.AddCookie(&cookie)
 	}
 
-	s.Cache.Save(cacheKey, req)
+	apiCtx.Cache.Save(cacheKey, req)
 
 	return nil
 }
@@ -251,13 +251,13 @@ func (s *State) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate
 	Internally method sets proper Content-Type: multipart/form-data header.
 	formTemplate should be YAML or JSON deserializable on map[string]string.
 */
-func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate string) error {
-	form, err := s.TemplateEngine.Replace(formTemplate, s.Cache.All())
+func (apiCtx *APIContext) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate string) error {
+	form, err := apiCtx.TemplateEngine.Replace(formTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
 	}
 
-	req, err := s.GetPreparedRequest(cacheKey)
+	req, err := apiCtx.GetPreparedRequest(cacheKey)
 	if err != nil {
 		return fmt.Errorf("could not obtain prepared request, err: %w", err)
 	}
@@ -265,13 +265,13 @@ func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate strin
 	var formKeyVal map[string]string
 	formBytes := []byte(form)
 	if format.IsJSON(formBytes) {
-		err = s.Formatters.JSON.Deserialize(formBytes, &formKeyVal)
+		err = apiCtx.Formatters.JSON.Deserialize(formBytes, &formKeyVal)
 	} else if format.IsYAML(formBytes) {
-		err = s.Formatters.YAML.Deserialize(formBytes, &formKeyVal)
+		err = apiCtx.Formatters.YAML.Deserialize(formBytes, &formKeyVal)
 	} else if format.IsXML(formBytes) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("data has unknown format, supported formats: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
@@ -281,8 +281,8 @@ func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate strin
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	for key, value := range formKeyVal {
-		reference, foundReference := s.fileRecognizer.Recognize(value)
-		if foundReference {
+		reference, foundValidReference := apiCtx.fileRecognizer.Recognize(value)
+		if foundValidReference {
 			if reference.Reference.Type == osutils.ReferenceTypeOSPath {
 				file, err := os.Open(reference.Reference.Value)
 				if err != nil {
@@ -301,6 +301,10 @@ func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate strin
 			}
 
 			continue
+		}
+
+		if reference.IsFoundReference() && !foundValidReference {
+			return fmt.Errorf("form field '%s' holds invalid reference to file", key)
 		}
 
 		fw, err := writer.CreateFormField(key)
@@ -322,44 +326,44 @@ func (s *State) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate strin
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Body = ioutil.NopCloser(bytes.NewReader(body.Bytes()))
 
-	s.Cache.Save(cacheKey, req)
+	apiCtx.Cache.Save(cacheKey, req)
 
 	return nil
 }
 
 // ISendRequest sends previously prepared HTTP(s) request.
-func (s *State) ISendRequest(cacheKey string) error {
-	req, err := s.GetPreparedRequest(cacheKey)
+func (apiCtx *APIContext) ISendRequest(cacheKey string) error {
+	req, err := apiCtx.GetPreparedRequest(cacheKey)
 	if err != nil {
 		return fmt.Errorf("could not obtain prepared request, err: %w", err)
 	}
 
-	if s.Debugger.IsOn() {
+	if apiCtx.Debugger.IsOn() {
 		command, _ := http2curl.GetCurlCommand(req)
-		s.Debugger.Print(command.String())
+		apiCtx.Debugger.Print(command.String())
 	}
 
-	s.Cache.Save(httpcache.LastHTTPRequestTimestamp, time.Now())
+	apiCtx.Cache.Save(httpcache.LastHTTPRequestTimestamp, time.Now())
 
-	resp, err := s.RequestDoer.Do(req)
+	resp, err := apiCtx.RequestDoer.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send request %s %s, reason: %w", req.Method, req.URL.String(), err)
 	}
 
-	s.Cache.Save(httpcache.LastHTTPResponseTimestamp, time.Now())
-	s.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseTimestamp, time.Now())
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, resp)
 
-	if s.Debugger.IsOn() {
-		respBody, _ := s.GetLastResponseBody()
-		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", respBody))
+	if apiCtx.Debugger.IsOn() {
+		respBody, _ := apiCtx.GetLastResponseBody()
+		apiCtx.Debugger.Print(fmt.Sprintf("%s %s response body (status code: %d):\n\n%s\n", req.Method, req.URL.String(), resp.StatusCode, respBody))
 	}
 
 	return nil
 }
 
 // TheResponseStatusCodeShouldBe compare last response status code with given in argument.
-func (s *State) TheResponseStatusCodeShouldBe(code int) error {
-	lastResponse, err := s.GetLastResponse()
+func (apiCtx *APIContext) TheResponseStatusCodeShouldBe(code int) error {
+	lastResponse, err := apiCtx.GetLastResponse()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
 	}
@@ -373,8 +377,8 @@ func (s *State) TheResponseStatusCodeShouldBe(code int) error {
 
 // TheResponseBodyShouldHaveFormat checks whether last response body has given data format.
 // Available data formats are listed in format package.
-func (s *State) TheResponseBodyShouldHaveFormat(dataFormat format.DataFormat) error {
-	body, err := s.GetLastResponseBody()
+func (apiCtx *APIContext) TheResponseBodyShouldHaveFormat(dataFormat format.DataFormat) error {
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
@@ -400,7 +404,7 @@ func (s *State) TheResponseBodyShouldHaveFormat(dataFormat format.DataFormat) er
 			return nil
 		}
 
-		return fmt.Errorf("response body doesn't have format", format.XML)
+		return fmt.Errorf("response body doesn't have format %s", format.XML)
 	//This case checks whether last response body is not any of known types - then it assumes it is plain text
 	case format.PlainText:
 		if !(format.IsJSON(body) || format.IsYAML(body) || format.IsXML(body)) {
@@ -416,20 +420,20 @@ func (s *State) TheResponseBodyShouldHaveFormat(dataFormat format.DataFormat) er
 
 // IGenerateARandomIntInTheRangeToAndSaveItAs generates random integer from provided range
 // and preserve it under given cacheKey key.
-func (s *State) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
+func (apiCtx *APIContext) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
 	randomInteger, err := mathutils.RandomInt(from, to)
 	if err != nil {
 		return fmt.Errorf("problem during generating pseudo random integer, err: %w", err)
 	}
 
-	s.Cache.Save(cacheKey, randomInteger)
+	apiCtx.Cache.Save(cacheKey, randomInteger)
 
 	return nil
 }
 
 // IGenerateARandomFloatInTheRangeToAndSaveItAs generates random float from provided range
 // and preserve it under given cacheKey key.
-func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
+func (apiCtx *APIContext) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
 	randInt, err := mathutils.RandomInt(from, to)
 	if err != nil {
 		return fmt.Errorf("problem during generating pseudo random float, randomInt err: %w", err)
@@ -442,21 +446,21 @@ func (s *State) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cache
 		return fmt.Errorf("problem during generating pseudo random float, parsing err: %w", err)
 	}
 
-	s.Cache.Save(cacheKey, floatVal)
+	apiCtx.Cache.Save(cacheKey, floatVal)
 
 	return nil
 }
 
 // IGenerateARandomRunesInTheRangeToAndSaveItAs creates random runes generator func using provided charset
 // return func creates runes from provided range and preserve it under given cacheKey
-func (s *State) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset string) func(from, to int, cacheKey string) error {
+func (apiCtx *APIContext) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset string) func(from, to int, cacheKey string) error {
 	return func(from, to int, cacheKey string) error {
 		randInt, err := mathutils.RandomInt(from, to)
 		if err != nil {
 			return fmt.Errorf("problem during generating random runes, randomInt err: %w", err)
 		}
 
-		s.Cache.Save(cacheKey, string(stringutils.RunesFromCharset(randInt, []rune(charset))))
+		apiCtx.Cache.Save(cacheKey, string(stringutils.RunesFromCharset(randInt, []rune(charset))))
 
 		return nil
 	}
@@ -466,7 +470,7 @@ func (s *State) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset string) fun
 	IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs creates generator func for creating random sentences
 	each sentence has length from - to as provided in params and is saved in provided cacheKey
 */
-func (s *State) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error {
+func (apiCtx *APIContext) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error {
 	return func(from, to int, cacheKey string) error {
 		if from > to {
 			return fmt.Errorf("could not generate sentence because of invalid range provided, from '%d' should not be greater than to: '%d'", from, to)
@@ -496,7 +500,7 @@ func (s *State) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset
 			}
 		}
 
-		s.Cache.Save(cacheKey, sentence)
+		apiCtx.Cache.Save(cacheKey, sentence)
 
 		return nil
 	}
@@ -504,7 +508,7 @@ func (s *State) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset
 
 // IGetTimeAndTravelByAndSaveItAs accepts time object, move timeDuration in time and
 // save it in cache under given cacheKey.
-func (s *State) IGetTimeAndTravelByAndSaveItAs(t time.Time, timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error {
+func (apiCtx *APIContext) IGetTimeAndTravelByAndSaveItAs(t time.Time, timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error {
 	var newTime time.Time
 	switch timeDirection {
 	case timeutils.TimeDirectionBackward:
@@ -515,45 +519,45 @@ func (s *State) IGetTimeAndTravelByAndSaveItAs(t time.Time, timeDirection timeut
 		return fmt.Errorf("unknown time direction: %s, allowed: %s, %s", timeDirection, timeutils.TimeDirectionForward, timeutils.TimeDirectionBackward)
 	}
 
-	s.Cache.Save(cacheKey, newTime)
+	apiCtx.Cache.Save(cacheKey, newTime)
 
 	return nil
 }
 
 // IGenerateCurrentTimeAndTravelByAndSaveItAs creates current time object, move timeDuration in time and
 // save it in cache under given cacheKey.
-func (s *State) IGenerateCurrentTimeAndTravelByAndSaveItAs(timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error {
-	return s.IGetTimeAndTravelByAndSaveItAs(time.Now(), timeDirection, timeDuration, cacheKey)
+func (apiCtx *APIContext) IGenerateCurrentTimeAndTravelByAndSaveItAs(timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error {
+	return apiCtx.IGetTimeAndTravelByAndSaveItAs(time.Now(), timeDirection, timeDuration, cacheKey)
 }
 
 // TheResponseShouldHaveNode checks whether last response body contains given node.
 // expr should be valid according to injected PathFinder for given data format
-func (s *State) TheResponseShouldHaveNode(dataFormat format.DataFormat, exprTemplate string) error {
-	body, err := s.GetLastResponseBody()
+func (apiCtx *APIContext) TheResponseShouldHaveNode(dataFormat format.DataFormat, exprTemplate string) error {
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
-	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
 	}
 
 	switch dataFormat {
 	case format.JSON:
-		_, err = s.PathFinders.JSON.Find(expr, body)
+		_, err = apiCtx.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
-		_, err = s.PathFinders.YAML.Find(expr, body)
+		_, err = apiCtx.PathFinders.YAML.Find(expr, body)
 	case format.XML:
-		_, err = s.PathFinders.XML.Find(expr, body)
+		_, err = apiCtx.PathFinders.XML.Find(expr, body)
 	default:
 		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
 			dataFormat, format.JSON, format.YAML, format.XML)
 	}
 
 	if err != nil {
-		if s.Debugger.IsOn() {
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
+		if apiCtx.Debugger.IsOn() {
+			apiCtx.Debugger.Print(fmt.Sprintf("last response body:\n\n%s", body))
 		}
 
 		return fmt.Errorf("node '%s', err: %w", expr, err)
@@ -564,15 +568,15 @@ func (s *State) TheResponseShouldHaveNode(dataFormat format.DataFormat, exprTemp
 
 // TheResponseShouldHaveNodes checks whether last request body has keys defined in string separated by comma
 // nodeExprs should be valid according to injected PathFinder expressions separated by comma (,)
-func (s *State) TheResponseShouldHaveNodes(dataFormat format.DataFormat, expressionsTemplate string) error {
-	expressions, err := s.TemplateEngine.Replace(expressionsTemplate, s.Cache.All())
+func (apiCtx *APIContext) TheResponseShouldHaveNodes(dataFormat format.DataFormat, expressionsTemplate string) error {
+	expressions, err := apiCtx.TemplateEngine.Replace(expressionsTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
 	}
 
 	keysSlice := strings.Split(expressions, ",")
 
-	body, err := s.GetLastResponseBody()
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
@@ -583,11 +587,11 @@ func (s *State) TheResponseShouldHaveNodes(dataFormat format.DataFormat, express
 
 		switch dataFormat {
 		case format.JSON:
-			_, err = s.PathFinders.JSON.Find(trimmedKey, body)
+			_, err = apiCtx.PathFinders.JSON.Find(trimmedKey, body)
 		case format.YAML:
-			_, err = s.PathFinders.YAML.Find(trimmedKey, body)
+			_, err = apiCtx.PathFinders.YAML.Find(trimmedKey, body)
 		case format.XML:
-			_, err = s.PathFinders.XML.Find(trimmedKey, body)
+			_, err = apiCtx.PathFinders.XML.Find(trimmedKey, body)
 		default:
 			return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
 				dataFormat, format.JSON, format.YAML, format.XML)
@@ -604,8 +608,8 @@ func (s *State) TheResponseShouldHaveNodes(dataFormat format.DataFormat, express
 			errString += fmt.Sprintf("%s\n", err)
 		}
 
-		if s.Debugger.IsOn() {
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
+		if apiCtx.Debugger.IsOn() {
+			apiCtx.Debugger.Print(fmt.Sprintf("last response body:\n\n%s", body))
 		}
 
 		return errors.New(errString)
@@ -617,13 +621,13 @@ func (s *State) TheResponseShouldHaveNodes(dataFormat format.DataFormat, express
 // TheNodeShouldNotBe checks whether node from last response body is not of provided type.
 // goType may be one of: nil, string, int, float, bool, map, slice,
 // expr should be valid according to injected PathFinder for given data format.
-func (s *State) TheNodeShouldNotBe(dataFormat format.DataFormat, exprTemplate string, goType string) error {
-	body, err := s.GetLastResponseBody()
+func (apiCtx *APIContext) TheNodeShouldNotBe(dataFormat format.DataFormat, exprTemplate string, goType string) error {
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
-	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
 	}
@@ -631,9 +635,9 @@ func (s *State) TheNodeShouldNotBe(dataFormat format.DataFormat, exprTemplate st
 	var iNodeVal interface{}
 	switch dataFormat {
 	case format.JSON:
-		iNodeVal, err = s.PathFinders.JSON.Find(expr, body)
+		iNodeVal, err = apiCtx.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
-		iNodeVal, err = s.PathFinders.YAML.Find(expr, body)
+		iNodeVal, err = apiCtx.PathFinders.YAML.Find(expr, body)
 	case format.XML:
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	default:
@@ -701,11 +705,11 @@ func (s *State) TheNodeShouldNotBe(dataFormat format.DataFormat, exprTemplate st
 // TheNodeShouldBe checks whether node from last response body is of provided type
 // goType may be one of: nil, string, int, float, bool, map, slice
 // expr should be valid according to injected PathResolver
-func (s *State) TheNodeShouldBe(dataFormat format.DataFormat, expr string, goType string) error {
+func (apiCtx *APIContext) TheNodeShouldBe(dataFormat format.DataFormat, exprTemplate string, goType string) error {
 	switch goType {
 	case "nil", "string", "int", "float", "bool", "map", "slice":
-		if err := s.TheNodeShouldNotBe(dataFormat, expr, goType); err == nil {
-			return fmt.Errorf("%s value is not \"%s\", but expected to be", expr, goType)
+		if err := apiCtx.TheNodeShouldNotBe(dataFormat, exprTemplate, goType); err == nil {
+			return fmt.Errorf("%s value is not \"%s\", but expected to be", exprTemplate, goType)
 		}
 
 		return nil
@@ -716,13 +720,13 @@ func (s *State) TheNodeShouldBe(dataFormat format.DataFormat, expr string, goTyp
 
 // TheNodeShouldBeSliceOfLength checks whether given key is slice and has given length
 // expr should be valid according to injected PathFinder for provided dataFormat
-func (s *State) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, exprTemplate string, length int) error {
-	body, err := s.GetLastResponseBody()
+func (apiCtx *APIContext) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, exprTemplate string, length int) error {
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
-	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
@@ -730,19 +734,19 @@ func (s *State) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, exprT
 	var iValue interface{}
 	switch dataFormat {
 	case format.JSON:
-		iValue, err = s.PathFinders.JSON.Find(expr, body)
+		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
-		iValue, err = s.PathFinders.YAML.Find(expr, body)
+		iValue, err = apiCtx.PathFinders.YAML.Find(expr, body)
 	case format.XML:
-		iValue, err = s.PathFinders.XML.Find(expr, body)
+		iValue, err = apiCtx.PathFinders.XML.Find(expr, body)
 	default:
 		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
 			dataFormat, format.JSON, format.YAML, format.XML)
 	}
 
 	if err != nil {
-		if s.Debugger.IsOn() {
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
+		if apiCtx.Debugger.IsOn() {
+			apiCtx.Debugger.Print(fmt.Sprintf("last response body:\n\n%s", body))
 		}
 
 		return fmt.Errorf("node '%s', err: %s", expr, err.Error())
@@ -757,8 +761,8 @@ func (s *State) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, exprT
 		return nil
 	}
 
-	if s.Debugger.IsOn() {
-		s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("last response body:\n\n%s", body))
 	}
 
 	return fmt.Errorf("%s does not point at slice(array) in last HTTP(s) response body", expr)
@@ -767,40 +771,33 @@ func (s *State) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, exprT
 // TheNodeShouldBeOfValue compares json node value from expression to expected by user dataValue of given by user dataType
 // Available data types are listed in switch section in each case directive.
 // expr should be valid according to injected PathFinder for provided dataFormat.
-func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, exprTemplate, dataType, dataValue string) error {
-	nodeValueReplaced, err := s.TemplateEngine.Replace(dataValue, s.Cache.All())
+func (apiCtx *APIContext) TheNodeShouldBeOfValue(dataFormat format.DataFormat, exprTemplate, dataType, dataValue string) error {
+	nodeValueReplaced, err := apiCtx.TemplateEngine.Replace(dataValue, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'value' template, err: %w", err)
 	}
 
-	if s.Debugger.IsOn() {
-		s.Debugger.Print(fmt.Sprintf("replaced value %s\n", nodeValueReplaced))
-	}
-
-	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
 
-	body, err := s.GetLastResponseBody()
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("expected value template '%s' was replace to '%s'\nprovided expression template '%s' was replace to '%s'", dataValue, nodeValueReplaced, exprTemplate, expr))
+	}
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
-	}
-
-	if s.Debugger.IsOn() {
-		defer func() {
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
-		}()
 	}
 
 	var iValue interface{}
 	switch dataFormat {
 	case format.JSON:
-		iValue, err = s.PathFinders.JSON.Find(expr, body)
+		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
-		iValue, err = s.PathFinders.YAML.Find(expr, body)
+		iValue, err = apiCtx.PathFinders.YAML.Find(expr, body)
 	case format.XML:
-		iValue, err = s.PathFinders.XML.Find(expr, body)
+		iValue, err = apiCtx.PathFinders.XML.Find(expr, body)
 	default:
 		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
 			dataFormat, format.JSON, format.YAML, format.XML)
@@ -902,18 +899,18 @@ func (s *State) TheNodeShouldBeOfValue(dataFormat format.DataFormat, exprTemplat
 }
 
 // TheNodeShouldMatchRegExp checks whether last response body node matches provided regExp.
-func (s *State) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error {
-	regExpString, err := s.TemplateEngine.Replace(regExpTemplate, s.Cache.All())
+func (apiCtx *APIContext) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error {
+	regExpString, err := apiCtx.TemplateEngine.Replace(regExpTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'regExp' template, err: %w", err)
 	}
 
-	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
 
-	body, err := s.GetLastResponseBody()
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
@@ -921,11 +918,11 @@ func (s *State) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, exprTempl
 	var iValue interface{}
 	switch dataFormat {
 	case format.JSON:
-		iValue, err = s.PathFinders.JSON.Find(expr, body)
+		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
-		iValue, err = s.PathFinders.YAML.Find(expr, body)
+		iValue, err = apiCtx.PathFinders.YAML.Find(expr, body)
 	case format.XML:
-		iValue, err = s.PathFinders.XML.Find(expr, body)
+		iValue, err = apiCtx.PathFinders.XML.Find(expr, body)
 	default:
 		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
 			dataFormat, format.JSON, format.YAML, format.XML)
@@ -935,13 +932,13 @@ func (s *State) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, exprTempl
 		return fmt.Errorf("node '%s', err: %s", expr, err.Error())
 	}
 
-	jsonValue, err := s.Formatters.JSON.Serialize(iValue)
+	jsonValue, err := apiCtx.Formatters.JSON.Serialize(iValue)
 	if err != nil {
 		return fmt.Errorf("problem during serialization, err: %w", err)
 	}
 
-	if s.Debugger.IsOn() {
-		s.Debugger.Print(fmt.Sprintf("matching: %s, with regExp: %s", jsonValue, regExpString))
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("matching: %s, with regExp: %s", jsonValue, regExpString))
 	}
 
 	matched, err := regexp.Match(regExpString, jsonValue)
@@ -957,19 +954,19 @@ func (s *State) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, exprTempl
 }
 
 // TheResponseShouldHaveHeader checks whether last HTTP response has given header.
-func (s *State) TheResponseShouldHaveHeader(name string) error {
+func (apiCtx *APIContext) TheResponseShouldHaveHeader(name string) error {
 	defer func() {
-		if s.Debugger.IsOn() {
-			lastResp, err := s.GetLastResponse()
+		if apiCtx.Debugger.IsOn() {
+			lastResp, err := apiCtx.GetLastResponse()
 			if err != nil {
-				s.Debugger.Print("could not obtain last response headers")
+				apiCtx.Debugger.Print("could not obtain last response headers")
 			}
 
-			s.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %+v", lastResp.Header))
+			apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %#v", lastResp.Header))
 		}
 	}()
 
-	lastResp, err := s.GetLastResponse()
+	lastResp, err := apiCtx.GetLastResponse()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
 	}
@@ -979,39 +976,39 @@ func (s *State) TheResponseShouldHaveHeader(name string) error {
 		return nil
 	}
 
-	if s.Debugger.IsOn() {
-		s.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %+v", lastResp.Header))
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %#v", lastResp.Header))
 	}
 
 	return fmt.Errorf("could not find header %s in last HTTP response", name)
 }
 
 // TheResponseShouldHaveHeaderOfValue checks whether last HTTP response has given header with provided valueTemplate.
-func (s *State) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) error {
+func (apiCtx *APIContext) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) error {
 	defer func() {
-		if s.Debugger.IsOn() {
-			lastResp, err := s.GetLastResponse()
+		if apiCtx.Debugger.IsOn() {
+			lastResp, err := apiCtx.GetLastResponse()
 			if err != nil {
-				s.Debugger.Print("could not obtain last response headers")
+				apiCtx.Debugger.Print("could not obtain last response headers")
 			}
 
-			s.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %+v", lastResp.Header))
+			apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %#v", lastResp.Header))
 		}
 	}()
 
-	lastResp, err := s.GetLastResponse()
+	lastResp, err := apiCtx.GetLastResponse()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
 	}
 
 	header := lastResp.Header.Get(name)
-	value, err := s.TemplateEngine.Replace(valueTemplate, s.Cache.All())
+	value, err := apiCtx.TemplateEngine.Replace(valueTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'value' template, err: %w", err)
 	}
 
-	if header == "" && value == "" {
-		return fmt.Errorf("could not find header %s in last HTTP response", name)
+	if header == "" || value == "" {
+		return fmt.Errorf("could not find header %s in last HTTP(s) response", name)
 	}
 
 	if header == value {
@@ -1023,49 +1020,49 @@ func (s *State) TheResponseShouldHaveHeaderOfValue(name, valueTemplate string) e
 
 // IValidateLastResponseBodyWithSchemaReference validates last response body against schema as provided in referenceTemplate.
 // referenceTemplate may be: URL or full/relative path
-func (s *State) IValidateLastResponseBodyWithSchemaReference(referenceTemplate string) error {
-	reference, err := s.TemplateEngine.Replace(referenceTemplate, s.Cache.All())
+func (apiCtx *APIContext) IValidateLastResponseBodyWithSchemaReference(referenceTemplate string) error {
+	reference, err := apiCtx.TemplateEngine.Replace(referenceTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'reference' template, err: %w", err)
 	}
 
-	body, err := s.GetLastResponseBody()
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
-	if s.Debugger.IsOn() {
-		s.Debugger.Print(fmt.Sprintf("'%s' was replaced as: '%s'\n", referenceTemplate, reference))
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("'%s' was replaced as: '%s'\n", referenceTemplate, reference))
 	}
 
-	return s.SchemaValidators.ReferenceValidator.Validate(string(body), reference)
+	return apiCtx.SchemaValidators.ReferenceValidator.Validate(string(body), reference)
 }
 
 // IValidateLastResponseBodyWithSchemaString validates last response body against schema.
-func (s *State) IValidateLastResponseBodyWithSchemaString(schema string) error {
-	body, err := s.GetLastResponseBody()
+func (apiCtx *APIContext) IValidateLastResponseBodyWithSchemaString(schema string) error {
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
-	return s.SchemaValidators.StringValidator.Validate(string(body), schema)
+	return apiCtx.SchemaValidators.StringValidator.Validate(string(body), schema)
 }
 
 // IValidateNodeWithSchemaString validates last response body JSON node against schema
-func (s *State) IValidateNodeWithSchemaString(dataFormat format.DataFormat, exprTemplate, schemaTemplate string) error {
-	return s.iValidateNodeWithSchemaGeneral(dataFormat, exprTemplate, schemaTemplate, s.SchemaValidators.StringValidator)
+func (apiCtx *APIContext) IValidateNodeWithSchemaString(dataFormat format.DataFormat, exprTemplate, schemaTemplate string) error {
+	return apiCtx.iValidateNodeWithSchemaGeneral(dataFormat, exprTemplate, schemaTemplate, apiCtx.SchemaValidators.StringValidator)
 }
 
 // IValidateNodeWithSchemaReference validates last response body node against schema as provided in referenceTemplate
-func (s *State) IValidateNodeWithSchemaReference(dataFormat format.DataFormat, exprTemplate, referenceTemplate string) error {
-	return s.iValidateNodeWithSchemaGeneral(dataFormat, exprTemplate, referenceTemplate, s.SchemaValidators.ReferenceValidator)
+func (apiCtx *APIContext) IValidateNodeWithSchemaReference(dataFormat format.DataFormat, exprTemplate, referenceTemplate string) error {
+	return apiCtx.iValidateNodeWithSchemaGeneral(dataFormat, exprTemplate, referenceTemplate, apiCtx.SchemaValidators.ReferenceValidator)
 }
 
 // TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo asserts that last HTTP request-response time
 // is <= than expected timeInterval.
 // timeInterval should be string acceptable by time.ParseDuration func
-func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval time.Duration) error {
-	lastReqTimestampI, err := s.Cache.GetSaved(httpcache.LastHTTPRequestTimestamp)
+func (apiCtx *APIContext) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval time.Duration) error {
+	lastReqTimestampI, err := apiCtx.Cache.GetSaved(httpcache.LastHTTPRequestTimestamp)
 	if err != nil {
 		return fmt.Errorf("problem during obtaining last HTTP request timestamp, err: %w", err)
 	}
@@ -1075,7 +1072,7 @@ func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(time
 		return fmt.Errorf("last request timestamp: '%+v' should be time.Time", lastReqTimestampI)
 	}
 
-	lastResTimestampI, err := s.Cache.GetSaved(httpcache.LastHTTPResponseTimestamp)
+	lastResTimestampI, err := apiCtx.Cache.GetSaved(httpcache.LastHTTPResponseTimestamp)
 	if err != nil {
 		return fmt.Errorf("problem during obtaining last HTTP response timestamp, err: %w", err)
 	}
@@ -1094,16 +1091,16 @@ func (s *State) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(time
 }
 
 // TheResponseShouldHaveCookie checks whether last HTTP(s) response has cookie of given name.
-func (s *State) TheResponseShouldHaveCookie(name string) error {
-	lastResp, err := s.GetLastResponse()
+func (apiCtx *APIContext) TheResponseShouldHaveCookie(name string) error {
+	lastResp, err := apiCtx.GetLastResponse()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
 	}
 
 	defer func() {
-		if s.Debugger.IsOn() {
+		if apiCtx.Debugger.IsOn() {
 
-			s.Debugger.Print(fmt.Sprintf("last HTTP(s) response cookies: %+v", lastResp.Cookies()))
+			apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response cookies: %+v", lastResp.Cookies()))
 		}
 	}()
 
@@ -1117,19 +1114,19 @@ func (s *State) TheResponseShouldHaveCookie(name string) error {
 }
 
 // TheResponseShouldHaveCookieOfValue checks whether last HTTP(s) response has cookie of given name and value.
-func (s *State) TheResponseShouldHaveCookieOfValue(name, valueTemplate string) error {
-	lastResp, err := s.GetLastResponse()
+func (apiCtx *APIContext) TheResponseShouldHaveCookieOfValue(name, valueTemplate string) error {
+	lastResp, err := apiCtx.GetLastResponse()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
 	}
 
 	defer func() {
-		if s.Debugger.IsOn() {
-			s.Debugger.Print(fmt.Sprintf("last HTTP(s) response cookies: %+v", lastResp.Cookies()))
+		if apiCtx.Debugger.IsOn() {
+			apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response cookies: %+v", lastResp.Cookies()))
 		}
 	}()
 
-	value, err := s.TemplateEngine.Replace(valueTemplate, s.Cache.All())
+	value, err := apiCtx.TemplateEngine.Replace(valueTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'value' template, err: %w", err)
 	}
@@ -1144,7 +1141,7 @@ func (s *State) TheResponseShouldHaveCookieOfValue(name, valueTemplate string) e
 }
 
 // ISaveAs saves into cache arbitrary passed data.
-func (s *State) ISaveAs(valueTemplate, cacheKey string) error {
+func (apiCtx *APIContext) ISaveAs(valueTemplate, cacheKey string) error {
 	if len(valueTemplate) == 0 {
 		return fmt.Errorf("pass any value")
 	}
@@ -1153,25 +1150,25 @@ func (s *State) ISaveAs(valueTemplate, cacheKey string) error {
 		return fmt.Errorf("cacheKey should not be empty value")
 	}
 
-	value, err := s.TemplateEngine.Replace(valueTemplate, s.Cache.All())
+	value, err := apiCtx.TemplateEngine.Replace(valueTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'value' template, err: %w", err)
 	}
 
-	s.Cache.Save(cacheKey, value)
+	apiCtx.Cache.Save(cacheKey, value)
 
 	return nil
 }
 
 // ISaveFromTheLastResponseNodeAs saves from last response body node under given cacheKey key.
 // expr should be valid according to injected PathResolver of given data type
-func (s *State) ISaveFromTheLastResponseNodeAs(dataFormat format.DataFormat, exprTemplate, cacheKey string) error {
-	body, err := s.GetLastResponseBody()
+func (apiCtx *APIContext) ISaveFromTheLastResponseNodeAs(dataFormat format.DataFormat, exprTemplate, cacheKey string) error {
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
-	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
@@ -1179,53 +1176,53 @@ func (s *State) ISaveFromTheLastResponseNodeAs(dataFormat format.DataFormat, exp
 	var iVal interface{}
 	switch dataFormat {
 	case format.JSON:
-		iVal, err = s.PathFinders.JSON.Find(expr, body)
+		iVal, err = apiCtx.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
-		iVal, err = s.PathFinders.YAML.Find(expr, body)
+		iVal, err = apiCtx.PathFinders.YAML.Find(expr, body)
 	case format.XML:
-		iVal, err = s.PathFinders.XML.Find(expr, body)
+		iVal, err = apiCtx.PathFinders.XML.Find(expr, body)
 	default:
 		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
 			dataFormat, format.JSON, format.YAML, format.XML)
 	}
 
 	if err != nil {
-		if s.Debugger.IsOn() {
-			s.Debugger.Print(fmt.Sprintf("last response body:\n\n%s\n", body))
+		if apiCtx.Debugger.IsOn() {
+			apiCtx.Debugger.Print(fmt.Sprintf("last response body:\n\n%s", body))
 		}
 
 		return err
 	}
 
-	s.Cache.Save(cacheKey, iVal)
+	apiCtx.Cache.Save(cacheKey, iVal)
 
 	return nil
 }
 
 // IWait waits for given timeInterval amount of time
-func (s *State) IWait(timeInterval time.Duration) error {
+func (apiCtx *APIContext) IWait(timeInterval time.Duration) error {
 	time.Sleep(timeInterval)
 
 	return nil
 }
 
 // IPrintLastResponseBody prints last response from request.
-func (s *State) IPrintLastResponseBody() error {
+func (apiCtx *APIContext) IPrintLastResponseBody() error {
 	var tmp interface{}
 
-	body, err := s.GetLastResponseBody()
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
 	defer func() {
 		if err != nil {
-			s.Debugger.Print(string(body))
+			apiCtx.Debugger.Print(string(body))
 		}
 	}()
 
 	if format.IsYAML(body) {
-		err = s.Formatters.YAML.Deserialize(body, &tmp)
+		err = apiCtx.Formatters.YAML.Deserialize(body, &tmp)
 		if err != nil {
 			return nil
 		}
@@ -1235,12 +1232,12 @@ func (s *State) IPrintLastResponseBody() error {
 			return nil
 		}
 
-		s.Debugger.Print(string(indentedRespBody))
+		apiCtx.Debugger.Print(string(indentedRespBody))
 		return nil
 	}
 
 	if format.IsJSON(body) {
-		err = s.Formatters.JSON.Deserialize(body, &tmp)
+		err = apiCtx.Formatters.JSON.Deserialize(body, &tmp)
 		if err != nil {
 			return nil
 		}
@@ -1250,12 +1247,12 @@ func (s *State) IPrintLastResponseBody() error {
 			return nil
 		}
 
-		s.Debugger.Print(string(indentedRespBody))
+		apiCtx.Debugger.Print(string(indentedRespBody))
 		return nil
 	}
 
 	if format.IsXML(body) {
-		err = s.Formatters.XML.Deserialize(body, &tmp)
+		err = apiCtx.Formatters.XML.Deserialize(body, &tmp)
 		if err != nil {
 			return nil
 		}
@@ -1265,30 +1262,30 @@ func (s *State) IPrintLastResponseBody() error {
 			return nil
 		}
 
-		s.Debugger.Print(string(indentedRespBody))
+		apiCtx.Debugger.Print(string(indentedRespBody))
 	}
 
-	s.Debugger.Print(string(body))
+	apiCtx.Debugger.Print(string(body))
 	return nil
 }
 
 // IStartDebugMode starts debugging mode
-func (s *State) IStartDebugMode() error {
-	s.Debugger.TurnOn()
+func (apiCtx *APIContext) IStartDebugMode() error {
+	apiCtx.Debugger.TurnOn()
 
 	return nil
 }
 
 // IStopDebugMode stops debugging mode
-func (s *State) IStopDebugMode() error {
-	s.Debugger.TurnOff()
+func (apiCtx *APIContext) IStopDebugMode() error {
+	apiCtx.Debugger.TurnOff()
 
 	return nil
 }
 
 // GetPreparedRequest returns prepared request from cache or error if failed
-func (s *State) GetPreparedRequest(cacheKey string) (*http.Request, error) {
-	reqInterface, err := s.Cache.GetSaved(cacheKey)
+func (apiCtx *APIContext) GetPreparedRequest(cacheKey string) (*http.Request, error) {
+	reqInterface, err := apiCtx.Cache.GetSaved(cacheKey)
 	if err != nil {
 		return &http.Request{}, fmt.Errorf("could not obtain %s from cache, err: %w", cacheKey, err)
 	}
@@ -1302,8 +1299,8 @@ func (s *State) GetPreparedRequest(cacheKey string) (*http.Request, error) {
 }
 
 // GetLastResponse returns last HTTP(s) response.
-func (s *State) GetLastResponse() (*http.Response, error) {
-	respInterface, err := s.Cache.GetSaved(httpcache.LastHTTPResponseCacheKey)
+func (apiCtx *APIContext) GetLastResponse() (*http.Response, error) {
+	respInterface, err := apiCtx.Cache.GetSaved(httpcache.LastHTTPResponseCacheKey)
 	if err != nil {
 		return nil, fmt.Errorf("missing last HTTP(s) response, err: %s", err.Error())
 	}
@@ -1322,8 +1319,8 @@ func (s *State) GetLastResponse() (*http.Response, error) {
 
 // GetLastResponseBody returns last HTTP(s) response body.
 // internally method creates new NoPCloser on last response so this method is safe to reuse many times
-func (s *State) GetLastResponseBody() ([]byte, error) {
-	lastResponse, err := s.GetLastResponse()
+func (apiCtx *APIContext) GetLastResponseBody() ([]byte, error) {
+	lastResponse, err := apiCtx.GetLastResponse()
 	if err != nil {
 		return []byte(""), fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
@@ -1342,22 +1339,22 @@ func (s *State) GetLastResponseBody() ([]byte, error) {
 }
 
 // iValidateNodeWithSchemaGeneral validates last response body node against schema as provided in reference.
-func (s *State) iValidateNodeWithSchemaGeneral(dataFormat format.DataFormat, exprTemplate, referenceTemplate string, validator validator.SchemaValidator) error {
-	body, err := s.GetLastResponseBody()
+func (apiCtx *APIContext) iValidateNodeWithSchemaGeneral(dataFormat format.DataFormat, exprTemplate, referenceTemplate string, validator validator.SchemaValidator) error {
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
-	reference, err := s.TemplateEngine.Replace(referenceTemplate, s.Cache.All())
+	reference, err := apiCtx.TemplateEngine.Replace(referenceTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'reference' template, err: %w", err)
 	}
 
-	if s.Debugger.IsOn() {
-		s.Debugger.Print(fmt.Sprintf("'%s' was replaced as: '%s'\n", referenceTemplate, reference))
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("'%s' was replaced as: '%s'\n", referenceTemplate, reference))
 	}
 
-	expr, err := s.TemplateEngine.Replace(exprTemplate, s.Cache.All())
+	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
@@ -1365,9 +1362,9 @@ func (s *State) iValidateNodeWithSchemaGeneral(dataFormat format.DataFormat, exp
 	var node interface{}
 	switch dataFormat {
 	case format.JSON:
-		node, err = s.PathFinders.JSON.Find(expr, body)
+		node, err = apiCtx.PathFinders.JSON.Find(expr, body)
 	case format.YAML:
-		node, err = s.PathFinders.YAML.Find(expr, body)
+		node, err = apiCtx.PathFinders.YAML.Find(expr, body)
 	case format.XML:
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	default:
@@ -1379,13 +1376,13 @@ func (s *State) iValidateNodeWithSchemaGeneral(dataFormat format.DataFormat, exp
 		return err
 	}
 
-	jsonNode, err := s.Formatters.JSON.Serialize(node)
+	jsonNode, err := apiCtx.Formatters.JSON.Serialize(node)
 	if err != nil {
 		return fmt.Errorf("problem during formatting data to JSON, err: %w", err)
 	}
 
-	if s.Debugger.IsOn() {
-		s.Debugger.Print(fmt.Sprintf("%+v\n\n was marshaled to:\n\n %s \n\nand passed for validation", node, jsonNode))
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("%+v\n\n was marshaled to:\n\n %s \n\nand passed for validation", node, jsonNode))
 	}
 
 	return validator.Validate(string(jsonNode), reference)

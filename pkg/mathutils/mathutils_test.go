@@ -2,7 +2,7 @@ package mathutils
 
 import "testing"
 
-func TestRandomInt(t *testing.T) {
+func Test_RandomInt(t *testing.T) {
 	type args struct {
 		from int
 		to   int
