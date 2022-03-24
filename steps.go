@@ -433,22 +433,23 @@ func (apiCtx *APIContext) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to in
 
 // IGenerateARandomFloatInTheRangeToAndSaveItAs generates random float from provided range
 // and preserve it under given cacheKey key.
-func (apiCtx *APIContext) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error {
-	randInt, err := mathutils.RandomInt(from, to)
-	if err != nil {
-		return fmt.Errorf("problem during generating pseudo random float, randomInt err: %w", err)
+func (apiCtx *APIContext) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to float64, cacheKey string) func(from, to int, cacheKey string) error {
+	return func(from, to float64, cacheKey string) error {
+		randFloat, err := mathutils.RandomFloat64(from, to)
+		if err != nil {
+			return fmt.Errorf("problem during generating pseudo random float, randomFloat err: %w", err)
+		}
+	
+		strFloat := fmt.Sprintf("%.2f", randFloat)
+		floatVal, err := strconv.ParseFloat(strFloat, 64)
+		if err != nil {
+			return fmt.Errorf("problem during generating pseudo random float, parsing err: %w", err)
+		}
+	
+		apiCtx.Cache.Save(cacheKey, floatVal)
+	
+		return nil
 	}
-
-	float01 := rand.Float64()
-	strFloat := fmt.Sprintf("%.2f", float01*float64(randInt))
-	floatVal, err := strconv.ParseFloat(strFloat, 64)
-	if err != nil {
-		return fmt.Errorf("problem during generating pseudo random float, parsing err: %w", err)
-	}
-
-	apiCtx.Cache.Save(cacheKey, floatVal)
-
-	return nil
 }
 
 // IGenerateARandomRunesInTheRangeToAndSaveItAs creates random runes generator func using provided charset
