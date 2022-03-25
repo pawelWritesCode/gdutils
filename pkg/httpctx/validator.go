@@ -11,7 +11,7 @@ type URLValidator struct{}
 func NewURLValidator() URLValidator { return URLValidator{} }
 
 // Validate checks whether in is valid URL
-func (U URLValidator) Validate(in interface{}) error {
+func (U URLValidator) Validate(in any) error {
 	source, ok := in.(string)
 	if !ok {
 		return fmt.Errorf("+%v is not string", in)

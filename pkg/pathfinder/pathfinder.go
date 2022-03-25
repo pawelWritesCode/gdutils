@@ -5,5 +5,5 @@ package pathfinder
 type PathFinder interface {
 
 	// Find obtains data from bytes according to given expression
-	Find(expr string, bytes []byte) (interface{}, error)
+	Find(expr string, bytes []byte) (any, error)
 }

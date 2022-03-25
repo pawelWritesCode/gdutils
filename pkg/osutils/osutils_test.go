@@ -14,7 +14,7 @@ type mockedFileValidator struct {
 	mock.Mock
 }
 
-func (m *mockedFileValidator) Validate(in interface{}) error {
+func (m *mockedFileValidator) Validate(in any) error {
 	args := m.Called(in)
 
 	return args.Error(0)

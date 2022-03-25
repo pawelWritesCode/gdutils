@@ -37,7 +37,7 @@ import (
 type BodyHeaders struct {
 
 	// Body should contain HTTP(s) request body
-	Body interface{}
+	Body any
 
 	// Headers should contain HTTP(s) request headers
 	Headers map[string]string
@@ -632,7 +632,7 @@ func (apiCtx *APIContext) TheNodeShouldNotBe(dataFormat format.DataFormat, exprT
 		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
 	}
 
-	var iNodeVal interface{}
+	var iNodeVal any
 	switch dataFormat {
 	case format.JSON:
 		iNodeVal, err = apiCtx.PathFinders.JSON.Find(expr, body)
@@ -731,7 +731,7 @@ func (apiCtx *APIContext) TheNodeShouldBeSliceOfLength(dataFormat format.DataFor
 		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
 
-	var iValue interface{}
+	var iValue any
 	switch dataFormat {
 	case format.JSON:
 		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
@@ -790,7 +790,7 @@ func (apiCtx *APIContext) TheNodeShouldBeOfValue(dataFormat format.DataFormat, e
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
-	var iValue interface{}
+	var iValue any
 	switch dataFormat {
 	case format.JSON:
 		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
@@ -915,7 +915,7 @@ func (apiCtx *APIContext) TheNodeShouldMatchRegExp(dataFormat format.DataFormat,
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
-	var iValue interface{}
+	var iValue any
 	switch dataFormat {
 	case format.JSON:
 		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
@@ -1173,7 +1173,7 @@ func (apiCtx *APIContext) ISaveFromTheLastResponseNodeAs(dataFormat format.DataF
 		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
 
-	var iVal interface{}
+	var iVal any
 	switch dataFormat {
 	case format.JSON:
 		iVal, err = apiCtx.PathFinders.JSON.Find(expr, body)
@@ -1208,7 +1208,7 @@ func (apiCtx *APIContext) IWait(timeInterval time.Duration) error {
 
 // IPrintLastResponseBody prints last response from request.
 func (apiCtx *APIContext) IPrintLastResponseBody() error {
-	var tmp interface{}
+	var tmp any
 
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
@@ -1359,7 +1359,7 @@ func (apiCtx *APIContext) iValidateNodeWithSchemaGeneral(dataFormat format.DataF
 		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
 	}
 
-	var node interface{}
+	var node any
 	switch dataFormat {
 	case format.JSON:
 		node, err = apiCtx.PathFinders.JSON.Find(expr, body)

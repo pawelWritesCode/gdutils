@@ -39,13 +39,13 @@ type mockedFormatter struct {
 	mock.Mock
 }
 
-func (m *mockedFormatter) Deserialize(data []byte, v interface{}) error {
+func (m *mockedFormatter) Deserialize(data []byte, v any) error {
 	args := m.Called(data, v)
 
 	return args.Error(0)
 }
 
-func (m *mockedFormatter) Serialize(v interface{}) ([]byte, error) {
+func (m *mockedFormatter) Serialize(v any) ([]byte, error) {
 	args := m.Called(v)
 
 	return args.Get(0).([]byte), args.Error(1)
@@ -55,7 +55,7 @@ type mockedJsonPathFinder struct {
 	mock.Mock
 }
 
-func (m *mockedTemplateEngine) Replace(templateValue string, storage map[string]interface{}) (string, error) {
+func (m *mockedTemplateEngine) Replace(templateValue string, storage map[string]any) (string, error) {
 	args := m.Called(templateValue, storage)
 
 	return args.String(0), args.Error(1)
@@ -85,10 +85,10 @@ func (m *mockedHTTPContext) GetLastResponseBody() ([]byte, error) {
 	return args.Get(0).([]byte), args.Error(1)
 }
 
-func (m *mockedJsonPathFinder) Find(expr string, jsonBytes []byte) (interface{}, error) {
+func (m *mockedJsonPathFinder) Find(expr string, jsonBytes []byte) (any, error) {
 	args := m.Called(expr, jsonBytes)
 
-	return args.Get(0).(interface{}), args.Error(1)
+	return args.Get(0).(any), args.Error(1)
 }
 
 func TestState_IPrepareNewRequestToAndSaveItAs(t *testing.T) {
@@ -380,7 +380,7 @@ func TestState_ISetFollowingCookiesForPreparedRequest(t *testing.T) {
 
 func TestState_TheResponseStatusCodeShouldBe(t *testing.T) {
 	type fields struct {
-		cache        map[string]interface{}
+		cache        map[string]any
 		lastResponse *http.Response
 		isDebug      bool
 	}
@@ -718,7 +718,7 @@ users:
 
 	type fields struct {
 		body      []byte
-		cacheData map[string]interface{}
+		cacheData map[string]any
 	}
 	type args struct {
 		dataFormat  format.DataFormat
@@ -748,7 +748,7 @@ users:
 			dataFormat:  format.JSON,
 			expressions: "users[1].name",
 		}, wantErr: false},
-		{name: "last response body has expected key #4 - qjson expression with template value", fields: fields{body: []byte(json), cacheData: map[string]interface{}{
+		{name: "last response body has expected key #4 - qjson expression with template value", fields: fields{body: []byte(json), cacheData: map[string]any{
 			"USER_ID": 1,
 		}}, args: args{
 			dataFormat:  format.JSON,
@@ -772,7 +772,7 @@ users:
 			dataFormat:  format.XML,
 			expressions: "//user[2]//name",
 		}, wantErr: false},
-		{name: "last response body has expected key #4 - Antchfx expression with template value", fields: fields{body: []byte(xml), cacheData: map[string]interface{}{
+		{name: "last response body has expected key #4 - Antchfx expression with template value", fields: fields{body: []byte(xml), cacheData: map[string]any{
 			"USER_ID": 2,
 		}}, args: args{
 			dataFormat:  format.XML,
@@ -792,7 +792,7 @@ users:
 			dataFormat:  format.YAML,
 			expressions: "$.users[0].name",
 		}, wantErr: false},
-		{name: "last response body has expected key #3 - Goccy expression with template value", fields: fields{body: []byte(yaml), cacheData: map[string]interface{}{
+		{name: "last response body has expected key #3 - Goccy expression with template value", fields: fields{body: []byte(yaml), cacheData: map[string]any{
 			"USER_ID": 0,
 		}}, args: args{
 			dataFormat:  format.YAML,
@@ -846,7 +846,7 @@ users:
 
 	type fields struct {
 		body      []byte
-		cacheKeys map[string]interface{}
+		cacheKeys map[string]any
 	}
 	type args struct {
 		dataFormat  format.DataFormat
@@ -880,7 +880,7 @@ users:
 			dataFormat:  format.JSON,
 			expressions: "users[0].name, users[1].name",
 		}, wantErr: false},
-		{name: "last response body has expected keys #1 - qjson expressions with template values", fields: fields{body: []byte(json), cacheKeys: map[string]interface{}{
+		{name: "last response body has expected keys #1 - qjson expressions with template values", fields: fields{body: []byte(json), cacheKeys: map[string]any{
 			"USER1_ID": 0,
 			"USER2_ID": 1,
 		}}, args: args{
@@ -909,7 +909,7 @@ users:
 			dataFormat:  format.XML,
 			expressions: "//user[1]//name, //user[2]//name",
 		}, wantErr: false},
-		{name: "last response body has expected keys #5 - Antchfx expressions with template values", fields: fields{body: []byte(xml), cacheKeys: map[string]interface{}{
+		{name: "last response body has expected keys #5 - Antchfx expressions with template values", fields: fields{body: []byte(xml), cacheKeys: map[string]any{
 			"USER1_ID": 1,
 			"USER2_ID": 2,
 		}}, args: args{
@@ -938,7 +938,7 @@ users:
 			dataFormat:  format.YAML,
 			expressions: "$.users[0].name, $.users[1].name",
 		}, wantErr: false},
-		{name: "last response body has expected keys #5 - Goccy expressions with template values", fields: fields{body: []byte(yaml), cacheKeys: map[string]interface{}{
+		{name: "last response body has expected keys #5 - Goccy expressions with template values", fields: fields{body: []byte(yaml), cacheKeys: map[string]any{
 			"USER1_ID": 0,
 			"USER2_ID": 1,
 		}}, args: args{
@@ -965,7 +965,7 @@ users:
 
 func TestState_TheNodeShouldNotBe(t *testing.T) {
 	type fields struct {
-		saved        map[string]interface{}
+		saved        map[string]any
 		lastResponse *http.Response
 		isDebug      bool
 	}
@@ -1249,7 +1249,7 @@ users:
 
 func TestState_TheNodeShouldBe(t *testing.T) {
 	type fields struct {
-		saved        map[string]interface{}
+		saved        map[string]any
 		lastResponse *http.Response
 		isDebug      bool
 	}
@@ -1920,7 +1920,7 @@ func TestState_TheNodeShouldMatchRegExp(t *testing.T) {
 	mJsonPathResolver := new(mockedJsonPathFinder)
 
 	type fields struct {
-		cacheKeys      map[string]interface{}
+		cacheKeys      map[string]any
 		templateEngine template.Engine
 		pathResolvers  PathFinders
 		respBody       string
@@ -1967,7 +1967,7 @@ func TestState_TheNodeShouldMatchRegExp(t *testing.T) {
 					Return("xxx", nil).Once()
 
 				mJsonPathResolver.On("Find", "xxx", []byte("")).
-					Return(interface{}(""), errors.New("err")).Once()
+					Return(any(""), errors.New("err")).Once()
 			},
 		}, args: args{
 			df:             format.JSON,
@@ -2066,7 +2066,7 @@ name: abcdef`,
 
 func TestState_TheResponseShouldHaveHeader(t *testing.T) {
 	type fields struct {
-		cache        map[string]interface{}
+		cache        map[string]any
 		lastResponse *http.Response
 	}
 	type args struct {
@@ -2111,7 +2111,7 @@ func TestState_TheResponseShouldHaveHeader(t *testing.T) {
 
 func TestState_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 	type fields struct {
-		cache        map[string]interface{}
+		cache        map[string]any
 		lastResponse *http.Response
 		isDebug      bool
 	}
@@ -2151,7 +2151,7 @@ func TestState_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 				"Content-Type":   {"application/json"},
 			},
 		},
-			cache: map[string]interface{}{"CONTENT_TYPE_JSON": "application/json"},
+			cache: map[string]any{"CONTENT_TYPE_JSON": "application/json"},
 		}, args: args{name: "Content-Type", value: "{{.CONTENT_TYPE_JSON}}"}, wantErr: false},
 	}
 	for _, tt := range tests {
@@ -2594,7 +2594,7 @@ func TestState_TheResponseShouldHaveCookie(t *testing.T) {
 
 func TestState_ISaveAs(t *testing.T) {
 	type fields struct {
-		cacheData map[string]interface{}
+		cacheData map[string]any
 	}
 	type args struct {
 		value    string
@@ -2624,7 +2624,7 @@ func TestState_ISaveAs(t *testing.T) {
 			cacheKey: "a",
 		}, wantErr: false, want: "a"},
 		{name: "template value", fields: fields{
-			cacheData: map[string]interface{}{
+			cacheData: map[string]any{
 				"FIRST_NAME": "ABC",
 				"LAST_NAME":  "XXX",
 			},
@@ -2633,7 +2633,7 @@ func TestState_ISaveAs(t *testing.T) {
 			cacheKey: "a",
 		}, wantErr: false, want: "ABC XXX"},
 		{name: "template value", fields: fields{
-			cacheData: map[string]interface{}{
+			cacheData: map[string]any{
 				"HEIGHT": 10,
 			},
 		}, args: args{

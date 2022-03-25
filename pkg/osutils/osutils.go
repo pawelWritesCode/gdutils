@@ -69,7 +69,7 @@ func NewOSFileRecognizer(prefix string, fileValidator v.Validator) OSFileRecogni
 }
 
 // Validate checks whether in is valid path to any file on local user OS
-func (fv FileValidator) Validate(in interface{}) error {
+func (fv FileValidator) Validate(in any) error {
 	p, ok := in.(string)
 	if !ok {
 		return fmt.Errorf("%+v is not string", in)
