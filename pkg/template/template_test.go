@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+	"math"
 	"testing"
 	"time"
 )
@@ -91,6 +92,10 @@ func TestTemplateManager_Replace(t *testing.T) {
 			templateValue: `{{.TIME}}`,
 			storage:       map[string]any{"TIME": tm},
 		}, want: "2014-02-04 18:05:00 +0000 PST", wantErr: false},
+		{name: "use function on template #5 - round float", args: args{
+			templateValue: `Pi to two digits is {{printf "%.2f" .PI}}`,
+			storage:       map[string]any{"PI": math.Pi},
+		}, want: "Pi to two digits is 3.14", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
