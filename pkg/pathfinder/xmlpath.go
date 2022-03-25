@@ -14,7 +14,7 @@ func NewAntchfxXMLFinder() AntchfxXMLFinder {
 	return AntchfxXMLFinder{}
 }
 
-func (a AntchfxXMLFinder) Find(expr string, bytes []byte) (interface{}, error) {
+func (a AntchfxXMLFinder) Find(expr string, bytes []byte) (any, error) {
 	parser, err := xmlquery.Parse(bytes2.NewReader(bytes))
 	if err != nil {
 		return nil, err
@@ -26,11 +26,11 @@ func (a AntchfxXMLFinder) Find(expr string, bytes []byte) (interface{}, error) {
 	}
 
 	if len(nodes) == 1 {
-		return interface{}(nodes[0].InnerText()), nil
+		return any(nodes[0].InnerText()), nil
 	}
 
 	if len(nodes) > 1 {
-		results := make([]interface{}, 0, len(nodes))
+		results := make([]any, 0, len(nodes))
 		for _, node := range nodes {
 			results = append(results, node.InnerText())
 		}

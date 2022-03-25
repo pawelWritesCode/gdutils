@@ -17,13 +17,13 @@ type mockedUrlValidator struct {
 	mock.Mock
 }
 
-func (m *mockedFileValidator) Validate(in interface{}) error {
+func (m *mockedFileValidator) Validate(in any) error {
 	args := m.Called(in)
 
 	return args.Error(0)
 }
 
-func (m *mockedUrlValidator) Validate(in interface{}) error {
+func (m *mockedUrlValidator) Validate(in any) error {
 	args := m.Called(in)
 
 	return args.Error(0)

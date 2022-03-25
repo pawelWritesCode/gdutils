@@ -135,25 +135,25 @@ func TestAntchfxXMLFinder_Find(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    interface{}
+		want    any
 		wantErr bool
 	}{
 		{name: "first book author", args: args{
 			expr:  "//book[1]//author",
 			bytes: s,
-		}, want: interface{}("Gambardella, Matthew"), wantErr: false},
+		}, want: any("Gambardella, Matthew"), wantErr: false},
 		{name: "book of id bk104", args: args{
 			expr:  "//book[@id='bk104']",
 			bytes: s,
-		}, want: interface{}("\n      Corets, Eva\n      Oberon's Legacy\n      Fantasy\n      5.95\n      2001-03-10\n      In post-apocalypse England, the mysterious \n      agent known only as Oberon helps to create a new life \n      for the inhabitants of London. Sequel to Maeve \n      Ascendant.\n   "), wantErr: false},
+		}, want: any("\n      Corets, Eva\n      Oberon's Legacy\n      Fantasy\n      5.95\n      2001-03-10\n      In post-apocalypse England, the mysterious \n      agent known only as Oberon helps to create a new life \n      for the inhabitants of London. Sequel to Maeve \n      Ascendant.\n   "), wantErr: false},
 		{name: "all titles of books cheaper than 5", args: args{
 			expr:  "//book[price<5]//title",
 			bytes: s,
-		}, want: []interface{}{"Lover Birds", "Splish Splash", "Creepy Crawlies"}, wantErr: false},
+		}, want: []any{"Lover Birds", "Splish Splash", "Creepy Crawlies"}, wantErr: false},
 		{name: "all book authors", args: args{
 			expr:  "//book//author",
 			bytes: s,
-		}, want: []interface{}{"Gambardella, Matthew", "Ralls, Kim", "Corets, Eva", "Corets, Eva", "Corets, Eva", "Randall, Cynthia", "Thurman, Paula", "Knorr, Stefan", "Kress, Peter", "O'Brien, Tim", "O'Brien, Tim", "Galos, Mike"}, wantErr: false},
+		}, want: []any{"Gambardella, Matthew", "Ralls, Kim", "Corets, Eva", "Corets, Eva", "Corets, Eva", "Randall, Cynthia", "Thurman, Paula", "Knorr, Stefan", "Kress, Peter", "O'Brien, Tim", "O'Brien, Tim", "Galos, Mike"}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

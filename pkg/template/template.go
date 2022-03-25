@@ -20,7 +20,7 @@ var (
 // Engine is entity that has ability to work with templates.
 type Engine interface {
 	// Replace replaces template values using provided storage.
-	Replace(templateValue string, storage map[string]interface{}) (string, error)
+	Replace(templateValue string, storage map[string]any) (string, error)
 }
 
 // TemplateManager is entity that has ability to manage templates.
@@ -32,7 +32,7 @@ func New() TemplateManager {
 
 // Replace replaces template values using provided storage.
 // templateValue should exist between two brackets {{ }} preceded with dot, for example: "my name is: {{.NAME}}".
-func (tm TemplateManager) Replace(templateValue string, storage map[string]interface{}) (string, error) {
+func (tm TemplateManager) Replace(templateValue string, storage map[string]any) (string, error) {
 	if storage == nil {
 		return "", fmt.Errorf("%w: passed nil storage for TemplateManager, storage should not be nil", ErrMissingStorage)
 	}
