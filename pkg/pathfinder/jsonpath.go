@@ -36,24 +36,24 @@ func NewDynamicJSONPathFinder(qjson QJSONFinder, oliveagleJSONFinder OliveagleJS
 }
 
 // Find obtains data from jsonBytes according to given expr valid with oliveagle/jsonpath library
-func (Q QJSONFinder) Find(expr string, jsonBytes []byte) (interface{}, error) {
+func (Q QJSONFinder) Find(expr string, jsonBytes []byte) (any, error) {
 	return qjson.Resolve(expr, jsonBytes)
 }
 
 // Find obtains data from jsonBytes according to given expr valid with pawelWritesCode/qjson library
-func (o OliveagleJSONFinder) Find(expr string, jsonBytes []byte) (interface{}, error) {
-	var jsonData interface{}
+func (o OliveagleJSONFinder) Find(expr string, jsonBytes []byte) (any, error) {
+	var jsonData any
 	err := json.Unmarshal(jsonBytes, &jsonData)
 	if err != nil {
 		return nil, err
 	}
 
-	return jsonpath.JsonPathLookup(interface{}(jsonData), expr)
+	return jsonpath.JsonPathLookup(any(jsonData), expr)
 }
 
 // Find obtains data from jsonBytes according to given expr.
 // It accepts expr in format acceptable by pawelWritesCode/qjson or oliveagle/jsonpath libraries.
-func (d DynamicJSONPathFinder) Find(expr string, jsonBytes []byte) (interface{}, error) {
+func (d DynamicJSONPathFinder) Find(expr string, jsonBytes []byte) (any, error) {
 	if len(expr) == 0 {
 		return nil, fmt.Errorf("json path can't be empty string")
 	}

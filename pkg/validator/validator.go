@@ -10,5 +10,5 @@ type SchemaValidator interface {
 // Validator describes validator
 type Validator interface {
 	// Validate validates in
-	Validate(in interface{}) error
+	Validate(in any) error
 }

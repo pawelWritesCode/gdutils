@@ -50,13 +50,13 @@ func IsYAML(b []byte) bool {
 		return false
 	}
 
-	var y interface{}
+	var y any
 	return yaml.UnmarshalWithOptions(b, &y, yaml.Strict()) == nil
 }
 
 // IsXML checks whether bytes are in XML format.
 func IsXML(b []byte) bool {
-	var v interface{}
+	var v any
 	err := xml.Unmarshal(b, &v)
 	return err == nil
 }

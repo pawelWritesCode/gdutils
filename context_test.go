@@ -27,15 +27,15 @@ type newPathFinder struct{}
 
 type newFormatter struct{}
 
-func (n newFormatter) Deserialize(data []byte, v interface{}) error {
+func (n newFormatter) Deserialize(data []byte, v any) error {
 	panic("implement me")
 }
 
-func (n newFormatter) Serialize(v interface{}) ([]byte, error) {
+func (n newFormatter) Serialize(v any) ([]byte, error) {
 	panic("implement me")
 }
 
-func (n newPathFinder) Find(expr string, bytes []byte) (interface{}, error) {
+func (n newPathFinder) Find(expr string, bytes []byte) (any, error) {
 	panic("implement me")
 }
 
@@ -43,7 +43,7 @@ func (n newStringValidator) Validate(document, schemaPath string) error {
 	panic("implement me")
 }
 
-func (n newTemplateEngine) Replace(templateValue string, storage map[string]interface{}) (string, error) {
+func (n newTemplateEngine) Replace(templateValue string, storage map[string]any) (string, error) {
 	panic("implement me")
 }
 
@@ -51,11 +51,11 @@ func (n newClient) Do(req *http.Request) (*http.Response, error) {
 	panic("implement me")
 }
 
-func (n newCache) Save(key string, value interface{}) {
+func (n newCache) Save(key string, value any) {
 	panic("implement me")
 }
 
-func (n newCache) GetSaved(key string) (interface{}, error) {
+func (n newCache) GetSaved(key string) (any, error) {
 	panic("implement me")
 }
 
@@ -63,7 +63,7 @@ func (n newCache) Reset() {
 	panic("implement me")
 }
 
-func (n newCache) All() map[string]interface{} {
+func (n newCache) All() map[string]any {
 	panic("implement me")
 }
 
@@ -97,7 +97,7 @@ func TestState_ResetState(t *testing.T) {
 		t.Errorf("IsDebug property did not change")
 	}
 
-	if !reflect.DeepEqual(s.Cache.All(), map[string]interface{}{}) {
+	if !reflect.DeepEqual(s.Cache.All(), map[string]any{}) {
 		t.Errorf("cache did not reset")
 	}
 }

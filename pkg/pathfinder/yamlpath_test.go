@@ -25,7 +25,7 @@ func TestGoccyGoYamlFinder_Find(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    interface{}
+		want    any
 		wantErr bool
 	}{
 		{name: "no expression", args: args{
@@ -43,19 +43,19 @@ func TestGoccyGoYamlFinder_Find(t *testing.T) {
 		{name: "successful fetch data #1", args: args{
 			expr:      "$.store.book[0].author",
 			yamlBytes: []byte(yml),
-		}, want: interface{}("john"), wantErr: false},
+		}, want: any("john"), wantErr: false},
 		{name: "successful fetch data #2", args: args{
 			expr:      "$.store.book[0].price",
 			yamlBytes: []byte(yml),
-		}, want: interface{}(uint64(10)), wantErr: false},
+		}, want: any(uint64(10)), wantErr: false},
 		{name: "successful fetch data #2", args: args{
 			expr:      "$.store.bicycle.color",
 			yamlBytes: []byte(yml),
-		}, want: interface{}("red"), wantErr: false},
+		}, want: any("red"), wantErr: false},
 		{name: "successful fetch data #2", args: args{
 			expr:      "$.store.book",
 			yamlBytes: []byte(yml),
-		}, want: []interface{}{map[string]interface{}{"author": "john", "price": uint64(10)}, map[string]interface{}{"author": "ken", "price": uint64(12)}}, wantErr: false},
+		}, want: []any{map[string]any{"author": "john", "price": uint64(10)}, map[string]any{"author": "ken", "price": uint64(12)}}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

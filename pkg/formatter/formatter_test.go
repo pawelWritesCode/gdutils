@@ -7,7 +7,7 @@ import (
 
 type bodyHeaders struct {
 	// Body should contain HTTP(s) request body
-	Body interface{} `xml:"body" yaml:"body"`
+	Body any `xml:"body" yaml:"body"`
 
 	// Headers should contain HTTP(s) request headers
 	Headers map[string]string `xml:"headers" yaml:"headers"`
@@ -18,7 +18,7 @@ type cookiesSlice []http.Cookie
 func TestJSONFormatter_Deserialize(t *testing.T) {
 
 	type fields struct {
-		v interface{}
+		v any
 	}
 	type args struct {
 		data []byte
@@ -74,7 +74,7 @@ func TestJSONFormatter_Deserialize(t *testing.T) {
 func TestYAMLFormatter_Deserialize(t *testing.T) {
 	type args struct {
 		data []byte
-		v    interface{}
+		v    any
 	}
 	tests := []struct {
 		name    string

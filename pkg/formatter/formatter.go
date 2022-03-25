@@ -12,10 +12,10 @@ import (
 // Formatter describes ability to serialize and deserialize data
 type Formatter interface {
 	// Deserialize deserializes data on v
-	Deserialize(data []byte, v interface{}) error
+	Deserialize(data []byte, v any) error
 
 	// Serialize serializes v
-	Serialize(v interface{}) ([]byte, error)
+	Serialize(v any) ([]byte, error)
 }
 
 // JSONFormatter is entity that has ability to work with JSON format
@@ -50,17 +50,17 @@ func NewAwareFormatter(JSONFormatter JSONFormatter, YAMLFormatter YAMLFormatter)
 }
 
 // Deserialize data in format of JSON on v
-func (J JSONFormatter) Deserialize(data []byte, v interface{}) error {
+func (J JSONFormatter) Deserialize(data []byte, v any) error {
 	return json.Unmarshal(data, v)
 }
 
 // Serialize serializes v into JSON format.
-func (J JSONFormatter) Serialize(v interface{}) ([]byte, error) {
+func (J JSONFormatter) Serialize(v any) ([]byte, error) {
 	return json.Marshal(v)
 }
 
 // Deserialize data in format of YAML on v
-func (Y YAMLFormatter) Deserialize(data []byte, v interface{}) error {
+func (Y YAMLFormatter) Deserialize(data []byte, v any) error {
 	if data == nil {
 		return errors.New("data should not be nil")
 	}
@@ -77,12 +77,12 @@ func (Y YAMLFormatter) Deserialize(data []byte, v interface{}) error {
 }
 
 // Serialize serializes v into YAML format.
-func (y YAMLFormatter) Serialize(v interface{}) ([]byte, error) {
+func (y YAMLFormatter) Serialize(v any) ([]byte, error) {
 	return yaml.Marshal(v)
 }
 
 // Deserialize data in format of JSON or YAML on v
-func (a AwareFormatter) Deserialize(data []byte, v interface{}) error {
+func (a AwareFormatter) Deserialize(data []byte, v any) error {
 	if err := a.JSONFormatter.Deserialize(data, v); err == nil {
 		return nil
 	}
@@ -95,7 +95,7 @@ func (a AwareFormatter) Deserialize(data []byte, v interface{}) error {
 }
 
 // Deserialize data in format of XML on v.
-func (X XMLFormatter) Deserialize(data []byte, v interface{}) error {
+func (X XMLFormatter) Deserialize(data []byte, v any) error {
 	if data == nil {
 		return errors.New("data should not be nil")
 	}
@@ -108,6 +108,6 @@ func (X XMLFormatter) Deserialize(data []byte, v interface{}) error {
 }
 
 // Serialize serializes v into XML format.
-func (X XMLFormatter) Serialize(v interface{}) ([]byte, error) {
+func (X XMLFormatter) Serialize(v any) ([]byte, error) {
 	return xml.Marshal(v)
 }

@@ -4,7 +4,7 @@ import "testing"
 
 func TestURLValidator_Validate(t *testing.T) {
 	type args struct {
-		in interface{}
+		in any
 	}
 	tests := []struct {
 		name    string

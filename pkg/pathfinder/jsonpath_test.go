@@ -55,7 +55,7 @@ func TestQJSONFinder_Find(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    interface{}
+		want    any
 		wantErr bool
 	}{
 		{name: "no expression", args: args{
@@ -73,19 +73,19 @@ func TestQJSONFinder_Find(t *testing.T) {
 		{name: "successful fetch data #1", args: args{
 			expr:      "store.book[0].category",
 			jsonBytes: jsonBytes,
-		}, want: interface{}("reference"), wantErr: false},
+		}, want: any("reference"), wantErr: false},
 		{name: "successful fetch data #2", args: args{
 			expr:      "store.book[1].price",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(float64(12.99)), wantErr: false},
+		}, want: any(float64(12.99)), wantErr: false},
 		{name: "successful fetch data #3", args: args{
 			expr:      "store.book[2].available",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(true), wantErr: false},
+		}, want: any(true), wantErr: false},
 		{name: "successful fetch data #4", args: args{
 			expr:      "store.bicycle",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(map[string]interface{}{"color": "red", "price": float64(19.95)}), wantErr: false},
+		}, want: any(map[string]any{"color": "red", "price": float64(19.95)}), wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -110,7 +110,7 @@ func TestOliveagleJSONFInder_Find(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    interface{}
+		want    any
 		wantErr bool
 	}{
 		{name: "no expression", args: args{
@@ -140,11 +140,11 @@ func TestOliveagleJSONFInder_Find(t *testing.T) {
 		{name: "successful fetch data #1", args: args{
 			expr:      "$.expensive",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(float64(10)), wantErr: false},
+		}, want: any(float64(10)), wantErr: false},
 		{name: "successful fetch data #2", args: args{
 			expr:      "$.store.book[0].price",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(8.95), wantErr: false},
+		}, want: any(8.95), wantErr: false},
 		{name: "successful fetch data #3", args: args{
 			expr:      "$.store.book[-1].isbn",
 			jsonBytes: jsonBytes,
@@ -152,11 +152,11 @@ func TestOliveagleJSONFInder_Find(t *testing.T) {
 		{name: "successful fetch data #4", args: args{
 			expr:      "$.store.bicycle",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(map[string]interface{}{"color": "red", "price": float64(19.95)}), wantErr: false},
+		}, want: any(map[string]any{"color": "red", "price": float64(19.95)}), wantErr: false},
 		{name: "successful fetch data #4", args: args{
 			expr:      "$.store.book[?(@.price > 10)].title",
 			jsonBytes: jsonBytes,
-		}, want: []interface{}{"Sword of Honour", "The Lord of the Rings"}, wantErr: false},
+		}, want: []any{"Sword of Honour", "The Lord of the Rings"}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -186,7 +186,7 @@ func TestDynamicJSONPathResolver_Resolve(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    interface{}
+		want    any
 		wantErr bool
 	}{
 		{name: "no expression", args: args{
@@ -216,11 +216,11 @@ func TestDynamicJSONPathResolver_Resolve(t *testing.T) {
 		{name: "successful fetch data #1", args: args{
 			expr:      "$.expensive",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(float64(10)), wantErr: false},
+		}, want: any(float64(10)), wantErr: false},
 		{name: "successful fetch data #2", args: args{
 			expr:      "$.store.book[0].price",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(8.95), wantErr: false},
+		}, want: any(8.95), wantErr: false},
 		{name: "successful fetch data #3", args: args{
 			expr:      "$.store.book[-1].isbn",
 			jsonBytes: jsonBytes,
@@ -228,27 +228,27 @@ func TestDynamicJSONPathResolver_Resolve(t *testing.T) {
 		{name: "successful fetch data #4", args: args{
 			expr:      "$.store.bicycle",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(map[string]interface{}{"color": "red", "price": float64(19.95)}), wantErr: false},
+		}, want: any(map[string]any{"color": "red", "price": float64(19.95)}), wantErr: false},
 		{name: "successful fetch data #4", args: args{
 			expr:      "$.store.book[?(@.price > 10)].title",
 			jsonBytes: jsonBytes,
-		}, want: []interface{}{"Sword of Honour", "The Lord of the Rings"}, wantErr: false},
+		}, want: []any{"Sword of Honour", "The Lord of the Rings"}, wantErr: false},
 		{name: "successful fetch data #1", args: args{
 			expr:      "store.book[0].category",
 			jsonBytes: jsonBytes,
-		}, want: interface{}("reference"), wantErr: false},
+		}, want: any("reference"), wantErr: false},
 		{name: "successful fetch data #2", args: args{
 			expr:      "store.book[1].price",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(float64(12.99)), wantErr: false},
+		}, want: any(float64(12.99)), wantErr: false},
 		{name: "successful fetch data #3", args: args{
 			expr:      "store.book[2].available",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(true), wantErr: false},
+		}, want: any(true), wantErr: false},
 		{name: "successful fetch data #4", args: args{
 			expr:      "store.bicycle",
 			jsonBytes: jsonBytes,
-		}, want: interface{}(map[string]interface{}{"color": "red", "price": float64(19.95)}), wantErr: false},
+		}, want: any(map[string]any{"color": "red", "price": float64(19.95)}), wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
