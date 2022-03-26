@@ -23,5 +23,5 @@ func RandomFloat64(from, to float64) (float64, error) {
 		return 0, fmt.Errorf("could not generate random float because %d is less than %d", from, to)
 	}
 
-	return from + rand.Float64() * (from - to), nil
+	return from + rand.Float64()*(from-to), nil
 }
