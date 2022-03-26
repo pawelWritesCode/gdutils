@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"math/rand"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -433,21 +432,21 @@ func (apiCtx *APIContext) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to in
 
 // IGenerateARandomFloatInTheRangeToAndSaveItAs generates random float from provided range
 // and preserve it under given cacheKey key.
-func (apiCtx *APIContext) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to float64, cacheKey string) func(from, to int, cacheKey string) error {
+func (apiCtx *APIContext) GenerateFloat64(from, to float64, cacheKey string) func(from, to float64, cacheKey string) error {
 	return func(from, to float64, cacheKey string) error {
 		randFloat, err := mathutils.RandomFloat64(from, to)
 		if err != nil {
 			return fmt.Errorf("problem during generating pseudo random float, randomFloat err: %w", err)
 		}
-	
+
 		strFloat := fmt.Sprintf("%.2f", randFloat)
 		floatVal, err := strconv.ParseFloat(strFloat, 64)
 		if err != nil {
 			return fmt.Errorf("problem during generating pseudo random float, parsing err: %w", err)
 		}
-	
+
 		apiCtx.Cache.Save(cacheKey, floatVal)
-	
+
 		return nil
 	}
 }
