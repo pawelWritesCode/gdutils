@@ -91,7 +91,7 @@ func (m *mockedJsonPathFinder) Find(expr string, jsonBytes []byte) (any, error) 
 	return args.Get(0).(any), args.Error(1)
 }
 
-func TestState_IPrepareNewRequestToAndSaveItAs(t *testing.T) {
+func TestState_RequestPrepare(t *testing.T) {
 	type args struct {
 		method      string
 		urlTemplate string
@@ -111,8 +111,8 @@ func TestState_IPrepareNewRequestToAndSaveItAs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewDefaultAPIContext(false, "")
-			if err := s.IPrepareNewRequestToAndSaveItAs(tt.args.method, tt.args.urlTemplate, tt.args.cacheKey); (err != nil) != tt.wantErr {
-				t.Errorf("IPrepareNewRequestToAndSaveItAs() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.RequestPrepare(tt.args.method, tt.args.urlTemplate, tt.args.cacheKey); (err != nil) != tt.wantErr {
+				t.Errorf("RequestPrepare() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if !tt.wantErr {
@@ -129,7 +129,7 @@ func TestState_IPrepareNewRequestToAndSaveItAs(t *testing.T) {
 	}
 }
 
-func TestState_ISetFollowingHeadersForPreparedRequest(t *testing.T) {
+func TestState_RequestSetHeaders(t *testing.T) {
 	type fields struct {
 		reqMethod string
 		reqUri    string
@@ -190,19 +190,19 @@ Content-Type: application/json`},
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewDefaultAPIContext(false, "")
 
-			err := s.IPrepareNewRequestToAndSaveItAs(tt.fields.reqMethod, tt.fields.reqUri, tt.fields.cacheKey)
+			err := s.RequestPrepare(tt.fields.reqMethod, tt.fields.reqUri, tt.fields.cacheKey)
 			if err != nil {
 				t.Errorf("%v", err)
 			}
 
-			if err = s.ISetFollowingHeadersForPreparedRequest(tt.args.cacheKey, tt.args.headersTemplate); (err != nil) != tt.wantErr {
-				t.Errorf("ISetFollowingHeadersForPreparedRequest() error = %v, wantErr %v", err, tt.wantErr)
+			if err = s.RequestSetHeaders(tt.args.cacheKey, tt.args.headersTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("RequestSetHeaders() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_ISetFollowingBodyForPreparedRequest(t *testing.T) {
+func TestState_RequestSetBody(t *testing.T) {
 	type fields struct {
 		reqMethod string
 		reqUri    string
@@ -243,19 +243,19 @@ func TestState_ISetFollowingBodyForPreparedRequest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewDefaultAPIContext(false, "")
-			err := s.IPrepareNewRequestToAndSaveItAs(tt.fields.reqMethod, tt.fields.reqUri, tt.fields.cacheKey)
+			err := s.RequestPrepare(tt.fields.reqMethod, tt.fields.reqUri, tt.fields.cacheKey)
 			if err != nil {
 				t.Errorf("%v", err)
 			}
 
-			if err := s.ISetFollowingBodyForPreparedRequest(tt.args.cacheKey, tt.args.bodyTemplate); (err != nil) != tt.wantErr {
-				t.Errorf("ISetFollowingBodyForPreparedRequest() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.RequestSetBody(tt.args.cacheKey, tt.args.bodyTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("RequestSetBody() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_ISetFollowingCookiesForPreparedRequest(t *testing.T) {
+func TestState_RequestSetCookies(t *testing.T) {
 	layout := "Jan 2, 2006 at 3:04pm (MST)"
 	tm, err := time.Parse(layout, "Feb 4, 2014 at 6:05pm (PST)")
 	if err != nil {
@@ -345,14 +345,14 @@ func TestState_ISetFollowingCookiesForPreparedRequest(t *testing.T) {
 			}
 			tt.fields.mockFunc()
 
-			if err = s.IPrepareNewRequestToAndSaveItAs("GET", "https://www.example.com", tt.args.cacheKey); err != nil {
+			if err = s.RequestPrepare("GET", "https://www.example.com", tt.args.cacheKey); err != nil {
 				t.Errorf("%s", err.Error())
 			}
 
 			s.Cache.Save("NOW", tm)
 
-			if err := s.ISetFollowingCookiesForPreparedRequest(tt.args.cacheKey, tt.args.cookiesTemplate); (err != nil) != tt.wantErr {
-				t.Errorf("ISetFollowingCookiesForPreparedRequest() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.RequestSetCookies(tt.args.cacheKey, tt.args.cookiesTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("RequestSetCookies() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if !tt.wantErr {
@@ -378,7 +378,7 @@ func TestState_ISetFollowingCookiesForPreparedRequest(t *testing.T) {
 	}
 }
 
-func TestState_TheResponseStatusCodeShouldBe(t *testing.T) {
+func TestState_AssertStatusCode(t *testing.T) {
 	type fields struct {
 		cache        map[string]any
 		lastResponse *http.Response
@@ -409,14 +409,14 @@ func TestState_TheResponseStatusCodeShouldBe(t *testing.T) {
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
-			if err := s.TheResponseStatusCodeShouldBe(tt.args.code); (err != nil) != tt.wantErr {
-				t.Errorf("TheResponseStatusCodeShouldBe() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertStatusCode(tt.args.code); (err != nil) != tt.wantErr {
+				t.Errorf("AssertStatusCode() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_TheResponseBodyShouldHaveFormat(t *testing.T) {
+func TestState_AssertResponseFormat(t *testing.T) {
 	yaml := `
 ---
 user:
@@ -470,18 +470,18 @@ user:
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
 
-			if err := s.TheResponseBodyShouldHaveFormat(tt.args.dataFormat); (err != nil) != tt.wantErr {
-				t.Errorf("TheResponseBodyShouldHaveFormat() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseFormat(tt.args.dataFormat); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseFormat() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_IGenerateARandomIntInTheRangeToAndSaveItAs(t *testing.T) {
+func TestState_GenerateRandomInt(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 	for i := 0; i < 100; i++ {
-		if err := s.IGenerateARandomIntInTheRangeToAndSaveItAs(0, 100000, "RANDOM_INT"); (err != nil) != false {
-			t.Errorf("IGenerateARandomIntInTheRangeToAndSaveItAs() error = %v, wantErr %v", err, false)
+		if err := s.GenerateRandomInt(0, 100000, "RANDOM_INT"); (err != nil) != false {
+			t.Errorf("GenerateRandomInt() error = %v, wantErr %v", err, false)
 		}
 
 		randomInteger, err := s.Cache.GetSaved("RANDOM_INT")
@@ -500,7 +500,7 @@ func TestState_IGenerateARandomIntInTheRangeToAndSaveItAs(t *testing.T) {
 	}
 }
 
-func TestState_IGenerateARandomRunesWithoutUnicodeCharactersInTheRangeToAndSaveItAs(t *testing.T) {
+func TestState_GeneratorRandomRunes(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 
 	rndStringASCII := s.GeneratorRandomRunes(stringutils.CharsetASCII)
@@ -552,7 +552,7 @@ func TestState_IGenerateARandomRunesWithoutUnicodeCharactersInTheRangeToAndSaveI
 	}
 }
 
-func TestState_IGenerateArandomSentenceInTheRangeFromToWordsAndSaveItAs_ASCII(t *testing.T) {
+func TestState_GeneratorRandomSentence_ASCII(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 	sentenceGen := s.GeneratorRandomSentence("ab", 1, 1)
 
@@ -580,7 +580,7 @@ func TestState_IGenerateArandomSentenceInTheRangeFromToWordsAndSaveItAs_ASCII(t 
 	}
 }
 
-func TestState_IGenerateArandomSentenceInTheRangeFromToWordsAndSaveItAs_Unicode(t *testing.T) {
+func TestState_GeneratorRandomSentence_Unicode(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 	sentenceGen := s.GeneratorRandomSentence("🤡🤖🧟🏋🥇", 1, 1)
 
@@ -608,7 +608,7 @@ func TestState_IGenerateArandomSentenceInTheRangeFromToWordsAndSaveItAs_Unicode(
 	}
 }
 
-func TestState_IGetTimeAndTravelByAndSaveItAs(t *testing.T) {
+func TestState_GetTimeAndTravel(t *testing.T) {
 	layout := "Jan 2, 2006 at 3:04pm (MST)"
 	tm, err := time.Parse(layout, "Feb 4, 2014 at 6:05pm (PST)")
 	if err != nil {
@@ -665,8 +665,8 @@ func TestState_IGetTimeAndTravelByAndSaveItAs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewDefaultAPIContext(false, ".")
 
-			if err := s.IGetTimeAndTravelByAndSaveItAs(tt.args.t, tt.args.timeDirection, tt.args.timeDuration, tt.args.cacheKey); (err != nil) != tt.wantErr {
-				t.Errorf("IGetTimeAndTravelByAndSaveItAs() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.GetTimeAndTravel(tt.args.t, tt.args.timeDirection, tt.args.timeDuration, tt.args.cacheKey); (err != nil) != tt.wantErr {
+				t.Errorf("GetTimeAndTravel() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if !tt.wantErr {
@@ -688,7 +688,7 @@ func TestState_IGetTimeAndTravelByAndSaveItAs(t *testing.T) {
 	}
 }
 
-func TestState_TheResponseShouldHaveNode(t *testing.T) {
+func TestState_AssertNode(t *testing.T) {
 	json := `{
 	"users": [
 		{
@@ -809,14 +809,14 @@ users:
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
 
-			if err := s.TheResponseShouldHaveNode(tt.args.dataFormat, tt.args.expressions); (err != nil) != tt.wantErr {
-				t.Errorf("TheResponseShouldHaveNode() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertNode(tt.args.dataFormat, tt.args.expressions); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNode() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_TheResponseShouldHaveNodes(t *testing.T) {
+func TestState_AssertNodes(t *testing.T) {
 	json := `{
 	"users": [
 		{
@@ -956,14 +956,14 @@ users:
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
 
-			if err := s.TheResponseShouldHaveNodes(tt.args.dataFormat, tt.args.expressions); (err != nil) != tt.wantErr {
-				t.Errorf("TheResponseShouldHaveNodes() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertNodes(tt.args.dataFormat, tt.args.expressions); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNodes() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_TheNodeShouldNotBe(t *testing.T) {
+func TestState_AssertNodeIsNotType(t *testing.T) {
 	type fields struct {
 		saved        map[string]any
 		lastResponse *http.Response
@@ -1240,14 +1240,14 @@ users:
 
 			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
-			if err := af.TheNodeShouldNotBe(tt.args.df, tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
+			if err := af.AssertNodeIsNotType(tt.args.df, tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldNotBe() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_TheNodeShouldBe(t *testing.T) {
+func TestState_AssertNodeIsType(t *testing.T) {
 	type fields struct {
 		saved        map[string]any
 		lastResponse *http.Response
@@ -1523,14 +1523,14 @@ users:
 
 			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
-			if err := af.TheNodeShouldBe(tt.args.df, tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
+			if err := af.AssertNodeIsType(tt.args.df, tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBe() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_TheNodeShouldBeSliceOfLength(t *testing.T) {
+func TestState_AssertNodeSliceLength(t *testing.T) {
 	json := `{
 	"count": 2,
 	"data": [
@@ -1639,15 +1639,15 @@ data:
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
 
-			if err := s.TheNodeShouldBeSliceOfLength(tt.args.dataFormat, tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
-				t.Errorf("TheNodeShouldBeSliceOfLength() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertNodeSliceLength(tt.args.dataFormat, tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNodeSliceLength() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
 // TODO: Add YAML cases
-func TestState_TheNodeShouldBeOfValue(t *testing.T) {
+func TestState_AssertNodeIsTypeAndValue(t *testing.T) {
 	type fields struct {
 		lastResponse *http.Response
 	}
@@ -1908,14 +1908,14 @@ name: "ivo"
 
 			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
-			if err := af.TheNodeShouldBeOfValue(tt.args.df, tt.args.expr, tt.args.dataType, tt.args.dataValue); (err != nil) != tt.wantErr {
+			if err := af.AssertNodeIsTypeAndValue(tt.args.df, tt.args.expr, tt.args.dataType, tt.args.dataValue); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBeOfValue() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_TheNodeShouldMatchRegExp(t *testing.T) {
+func TestState_AssertNodeMatchesRegExp(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 	mJsonPathResolver := new(mockedJsonPathFinder)
 
@@ -2057,14 +2057,14 @@ name: abcdef`,
 
 			tt.fields.mockFunc()
 
-			if err := s.TheNodeShouldMatchRegExp(tt.args.df, tt.args.expr, tt.args.regExpTemplate); (err != nil) != tt.wantErr {
+			if err := s.AssertNodeMatchesRegExp(tt.args.df, tt.args.expr, tt.args.regExpTemplate); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldMatchRegExp() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_TheResponseShouldHaveHeader(t *testing.T) {
+func TestState_AssertResponseHeader(t *testing.T) {
 	type fields struct {
 		cache        map[string]any
 		lastResponse *http.Response
@@ -2102,14 +2102,14 @@ func TestState_TheResponseShouldHaveHeader(t *testing.T) {
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
-			if err := s.TheResponseShouldHaveHeader(tt.args.name); (err != nil) != tt.wantErr {
-				t.Errorf("TheResponseShouldHaveHeader() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseHeader(tt.args.name); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseHeader() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
+func TestState_AssertResponseHeaderValue(t *testing.T) {
 	type fields struct {
 		cache        map[string]any
 		lastResponse *http.Response
@@ -2165,14 +2165,14 @@ func TestState_TheResponseShouldHaveHeaderOfValue(t *testing.T) {
 				}
 			}
 
-			if err := s.TheResponseShouldHaveHeaderOfValue(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
-				t.Errorf("TheResponseShouldHaveHeaderOfValue() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseHeaderValue(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseHeaderValue() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_IValidateLastResponseBodyWithSchemaReference(t *testing.T) {
+func TestState_AssertResponseMatchesSchemaByReference(t *testing.T) {
 	type fields struct {
 		resp      *http.Response
 		validator validator.SchemaValidator
@@ -2221,14 +2221,14 @@ func TestState_IValidateLastResponseBodyWithSchemaReference(t *testing.T) {
 
 			tt.fields.mockFunc()
 
-			if err := s.IValidateLastResponseBodyWithSchemaReference(tt.args.schemaPath); (err != nil) != tt.wantErr {
-				t.Errorf("IValidateLastResponseBodyWithSchemaReference() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseMatchesSchemaByReference(tt.args.schemaPath); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseMatchesSchemaByReference() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_IValidateLastResponseBodyWithSchemaString(t *testing.T) {
+func TestState_AssertResponseMatchesSchemaByString(t *testing.T) {
 	type fields struct {
 		resp      *http.Response
 		validator validator.SchemaValidator
@@ -2277,14 +2277,14 @@ func TestState_IValidateLastResponseBodyWithSchemaString(t *testing.T) {
 
 			tt.fields.mockFunc()
 
-			if err := s.IValidateLastResponseBodyWithSchemaString(tt.args.jsonSchema); (err != nil) != tt.wantErr {
-				t.Errorf("IValidateLastResponseBodyWithSchemaReference() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseMatchesSchemaByString(tt.args.jsonSchema); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseMatchesSchemaByReference() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_IValidateNodeWithSchemaString(t *testing.T) {
+func TestState_AssertNodeMatchesSchemaByString(t *testing.T) {
 	jsonData := `{
 	"count": 2,
 	"data": [
@@ -2415,14 +2415,14 @@ user:
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.response)
 
-			if err := s.IValidateNodeWithSchemaString(tt.args.df, tt.args.expr, tt.args.jsonSchema); (err != nil) != tt.wantErr {
+			if err := s.AssertNodeMatchesSchemaByString(tt.args.df, tt.args.expr, tt.args.jsonSchema); (err != nil) != tt.wantErr {
 				t.Errorf("IValidateJSONNodeWithSchemaString() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_TimeBetweenLastHTTPRequestResponseShouldBeLessThan(t *testing.T) {
+func TestState_AssertTimeBetweenRequestAndResponse(t *testing.T) {
 	type fields struct {
 		req *time.Time
 		res *time.Time
@@ -2465,14 +2465,14 @@ func TestState_TimeBetweenLastHTTPRequestResponseShouldBeLessThan(t *testing.T) 
 				t.Errorf("could not parse timeInterval: %s", tt.args.timeInterval)
 			}
 
-			if err := s.TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(td); (err != nil) != tt.wantErr {
+			if err := s.AssertTimeBetweenRequestAndResponse(td); (err != nil) != tt.wantErr {
 				t.Errorf("TimeBetweenLastHTTPRequestResponseShouldBeLessThan() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_TheResponseShouldHaveCookieOfValue(t *testing.T) {
+func TestState_AssertResponseCookieValue(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 
 	type fields struct {
@@ -2527,14 +2527,14 @@ func TestState_TheResponseShouldHaveCookieOfValue(t *testing.T) {
 
 			tt.fields.mockFunc()
 
-			if err := s.TheResponseShouldHaveCookieOfValue(tt.args.name, tt.args.valueTemplate); (err != nil) != tt.wantErr {
-				t.Errorf("TheResponseShouldHaveCookieOfValue() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseCookieValue(tt.args.name, tt.args.valueTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseCookieValue() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_TheResponseShouldHaveCookie(t *testing.T) {
+func TestState_AssertResponseCookie(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 
 	type fields struct {
@@ -2585,14 +2585,14 @@ func TestState_TheResponseShouldHaveCookie(t *testing.T) {
 
 			tt.fields.mockFunc()
 
-			if err := s.TheResponseShouldHaveCookie(tt.args.name); (err != nil) != tt.wantErr {
-				t.Errorf("TheResponseShouldHaveCookie() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseCookie(tt.args.name); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseCookie() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_ISaveAs(t *testing.T) {
+func TestState_Save(t *testing.T) {
 	type fields struct {
 		cacheData map[string]any
 	}
@@ -2649,8 +2649,8 @@ func TestState_ISaveAs(t *testing.T) {
 				s.Cache.Save(k, v)
 			}
 
-			if err := s.ISaveAs(tt.args.value, tt.args.cacheKey); (err != nil) != tt.wantErr {
-				t.Errorf("ISaveAs() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.Save(tt.args.value, tt.args.cacheKey); (err != nil) != tt.wantErr {
+				t.Errorf("Save() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if !tt.wantErr {
@@ -2672,7 +2672,7 @@ func TestState_ISaveAs(t *testing.T) {
 	}
 }
 
-func TestState_ISaveFromTheLastResponseNodeAs(t *testing.T) {
+func TestState_SaveNode(t *testing.T) {
 	type fields struct {
 		cache        cache.Cache
 		lastResponse *http.Response
@@ -2798,7 +2798,7 @@ user:
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
-			err := s.ISaveFromTheLastResponseNodeAs(tt.args.df, tt.args.node, tt.args.variableName)
+			err := s.SaveNode(tt.args.df, tt.args.node, tt.args.variableName)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ISaveFromTheLastResponseJSONNodeAs() error = %v, wantErr %v", err, tt.wantErr)
