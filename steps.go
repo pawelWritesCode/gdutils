@@ -451,9 +451,9 @@ func (apiCtx *APIContext) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to 
 	return nil
 }
 
-// IGenerateARandomRunesInTheRangeToAndSaveItAs creates random runes generator func using provided charset
+// GeneratorRandomRunes creates random runes generator func using provided charset
 // return func creates runes from provided range and preserve it under given cacheKey
-func (apiCtx *APIContext) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset string) func(from, to int, cacheKey string) error {
+func (apiCtx *APIContext) GeneratorRandomRunes(charset string) func(from, to int, cacheKey string) error {
 	return func(from, to int, cacheKey string) error {
 		randInt, err := mathutils.RandomInt(from, to)
 		if err != nil {
@@ -467,10 +467,10 @@ func (apiCtx *APIContext) IGenerateARandomRunesInTheRangeToAndSaveItAs(charset s
 }
 
 /*
-	IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs creates generator func for creating random sentences
+	GeneratorRandomSentence creates generator func for creating random sentences
 	each sentence has length from - to as provided in params and is saved in provided cacheKey
 */
-func (apiCtx *APIContext) IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error {
+func (apiCtx *APIContext) GeneratorRandomSentence(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error {
 	return func(from, to int, cacheKey string) error {
 		if from > to {
 			return fmt.Errorf("could not generate sentence because of invalid range provided, from '%d' should not be greater than to: '%d'", from, to)

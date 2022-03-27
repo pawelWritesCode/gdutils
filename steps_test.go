@@ -503,7 +503,7 @@ func TestState_IGenerateARandomIntInTheRangeToAndSaveItAs(t *testing.T) {
 func TestState_IGenerateARandomRunesWithoutUnicodeCharactersInTheRangeToAndSaveItAs(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 
-	rndStringASCII := s.IGenerateARandomRunesInTheRangeToAndSaveItAs(stringutils.CharsetASCII)
+	rndStringASCII := s.GeneratorRandomRunes(stringutils.CharsetASCII)
 	for i := 0; i < 10; i++ {
 		key := "TEST_" + strconv.Itoa(i)
 		if err := rndStringASCII(5, 10, key); err != nil {
@@ -527,7 +527,7 @@ func TestState_IGenerateARandomRunesWithoutUnicodeCharactersInTheRangeToAndSaveI
 		}
 	}
 
-	rndStringUnicode := s.IGenerateARandomRunesInTheRangeToAndSaveItAs(stringutils.CharsetUnicode)
+	rndStringUnicode := s.GeneratorRandomRunes(stringutils.CharsetUnicode)
 	for i := 0; i < 10; i++ {
 		key := "TEST_" + strconv.Itoa(i)
 		if err := rndStringUnicode(5, 10, key); err != nil {
@@ -554,7 +554,7 @@ func TestState_IGenerateARandomRunesWithoutUnicodeCharactersInTheRangeToAndSaveI
 
 func TestState_IGenerateArandomSentenceInTheRangeFromToWordsAndSaveItAs_ASCII(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
-	sentenceGen := s.IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs("ab", 1, 1)
+	sentenceGen := s.GeneratorRandomSentence("ab", 1, 1)
 
 	for i := 0; i < 10; i++ {
 		rndNumberOfWords, _ := mathutils.RandomInt(2, 10)
@@ -582,7 +582,7 @@ func TestState_IGenerateArandomSentenceInTheRangeFromToWordsAndSaveItAs_ASCII(t 
 
 func TestState_IGenerateArandomSentenceInTheRangeFromToWordsAndSaveItAs_Unicode(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
-	sentenceGen := s.IGenerateARandomSentenceInTheRangeFromToWordsAndSaveItAs("🤡🤖🧟🏋🥇", 1, 1)
+	sentenceGen := s.GeneratorRandomSentence("🤡🤖🧟🏋🥇", 1, 1)
 
 	for i := 0; i < 10; i++ {
 		rndNumberOfWords, _ := mathutils.RandomInt(2, 10)
