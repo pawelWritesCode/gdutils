@@ -30,59 +30,59 @@
 //
 // * Data generation:
 //
-//	func (apiCtx *APIContext) IGenerateARandomIntInTheRangeToAndSaveItAs(from, to int, cacheKey string) error
+//	func (apiCtx *APIContext) GenerateRandomInt(from, to int, cacheKey string) error
 //	func (apiCtx *APIContext) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error
 //  func (apiCtx *APIContext) GeneratorRandomRunes(charset string) func(from, to int, cacheKey string) error
 //	func (apiCtx *APIContext) GeneratorRandomSentence(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error
-//	func (apiCtx *APIContext) IGetTimeAndTravelByAndSaveItAs(t time.Time, timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error
-//	func (apiCtx *APIContext) IGenerateCurrentTimeAndTravelByAndSaveItAs(timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error
+//	func (apiCtx *APIContext) GetTimeAndTravel(t time.Time, timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error
+//	func (apiCtx *APIContext) GenerateTimeAndTravel(timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error
 //
 // * Sending HTTP(s) requests:
 //
-//	func (apiCtx *APIContext) ISendRequestToWithBodyAndHeaders(method, urlTemplate string, bodyTemplate string) error
+//	func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate string, bodyTemplate string) error
 //
 // or
 //
-//	func (apiCtx *APIContext) IPrepareNewRequestToAndSaveItAs(method, urlTemplate, cacheKey string) error
-//	func (apiCtx *APIContext) ISetFollowingHeadersForPreparedRequest(cacheKey string, headersTemplate string) error
-//	func (apiCtx *APIContext) ISetFollowingFormForPreparedRequest(cacheKey, formTemplate string) error
-//	func (apiCtx *APIContext) ISetFollowingCookiesForPreparedRequest(cacheKey, cookiesTemplate string) error
-//	func (apiCtx *APIContext) ISetFollowingBodyForPreparedRequest(cacheKey string, bodyTemplate string) error
-//	func (apiCtx *APIContext) ISendRequest(cacheKey string) error
+//	func (apiCtx *APIContext) RequestPrepare(method, urlTemplate, cacheKey string) error
+//	func (apiCtx *APIContext) RequestSetHeaders(cacheKey string, headersTemplate string) error
+//	func (apiCtx *APIContext) RequestSetForm(cacheKey, formTemplate string) error
+//	func (apiCtx *APIContext) RequestSetCookies(cacheKey, cookiesTemplate string) error
+//	func (apiCtx *APIContext) RequestSetBody(cacheKey string, bodyTemplate string) error
+//	func (apiCtx *APIContext) RequestSend(cacheKey string) error
 //
 // * Assertions:
 //
-//	func (apiCtx *APIContext) TheResponseStatusCodeShouldBe(code int) error
-//	func (apiCtx *APIContext) TheResponseBodyShouldHaveFormat(dataFormat format.DataFormat) error
-//	func (apiCtx *APIContext) TheResponseShouldHaveCookie(name string) error
-//	func (apiCtx *APIContext) TheResponseShouldHaveCookieOfValue(name, valueTemplate string) error
-//	func (apiCtx *APIContext) TheResponseShouldHaveNode(dataFormat format.DataFormat, exprTemplate string) error
-//	func (apiCtx *APIContext) TheNodeShouldNotBe(df format.DataFormat, exprTemplate string, goType string) error
-//	func (apiCtx *APIContext) TheNodeShouldBe(df format.DataFormat, exprTemplate string, goType string) error
-//	func (apiCtx *APIContext) TheNodeShouldMatchRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error
-//	func (apiCtx *APIContext) TheResponseShouldHaveNodes(dataFormat format.DataFormat, expressionsTemplates string) error
-//	func (apiCtx *APIContext) TheNodeShouldBeSliceOfLength(dataFormat format.DataFormat, exprTemplate string, length int) error
-//	func (apiCtx *APIContext) TheNodeShouldBeOfValue(dataFormat format.DataFormat, exprTemplate, dataType, dataValue string) error
-//	func (apiCtx *APIContext) TheResponseShouldHaveHeader(name string) error
-//	func (apiCtx *APIContext) TheResponseShouldHaveHeaderOfValue(name, value string) error
-//  func (apiCtx *APIContext) IValidateLastResponseBodyWithSchemaReference(referenceTemplate string) error
-//	func (apiCtx *APIContext) IValidateLastResponseBodyWithSchemaString(schemaTemplate string) error
-//	func (apiCtx *APIContext) IValidateNodeWithSchemaString(dataFormat format.DataFormat, exprTemplate, schemaTemplate string) error
-//	func (apiCtx *APIContext) IValidateNodeWithSchemaReference(dataFormat format.DataFormat, exprTemplate, referenceTemplate string) error
-//	func (apiCtx *APIContext) TimeBetweenLastHTTPRequestResponseShouldBeLessThanOrEqualTo(timeInterval time.Duration) error
+//	func (apiCtx *APIContext) AssertStatusCode(code int) error
+//	func (apiCtx *APIContext) AssertResponseFormat(dataFormat format.DataFormat) error
+//	func (apiCtx *APIContext) AssertResponseCookie(name string) error
+//	func (apiCtx *APIContext) AssertResponseCookieValue(name, valueTemplate string) error
+//	func (apiCtx *APIContext) AssertNode(dataFormat format.DataFormat, exprTemplate string) error
+//	func (apiCtx *APIContext) AssertNodeIsNotType(df format.DataFormat, exprTemplate string, goType string) error
+//	func (apiCtx *APIContext) AssertNodeIsType(df format.DataFormat, exprTemplate string, goType string) error
+//	func (apiCtx *APIContext) AssertNodeMatchesRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error
+//	func (apiCtx *APIContext) AssertNodes(dataFormat format.DataFormat, expressionsTemplates string) error
+//	func (apiCtx *APIContext) AssertNodeSliceLength(dataFormat format.DataFormat, exprTemplate string, length int) error
+//	func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat, exprTemplate, dataType, dataValue string) error
+//	func (apiCtx *APIContext) AssertResponseHeader(name string) error
+//	func (apiCtx *APIContext) AssertResponseHeaderValue(name, value string) error
+//  func (apiCtx *APIContext) AssertResponseMatchesSchemaByReference(referenceTemplate string) error
+//	func (apiCtx *APIContext) AssertResponseMatchesSchemaByString(schemaTemplate string) error
+//	func (apiCtx *APIContext) AssertNodeMatchesSchemaByString(dataFormat format.DataFormat, exprTemplate, schemaTemplate string) error
+//	func (apiCtx *APIContext) AssertNodeMatchesSchemaByReference(dataFormat format.DataFormat, exprTemplate, referenceTemplate string) error
+//	func (apiCtx *APIContext) AssertTimeBetweenRequestAndResponse(timeInterval time.Duration) error
 //
 // * Preserving JSON nodes:
 //
-//	func (apiCtx *APIContext) ISaveFromTheLastResponseNodeAs(dataFormat format.DataFormat, exprTemplate, cacheKey string) error
-//  func (apiCtx *APIContext) ISaveAs(valueTemplate, cacheKey string) error
+//	func (apiCtx *APIContext) SaveNode(dataFormat format.DataFormat, exprTemplate, cacheKey string) error
+//  func (apiCtx *APIContext) Save(valueTemplate, cacheKey string) error
 //
 // * Flow control:
 //
-//	func (apiCtx *APIContext) IWait(timeInterval time.Duration) error
+//	func (apiCtx *APIContext) Wait(timeInterval time.Duration) error
 //
 // * Debugging:
 //
-//	func (apiCtx *APIContext) IPrintLastResponseBody() error
-//	func (apiCtx *APIContext) IStartDebugMode() error
-//	func (apiCtx *APIContext) IStopDebugMode() error
+//	func (apiCtx *APIContext) DebugPrintResponseBody() error
+//	func (apiCtx *APIContext) DebugStart() error
+//	func (apiCtx *APIContext) DebugStop() error
 package gdutils
