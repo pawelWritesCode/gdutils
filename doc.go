@@ -52,24 +52,24 @@
 //
 // * Assertions:
 //
-//	func (apiCtx *APIContext) AssertStatusCode(code int) error
-//	func (apiCtx *APIContext) AssertResponseFormat(dataFormat format.DataFormat) error
-//	func (apiCtx *APIContext) AssertResponseCookie(name string) error
-//	func (apiCtx *APIContext) AssertResponseCookieValue(name, valueTemplate string) error
-//	func (apiCtx *APIContext) AssertNode(dataFormat format.DataFormat, exprTemplate string) error
+//	func (apiCtx *APIContext) AssertStatusCodeIs(code int) error
+//	func (apiCtx *APIContext) AssertResponseFormatIs(dataFormat format.DataFormat) error
+//	func (apiCtx *APIContext) AssertResponseCookieExists(name string) error
+//	func (apiCtx *APIContext) AssertResponseCookieValueIs(name, valueTemplate string) error
+//	func (apiCtx *APIContext) AssertNodeExists(dataFormat format.DataFormat, exprTemplate string) error
 //	func (apiCtx *APIContext) AssertNodeIsNotType(df format.DataFormat, exprTemplate string, goType string) error
 //	func (apiCtx *APIContext) AssertNodeIsType(df format.DataFormat, exprTemplate string, goType string) error
 //	func (apiCtx *APIContext) AssertNodeMatchesRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error
-//	func (apiCtx *APIContext) AssertNodes(dataFormat format.DataFormat, expressionsTemplates string) error
-//	func (apiCtx *APIContext) AssertNodeSliceLength(dataFormat format.DataFormat, exprTemplate string, length int) error
+//	func (apiCtx *APIContext) AssertNodesExist(dataFormat format.DataFormat, expressionsTemplates string) error
+//	func (apiCtx *APIContext) AssertNodeSliceLengthIs(dataFormat format.DataFormat, exprTemplate string, length int) error
 //	func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat, exprTemplate, dataType, dataValue string) error
-//	func (apiCtx *APIContext) AssertResponseHeader(name string) error
-//	func (apiCtx *APIContext) AssertResponseHeaderValue(name, value string) error
+//	func (apiCtx *APIContext) AssertResponseHeaderExists(name string) error
+//	func (apiCtx *APIContext) AssertResponseHeaderValueIs(name, value string) error
 //  func (apiCtx *APIContext) AssertResponseMatchesSchemaByReference(referenceTemplate string) error
 //	func (apiCtx *APIContext) AssertResponseMatchesSchemaByString(schemaTemplate string) error
 //	func (apiCtx *APIContext) AssertNodeMatchesSchemaByString(dataFormat format.DataFormat, exprTemplate, schemaTemplate string) error
 //	func (apiCtx *APIContext) AssertNodeMatchesSchemaByReference(dataFormat format.DataFormat, exprTemplate, referenceTemplate string) error
-//	func (apiCtx *APIContext) AssertTimeBetweenRequestAndResponse(timeInterval time.Duration) error
+//	func (apiCtx *APIContext) AssertTimeBetweenRequestAndResponseIs(timeInterval time.Duration) error
 //
 // * Preserving JSON nodes:
 //
