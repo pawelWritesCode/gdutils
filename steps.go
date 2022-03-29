@@ -473,8 +473,8 @@ func (apiCtx *APIContext) GenerateTimeAndTravel(timeDirection timeutils.TimeDire
 	return apiCtx.GetTimeAndTravel(time.Now(), timeDirection, timeDuration, cacheKey)
 }
 
-// AssertStatusCode compare last response status code with given in argument.
-func (apiCtx *APIContext) AssertStatusCode(code int) error {
+// AssertStatusCodeIs compare last response status code with given in argument.
+func (apiCtx *APIContext) AssertStatusCodeIs(code int) error {
 	lastResponse, err := apiCtx.GetLastResponse()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
@@ -487,9 +487,23 @@ func (apiCtx *APIContext) AssertStatusCode(code int) error {
 	return nil
 }
 
-// AssertResponseFormat checks whether last response body has given data format.
+// AssertStatusCodeIsNot asserts that last response status code is not provided.
+func (apiCtx *APIContext) AssertStatusCodeIsNot(code int) error {
+	lastResponse, err := apiCtx.GetLastResponse()
+	if err != nil {
+		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
+	}
+
+	if lastResponse.StatusCode != code {
+		return nil
+	}
+
+	return fmt.Errorf("expected status code is other than %d, but is %d", code, lastResponse.StatusCode)
+}
+
+// AssertResponseFormatIs checks whether last response body has given data format.
 // Available data formats are listed in format package.
-func (apiCtx *APIContext) AssertResponseFormat(dataFormat format.DataFormat) error {
+func (apiCtx *APIContext) AssertResponseFormatIs(dataFormat format.DataFormat) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
@@ -530,9 +544,52 @@ func (apiCtx *APIContext) AssertResponseFormat(dataFormat format.DataFormat) err
 	}
 }
 
-// AssertNode checks whether last response body contains given node.
+// AssertResponseFormatIsNot checks whether last response body has not given data format.
+// Available data formats are listed in format package.
+func (apiCtx *APIContext) AssertResponseFormatIsNot(dataFormat format.DataFormat) error {
+	body, err := apiCtx.GetLastResponseBody()
+	if err != nil {
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
+	}
+
+	switch dataFormat {
+	case format.JSON:
+		isJSON := format.IsJSON(body)
+		if isJSON {
+			return fmt.Errorf("response body has format %s", format.JSON)
+		}
+
+		return nil
+	case format.YAML:
+		isYAML := format.IsYAML(body)
+		if isYAML {
+			return fmt.Errorf("response body has format %s", format.YAML)
+		}
+
+		return nil
+	case format.XML:
+		isXml := format.IsXML(body)
+		if isXml {
+			return fmt.Errorf("response body has format %s", format.XML)
+		}
+
+		return nil
+	//This case checks whether last response body is not any of known types - then it assumes it is plain text
+	case format.PlainText:
+		if !(format.IsJSON(body) || format.IsYAML(body) || format.IsXML(body)) {
+			return fmt.Errorf("response body has format %s", format.PlainText)
+		}
+
+		return nil
+	default:
+		return fmt.Errorf("unknown last response body data format, available formats: %s, %s, %s, %s",
+			format.JSON, format.YAML, format.XML, format.PlainText)
+	}
+}
+
+// AssertNodeExists checks whether last response body contains given node.
 // expr should be valid according to injected PathFinder for given data format
-func (apiCtx *APIContext) AssertNode(dataFormat format.DataFormat, exprTemplate string) error {
+func (apiCtx *APIContext) AssertNodeExists(dataFormat format.DataFormat, exprTemplate string) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
@@ -566,9 +623,45 @@ func (apiCtx *APIContext) AssertNode(dataFormat format.DataFormat, exprTemplate 
 	return nil
 }
 
-// AssertNodes checks whether last request body has keys defined in string separated by comma
+// AssertNodeNotExists checks whether last response body does not contain given node.
+// expr should be valid according to injected PathFinder for given data format
+func (apiCtx *APIContext) AssertNodeNotExists(dataFormat format.DataFormat, exprTemplate string) error {
+	body, err := apiCtx.GetLastResponseBody()
+	if err != nil {
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
+	}
+
+	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
+	}
+
+	switch dataFormat {
+	case format.JSON:
+		_, err = apiCtx.PathFinders.JSON.Find(expr, body)
+	case format.YAML:
+		_, err = apiCtx.PathFinders.YAML.Find(expr, body)
+	case format.XML:
+		_, err = apiCtx.PathFinders.XML.Find(expr, body)
+	default:
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+			dataFormat, format.JSON, format.YAML, format.XML)
+	}
+
+	if err != nil {
+		return nil
+	}
+
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("last response body:\n\n%s", body))
+	}
+
+	return fmt.Errorf("%s node '%s' exists", dataFormat, expr)
+}
+
+// AssertNodesExist checks whether last request body has keys defined in string separated by comma
 // nodeExprs should be valid according to injected PathFinder expressions separated by comma (,)
-func (apiCtx *APIContext) AssertNodes(dataFormat format.DataFormat, expressionsTemplate string) error {
+func (apiCtx *APIContext) AssertNodesExist(dataFormat format.DataFormat, expressionsTemplate string) error {
 	expressions, err := apiCtx.TemplateEngine.Replace(expressionsTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
@@ -848,9 +941,9 @@ func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat,
 	return nil
 }
 
-// AssertNodeSliceLength checks whether given key is slice and has given length
+// AssertNodeSliceLengthIs checks whether given key is slice and has given length
 // expr should be valid according to injected PathFinder for provided dataFormat
-func (apiCtx *APIContext) AssertNodeSliceLength(dataFormat format.DataFormat, exprTemplate string, length int) error {
+func (apiCtx *APIContext) AssertNodeSliceLengthIs(dataFormat format.DataFormat, exprTemplate string, length int) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
@@ -889,6 +982,56 @@ func (apiCtx *APIContext) AssertNodeSliceLength(dataFormat format.DataFormat, ex
 		}
 
 		return nil
+	}
+
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("last response body:\n\n%s", body))
+	}
+
+	return fmt.Errorf("%s does not point at slice(array) in last HTTP(s) response body", expr)
+}
+
+// AssertNodeSliceLengthIsNot checks whether given key is slice and has not given length
+// expr should be valid according to injected PathFinder for provided dataFormat
+func (apiCtx *APIContext) AssertNodeSliceLengthIsNot(dataFormat format.DataFormat, exprTemplate string, length int) error {
+	body, err := apiCtx.GetLastResponseBody()
+	if err != nil {
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
+	}
+
+	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
+	}
+
+	var iValue any
+	switch dataFormat {
+	case format.JSON:
+		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
+	case format.YAML:
+		iValue, err = apiCtx.PathFinders.YAML.Find(expr, body)
+	case format.XML:
+		iValue, err = apiCtx.PathFinders.XML.Find(expr, body)
+	default:
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+			dataFormat, format.JSON, format.YAML, format.XML)
+	}
+
+	if err != nil {
+		if apiCtx.Debugger.IsOn() {
+			apiCtx.Debugger.Print(fmt.Sprintf("last response body:\n\n%s", body))
+		}
+
+		return fmt.Errorf("node '%s', err: %s", expr, err.Error())
+	}
+
+	v := reflect.ValueOf(iValue)
+	if v.Kind() == reflect.Slice {
+		if v.Len() != length {
+			return nil
+		}
+
+		return fmt.Errorf("%s slice has length: %d, expected not to have: %d", expr, v.Len(), length)
 	}
 
 	if apiCtx.Debugger.IsOn() {
@@ -953,8 +1096,63 @@ func (apiCtx *APIContext) AssertNodeMatchesRegExp(dataFormat format.DataFormat, 
 	return nil
 }
 
-// AssertResponseHeader checks whether last HTTP response has given header.
-func (apiCtx *APIContext) AssertResponseHeader(name string) error {
+// AssertNodeNotMatchesRegExp checks whether last response body node does not match provided regExp.
+func (apiCtx *APIContext) AssertNodeNotMatchesRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error {
+	regExpString, err := apiCtx.TemplateEngine.Replace(regExpTemplate, apiCtx.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'regExp' template, err: %w", err)
+	}
+
+	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'expression' template, err: %w", err)
+	}
+
+	body, err := apiCtx.GetLastResponseBody()
+	if err != nil {
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
+	}
+
+	var iValue any
+	switch dataFormat {
+	case format.JSON:
+		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
+	case format.YAML:
+		iValue, err = apiCtx.PathFinders.YAML.Find(expr, body)
+	case format.XML:
+		iValue, err = apiCtx.PathFinders.XML.Find(expr, body)
+	default:
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+			dataFormat, format.JSON, format.YAML, format.XML)
+	}
+
+	if err != nil {
+		return fmt.Errorf("node '%s', err: %s", expr, err.Error())
+	}
+
+	jsonValue, err := apiCtx.Formatters.JSON.Serialize(iValue)
+	if err != nil {
+		return fmt.Errorf("problem during serialization, err: %w", err)
+	}
+
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("matching: %s, with regExp: %s", jsonValue, regExpString))
+	}
+
+	matched, err := regexp.Match(regExpString, jsonValue)
+	if err != nil {
+		return fmt.Errorf("problem with regExp matching, err: %w", err)
+	}
+
+	if !matched {
+		return nil
+	}
+
+	return fmt.Errorf("%s contains some: %s", string(jsonValue), regExpString)
+}
+
+// AssertResponseHeaderExists checks whether last HTTP response has given header.
+func (apiCtx *APIContext) AssertResponseHeaderExists(name string) error {
 	defer func() {
 		if apiCtx.Debugger.IsOn() {
 			lastResp, err := apiCtx.GetLastResponse()
@@ -983,8 +1181,34 @@ func (apiCtx *APIContext) AssertResponseHeader(name string) error {
 	return fmt.Errorf("could not find header %s in last HTTP response", name)
 }
 
-// AssertResponseHeaderValue checks whether last HTTP response has given header with provided valueTemplate.
-func (apiCtx *APIContext) AssertResponseHeaderValue(name, valueTemplate string) error {
+// AssertResponseHeaderNotExists checks whether last HTTP response does not have given header.
+func (apiCtx *APIContext) AssertResponseHeaderNotExists(name string) error {
+	defer func() {
+		if apiCtx.Debugger.IsOn() {
+			lastResp, err := apiCtx.GetLastResponse()
+			if err != nil {
+				apiCtx.Debugger.Print("could not obtain last response headers")
+			}
+
+			apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %#v", lastResp.Header))
+		}
+	}()
+
+	lastResp, err := apiCtx.GetLastResponse()
+	if err != nil {
+		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
+	}
+
+	header := lastResp.Header.Get(name)
+	if header == "" {
+		return nil
+	}
+
+	return fmt.Errorf("last response has header %s", name)
+}
+
+// AssertResponseHeaderValueIs checks whether last HTTP response has given header with provided valueTemplate.
+func (apiCtx *APIContext) AssertResponseHeaderValueIs(name, valueTemplate string) error {
 	defer func() {
 		if apiCtx.Debugger.IsOn() {
 			lastResp, err := apiCtx.GetLastResponse()
@@ -1058,10 +1282,10 @@ func (apiCtx *APIContext) AssertNodeMatchesSchemaByReference(dataFormat format.D
 	return apiCtx.iValidateNodeWithSchemaGeneral(dataFormat, exprTemplate, referenceTemplate, apiCtx.SchemaValidators.ReferenceValidator)
 }
 
-// AssertTimeBetweenRequestAndResponse asserts that last HTTP request-response time
+// AssertTimeBetweenRequestAndResponseIs asserts that last HTTP request-response time
 // is <= than expected timeInterval.
 // timeInterval should be string acceptable by time.ParseDuration func
-func (apiCtx *APIContext) AssertTimeBetweenRequestAndResponse(timeInterval time.Duration) error {
+func (apiCtx *APIContext) AssertTimeBetweenRequestAndResponseIs(timeInterval time.Duration) error {
 	lastReqTimestampI, err := apiCtx.Cache.GetSaved(httpcache.LastHTTPRequestTimestamp)
 	if err != nil {
 		return fmt.Errorf("problem during obtaining last HTTP request timestamp, err: %w", err)
@@ -1090,8 +1314,8 @@ func (apiCtx *APIContext) AssertTimeBetweenRequestAndResponse(timeInterval time.
 	return nil
 }
 
-// AssertResponseCookie checks whether last HTTP(s) response has cookie of given name.
-func (apiCtx *APIContext) AssertResponseCookie(name string) error {
+// AssertResponseCookieExists checks whether last HTTP(s) response has cookie of given name.
+func (apiCtx *APIContext) AssertResponseCookieExists(name string) error {
 	lastResp, err := apiCtx.GetLastResponse()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
@@ -1113,8 +1337,31 @@ func (apiCtx *APIContext) AssertResponseCookie(name string) error {
 	return fmt.Errorf("last HTTP(s) response does not have cookie with name '%s'", name)
 }
 
-// AssertResponseCookieValue checks whether last HTTP(s) response has cookie of given name and value.
-func (apiCtx *APIContext) AssertResponseCookieValue(name, valueTemplate string) error {
+// AssertResponseCookieNotExists checks whether last HTTP(s) response does not have cookie of given name.
+func (apiCtx *APIContext) AssertResponseCookieNotExists(name string) error {
+	lastResp, err := apiCtx.GetLastResponse()
+	if err != nil {
+		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
+	}
+
+	defer func() {
+		if apiCtx.Debugger.IsOn() {
+
+			apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response cookies: %+v", lastResp.Cookies()))
+		}
+	}()
+
+	for _, cookie := range lastResp.Cookies() {
+		if cookie.Name == name {
+			return fmt.Errorf("last HTTP(s) response have cookie with name '%s'", name)
+		}
+	}
+
+	return nil
+}
+
+// AssertResponseCookieValueIs checks whether last HTTP(s) response has cookie of given name and value.
+func (apiCtx *APIContext) AssertResponseCookieValueIs(name, valueTemplate string) error {
 	lastResp, err := apiCtx.GetLastResponse()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
@@ -1160,7 +1407,7 @@ func (apiCtx *APIContext) Save(valueTemplate, cacheKey string) error {
 	return nil
 }
 
-// SaveNode saves from last response body node under given cacheKey key.
+// SaveNode saves from last response body node under given cache key.
 // expr should be valid according to injected PathResolver of given data type
 func (apiCtx *APIContext) SaveNode(dataFormat format.DataFormat, exprTemplate, cacheKey string) error {
 	body, err := apiCtx.GetLastResponseBody()
@@ -1195,6 +1442,34 @@ func (apiCtx *APIContext) SaveNode(dataFormat format.DataFormat, exprTemplate, c
 	}
 
 	apiCtx.Cache.Save(cacheKey, iVal)
+
+	return nil
+}
+
+// SaveHeader saves from last response header value under given cache key
+func (apiCtx *APIContext) SaveHeader(name, cacheKey string) error {
+	defer func() {
+		if apiCtx.Debugger.IsOn() {
+			lastResp, err := apiCtx.GetLastResponse()
+			if err != nil {
+				apiCtx.Debugger.Print("could not obtain last response headers")
+			}
+
+			apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %#v", lastResp.Header))
+		}
+	}()
+
+	lastResp, err := apiCtx.GetLastResponse()
+	if err != nil {
+		return fmt.Errorf("could not obtain last HTTP(s) response, err: %w", err)
+	}
+
+	header := lastResp.Header.Get(name)
+	if header == "" {
+		return fmt.Errorf("could not find header %s in last HTTP(s) response", name)
+	}
+
+	apiCtx.Cache.Save(cacheKey, header)
 
 	return nil
 }
