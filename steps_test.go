@@ -378,7 +378,7 @@ func TestState_RequestSetCookies(t *testing.T) {
 	}
 }
 
-func TestState_AssertStatusCode(t *testing.T) {
+func TestState_AssertStatusCodeIs(t *testing.T) {
 	type fields struct {
 		cache        map[string]any
 		lastResponse *http.Response
@@ -409,14 +409,51 @@ func TestState_AssertStatusCode(t *testing.T) {
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
-			if err := s.AssertStatusCode(tt.args.code); (err != nil) != tt.wantErr {
-				t.Errorf("AssertStatusCode() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertStatusCodeIs(tt.args.code); (err != nil) != tt.wantErr {
+				t.Errorf("AssertStatusCodeIs() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_AssertResponseFormat(t *testing.T) {
+func TestAPIContext_AssertStatusCodeIsNot(t *testing.T) {
+	type fields struct {
+		cache        map[string]any
+		lastResponse *http.Response
+		isDebug      bool
+	}
+	type args struct {
+		code int
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// Successful
+		{name: "different code #1, code less than 200", fields: fields{lastResponse: &http.Response{StatusCode: 200}}, args: args{code: 1}, wantErr: false},
+		{name: "different code #2, code over 599", fields: fields{lastResponse: &http.Response{StatusCode: 200}}, args: args{code: 600}, wantErr: false},
+		{name: "different code #3, different code expected", fields: fields{lastResponse: &http.Response{StatusCode: 200}}, args: args{code: 400}, wantErr: false},
+
+		// Failed
+		{name: "same code #1", fields: fields{lastResponse: &http.Response{StatusCode: 200}}, args: args{code: 200}, wantErr: true},
+		{name: "same code #1", fields: fields{lastResponse: &http.Response{StatusCode: 400}}, args: args{code: 400}, wantErr: true},
+		{name: "same code #1", fields: fields{lastResponse: &http.Response{StatusCode: 511}}, args: args{code: 511}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultAPIContext(tt.fields.isDebug, "")
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
+			if err := s.AssertStatusCodeIsNot(tt.args.code); (err != nil) != tt.wantErr {
+				t.Errorf("AssertStatusCodeIsNot() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_AssertResponseFormatIs(t *testing.T) {
 	yaml := `
 ---
 user:
@@ -470,8 +507,68 @@ user:
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
 
-			if err := s.AssertResponseFormat(tt.args.dataFormat); (err != nil) != tt.wantErr {
-				t.Errorf("AssertResponseFormat() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseFormatIs(tt.args.dataFormat); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseFormatIs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAPIContext_AssertResponseFormatIsNot(t *testing.T) {
+	yaml := `
+---
+user:
+   name: four
+   last_name: b
+`
+
+	xml := `<this>is xml</this>`
+	plainText := `this is plain text`
+	json := `{"this_is": "json"}`
+
+	type fields struct {
+		body []byte
+	}
+	type args struct {
+		dataFormat format.DataFormat
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// JSON
+		{name: "response body has JSON format and JSON format is not expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(json)}, wantErr: true},
+		{name: "response body has plain text format but JSON format is not expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(plainText)}, wantErr: false},
+		{name: "response body has XML format but JSON format is not expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(xml)}, wantErr: false},
+		{name: "response body has YAML format but JSON format is not expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(yaml)}, wantErr: false},
+
+		// YAML
+		{name: "response body has JSON format but YAML format is not expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(json)}, wantErr: false},
+		{name: "response body has plain text format but YAML format is not expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(plainText)}, wantErr: false},
+		{name: "response body has XML format but YAML format is not expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(xml)}, wantErr: false},
+		{name: "response body has YAML format and YAML format is not expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(yaml)}, wantErr: true},
+
+		// XML
+		{name: "response body has JSON format but XML format is not expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(json)}, wantErr: false},
+		{name: "response body has plain text format but XML format is not expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(plainText)}, wantErr: false},
+		{name: "response body has XML format and XML format is not expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(xml)}, wantErr: true},
+		{name: "response body has YAML format but XML format is not expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(yaml)}, wantErr: false},
+
+		// plain text
+		{name: "response body has JSON format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(json)}, wantErr: false},
+		{name: "response body has plain text format and plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(plainText)}, wantErr: true},
+		{name: "response body has XML format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(xml)}, wantErr: false},
+		{name: "response body has YAML format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(yaml)}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultAPIContext(false, "")
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
+			if err := s.AssertResponseFormatIsNot(tt.args.dataFormat); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseFormatIsNot() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -688,7 +785,7 @@ func TestState_GetTimeAndTravel(t *testing.T) {
 	}
 }
 
-func TestState_AssertNode(t *testing.T) {
+func TestState_AssertNodeExists(t *testing.T) {
 	json := `{
 	"users": [
 		{
@@ -809,14 +906,141 @@ users:
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
 
-			if err := s.AssertNode(tt.args.dataFormat, tt.args.expressions); (err != nil) != tt.wantErr {
-				t.Errorf("AssertNode() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertNodeExists(tt.args.dataFormat, tt.args.expressions); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNodeExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_AssertNodes(t *testing.T) {
+func TestAPIContext_AssertNodeNotExists(t *testing.T) {
+	json := `{
+	"users": [
+		{
+			"name": "abc"
+		},
+		{
+			"name": "xxx"
+		}
+	]
+}`
+
+	yaml := `---
+users:
+- name: abc
+- name: xxx
+`
+
+	xml := `<?xml version="1.0"?>
+<users>
+	<user>
+		<name>abc</name>
+	</user>
+	<user>
+		<name>xxx</name>
+	</user>
+</users>`
+
+	type fields struct {
+		body      []byte
+		cacheData map[string]any
+	}
+	type args struct {
+		dataFormat  format.DataFormat
+		expressions string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// JSON
+		{name: "missing last response body", fields: fields{}, args: args{}, wantErr: true},
+		{name: "last response body is missing expected key in JSON", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "age",
+		}, wantErr: false},
+		{name: "last response body has expected key #1 - qjson expression", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "users",
+		}, wantErr: true},
+		{name: "last response body has expected key #2 - Oliveagle expression", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "$.users[0]",
+		}, wantErr: true},
+		{name: "last response body has expected key #3 - qjson expression ", fields: fields{body: []byte(json)}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "users[1].name",
+		}, wantErr: true},
+		{name: "last response body has expected key #4 - qjson expression with template value", fields: fields{body: []byte(json), cacheData: map[string]any{
+			"USER_ID": 1,
+		}}, args: args{
+			dataFormat:  format.JSON,
+			expressions: "users[{{.USER_ID}}].name",
+		}, wantErr: true},
+
+		// XML
+		{name: "last response body is missing expected key in XML", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "age",
+		}, wantErr: false},
+		{name: "last response body has expected key #1 - Antchfx expression", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//users",
+		}, wantErr: true},
+		{name: "last response body has expected key #2 - Antchfx expression", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//users//user[1]",
+		}, wantErr: true},
+		{name: "last response body has expected key #3 - Antchfx expression", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//user[2]//name",
+		}, wantErr: true},
+		{name: "last response body has expected key #4 - Antchfx expression with template value", fields: fields{body: []byte(xml), cacheData: map[string]any{
+			"USER_ID": 2,
+		}}, args: args{
+			dataFormat:  format.XML,
+			expressions: "//user[{{.USER_ID}}]//name",
+		}, wantErr: true},
+
+		// YAML
+		{name: "last response body is missing expected key in YAML", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.age",
+		}, wantErr: false},
+		{name: "last response body has expected key #1 - Goccy expression", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.users",
+		}, wantErr: true},
+		{name: "last response body has expected key #2 - Goccy expression", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.users[0].name",
+		}, wantErr: true},
+		{name: "last response body has expected key #3 - Goccy expression with template value", fields: fields{body: []byte(yaml), cacheData: map[string]any{
+			"USER_ID": 0,
+		}}, args: args{
+			dataFormat:  format.YAML,
+			expressions: "$.users[{{.USER_ID}}].name",
+		}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultAPIContext(false, "")
+
+			for k, v := range tt.fields.cacheData {
+				s.Cache.Save(k, v)
+			}
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
+			if err := s.AssertNodeNotExists(tt.args.dataFormat, tt.args.expressions); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNodeNotExists() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_AssertNodesExist(t *testing.T) {
 	json := `{
 	"users": [
 		{
@@ -956,8 +1180,8 @@ users:
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
 
-			if err := s.AssertNodes(tt.args.dataFormat, tt.args.expressions); (err != nil) != tt.wantErr {
-				t.Errorf("AssertNodes() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertNodesExist(tt.args.dataFormat, tt.args.expressions); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNodesExist() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -1530,7 +1754,7 @@ users:
 	}
 }
 
-func TestState_AssertNodeSliceLength(t *testing.T) {
+func TestState_AssertNodeSliceLengthIs(t *testing.T) {
 	json := `{
 	"count": 2,
 	"data": [
@@ -1639,8 +1863,124 @@ data:
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
 
-			if err := s.AssertNodeSliceLength(tt.args.dataFormat, tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
-				t.Errorf("AssertNodeSliceLength() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertNodeSliceLengthIs(tt.args.dataFormat, tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNodeSliceLengthIs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAPIContext_AssertNodeSliceLengthIsNot(t *testing.T) {
+	json := `{
+	"count": 2,
+	"data": [
+		{
+			"name": "abc"
+		},
+		{
+			"name": "xxx"
+		}
+	]
+}`
+
+	yaml := `---
+count: 2
+data:
+	- name: abc
+	- name: xxx`
+
+	xml := `<?xml version="1.0"?>
+<root>
+	<count>2</count>
+	<data>
+		<user>
+			<name>abc</name>
+		</user>
+		<user>
+			<name>xxx</name>
+		</user>
+	</data>
+</root>`
+
+	type fields struct {
+		body []byte
+	}
+	type args struct {
+		dataFormat format.DataFormat
+		expr       string
+		length     int
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		//JSON
+		{name: "no body", fields: fields{body: nil}, args: args{}, wantErr: true},
+		{name: "expression does not point at slice", fields: fields{body: []byte(json)}, args: args{
+			dataFormat: format.JSON,
+			expr:       "count",
+			length:     0,
+		}, wantErr: true},
+		{name: "expression does point at slice and expected invalid length", fields: fields{body: []byte(json)}, args: args{
+			dataFormat: format.JSON,
+			expr:       "data",
+			length:     1,
+		}, wantErr: false},
+		{name: "expression does point at slice but expected proper length", fields: fields{body: []byte(json)}, args: args{
+			dataFormat: format.JSON,
+			expr:       "data",
+			length:     2,
+		}, wantErr: true},
+
+		//YAML
+		{name: "expression does not point at slice", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat: format.YAML,
+			expr:       "$.count",
+			length:     0,
+		}, wantErr: true},
+		{name: "expression does point at slice and expected invalid length", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat: format.YAML,
+			expr:       "$.data",
+			length:     1,
+		}, wantErr: false},
+		{name: "expression does point at slice but expected proper length", fields: fields{body: []byte(yaml)}, args: args{
+			dataFormat: format.YAML,
+			expr:       "$.data",
+			length:     2,
+		}, wantErr: true},
+
+		//XML
+		{name: "expression does not point at slice", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat: format.XML,
+			expr:       "//count",
+			length:     0,
+		}, wantErr: true},
+		{name: "expression does point at slice and expected invalid length", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat: format.XML,
+			expr:       "//data//name",
+			length:     1,
+		}, wantErr: false},
+		{name: "expression does point at slice but expected proper length #1", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat: format.XML,
+			expr:       "//data//name",
+			length:     2,
+		}, wantErr: true},
+		{name: "expression does point at slice but expected proper length #2", fields: fields{body: []byte(xml)}, args: args{
+			dataFormat: format.XML,
+			expr:       "//user",
+			length:     2,
+		}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultAPIContext(false, "")
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: ioutil.NopCloser(bytes.NewReader(tt.fields.body))})
+
+			if err := s.AssertNodeSliceLengthIsNot(tt.args.dataFormat, tt.args.expr, tt.args.length); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNodeSliceLengthIsNot() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -2064,7 +2404,155 @@ name: abcdef`,
 	}
 }
 
-func TestState_AssertResponseHeader(t *testing.T) {
+func TestAPIContext_AssertNodeNotMatchesRegExp(t *testing.T) {
+	mTemplateEngine := new(mockedTemplateEngine)
+	mJsonPathResolver := new(mockedJsonPathFinder)
+
+	type fields struct {
+		cacheKeys      map[string]any
+		templateEngine template.Engine
+		pathResolvers  PathFinders
+		respBody       string
+		mockFunc       func()
+	}
+	type args struct {
+		df             format.DataFormat
+		expr           string
+		regExpTemplate string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "template engine error", fields: fields{
+			cacheKeys:      nil,
+			templateEngine: mTemplateEngine,
+			pathResolvers: PathFinders{
+				JSON: nil,
+				YAML: nil,
+			},
+			respBody: "",
+			mockFunc: func() {
+				mTemplateEngine.On("Replace", "abc", mock.Anything).
+					Return("", errors.New("err")).Once()
+			},
+		}, args: args{
+			df:             format.JSON,
+			expr:           "",
+			regExpTemplate: "abc",
+		}, wantErr: true},
+		{name: "json path finder error", fields: fields{
+			cacheKeys:      nil,
+			templateEngine: mTemplateEngine,
+			pathResolvers:  PathFinders{JSON: mJsonPathResolver},
+			respBody:       "",
+			mockFunc: func() {
+				mTemplateEngine.On("Replace", "abc", mock.Anything).
+					Return("abc", nil).Once()
+
+				mTemplateEngine.On("Replace", "xxx", mock.Anything).
+					Return("xxx", nil).Once()
+
+				mJsonPathResolver.On("Find", "xxx", []byte("")).
+					Return(any(""), errors.New("err")).Once()
+			},
+		}, args: args{
+			df:             format.JSON,
+			expr:           "xxx",
+			regExpTemplate: "abc",
+		}, wantErr: true},
+		{name: "node value does not match provided regExp #1", fields: fields{
+			respBody: `{
+	"name": "abcdef"
+}`,
+			mockFunc: func() {},
+		}, args: args{
+			df:             format.JSON,
+			expr:           "name",
+			regExpTemplate: "dd.*",
+		}, wantErr: false},
+
+		{name: "node value matches provided regExp #1", fields: fields{
+			respBody: `{
+	"name": "abcdef"
+}`,
+			mockFunc: func() {},
+		}, args: args{
+			df:             format.JSON,
+			expr:           "name",
+			regExpTemplate: "abc.*",
+		}, wantErr: true},
+
+		{name: "node value does not match provided regExp #2", fields: fields{
+			respBody: `---
+name: abcdef`,
+			mockFunc: func() {},
+		}, args: args{
+			df:             format.YAML,
+			expr:           "$.name",
+			regExpTemplate: "dd.*",
+		}, wantErr: false},
+
+		{name: "node value matches provided regExp #2", fields: fields{
+			respBody: `---
+name: abcdef`,
+			mockFunc: func() {},
+		}, args: args{
+			df:             format.YAML,
+			expr:           "$.name",
+			regExpTemplate: "abc.*",
+		}, wantErr: true},
+		{name: "node value matches provided regExp #3", fields: fields{
+			respBody: `
+<name>abcdef</name>`,
+			mockFunc: func() {},
+		}, args: args{
+			df:             format.XML,
+			expr:           "//name",
+			regExpTemplate: "abc.*",
+		}, wantErr: true},
+		{name: "node value does not match provided regExp #3", fields: fields{
+			respBody: `
+<name>abcdef</name>`,
+			mockFunc: func() {},
+		}, args: args{
+			df:             format.XML,
+			expr:           "//name",
+			regExpTemplate: "dd.*",
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultAPIContext(false, "")
+
+			if len(tt.fields.cacheKeys) > 0 {
+				for key, val := range tt.fields.cacheKeys {
+					s.Cache.Save(key, val)
+				}
+			}
+
+			if tt.fields.templateEngine != nil {
+				s.SetTemplateEngine(tt.fields.templateEngine)
+			}
+
+			if tt.fields.pathResolvers.JSON != nil {
+				s.SetJSONPathFinder(tt.fields.pathResolvers.JSON)
+			}
+
+			r := &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(tt.fields.respBody))}
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, r)
+
+			tt.fields.mockFunc()
+			if err := s.AssertNodeNotMatchesRegExp(tt.args.df, tt.args.expr, tt.args.regExpTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNodeNotMatchesRegExp() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_AssertResponseHeaderExists(t *testing.T) {
 	type fields struct {
 		cache        map[string]any
 		lastResponse *http.Response
@@ -2102,14 +2590,58 @@ func TestState_AssertResponseHeader(t *testing.T) {
 
 			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
-			if err := s.AssertResponseHeader(tt.args.name); (err != nil) != tt.wantErr {
-				t.Errorf("AssertResponseHeader() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseHeaderExists(tt.args.name); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseHeaderExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_AssertResponseHeaderValue(t *testing.T) {
+func TestAPIContext_AssertResponseHeaderNotExists(t *testing.T) {
+	type fields struct {
+		cache        map[string]any
+		lastResponse *http.Response
+	}
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "no headers in request", fields: fields{lastResponse: &http.Response{Header: map[string][]string{}}}, args: args{name: "Content-Type"}, wantErr: false},
+		{name: "empty string provided as header name", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{"Content-Type": {"application/json"}}},
+		}, args: args{name: ""}, wantErr: false},
+		{name: "matching header #1 - case insensitive", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{"Content-Type": {"application/json"}}},
+		}, args: args{name: "content-type"}, wantErr: true},
+		{name: "matching header #2 - case sensitive", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{"Content-Type": {"application/json"}}},
+		}, args: args{name: "Content-Type"}, wantErr: true},
+		{name: "matching header #3", fields: fields{lastResponse: &http.Response{
+			Header: map[string][]string{
+				"Content-Length": {"30"},
+				"Content-Type":   {"application/json"},
+			},
+		},
+		}, args: args{name: "Content-Type"}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultAPIContext(false, "")
+
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
+			if err := s.AssertResponseHeaderNotExists(tt.args.name); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseHeaderNotExists() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestState_AssertResponseHeaderValueIs(t *testing.T) {
 	type fields struct {
 		cache        map[string]any
 		lastResponse *http.Response
@@ -2165,8 +2697,8 @@ func TestState_AssertResponseHeaderValue(t *testing.T) {
 				}
 			}
 
-			if err := s.AssertResponseHeaderValue(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
-				t.Errorf("AssertResponseHeaderValue() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseHeaderValueIs(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseHeaderValueIs() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -2422,7 +2954,7 @@ user:
 	}
 }
 
-func TestState_AssertTimeBetweenRequestAndResponse(t *testing.T) {
+func TestState_AssertTimeBetweenRequestAndResponseIs(t *testing.T) {
 	type fields struct {
 		req *time.Time
 		res *time.Time
@@ -2465,14 +2997,14 @@ func TestState_AssertTimeBetweenRequestAndResponse(t *testing.T) {
 				t.Errorf("could not parse timeInterval: %s", tt.args.timeInterval)
 			}
 
-			if err := s.AssertTimeBetweenRequestAndResponse(td); (err != nil) != tt.wantErr {
+			if err := s.AssertTimeBetweenRequestAndResponseIs(td); (err != nil) != tt.wantErr {
 				t.Errorf("TimeBetweenLastHTTPRequestResponseShouldBeLessThan() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_AssertResponseCookieValue(t *testing.T) {
+func TestState_AssertResponseCookieValueIs(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 
 	type fields struct {
@@ -2527,14 +3059,14 @@ func TestState_AssertResponseCookieValue(t *testing.T) {
 
 			tt.fields.mockFunc()
 
-			if err := s.AssertResponseCookieValue(tt.args.name, tt.args.valueTemplate); (err != nil) != tt.wantErr {
-				t.Errorf("AssertResponseCookieValue() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseCookieValueIs(tt.args.name, tt.args.valueTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseCookieValueIs() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestState_AssertResponseCookie(t *testing.T) {
+func TestState_AssertResponseCookieExists(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 
 	type fields struct {
@@ -2558,15 +3090,6 @@ func TestState_AssertResponseCookie(t *testing.T) {
 		}, args: args{
 			name: "",
 		}, wantErr: true},
-		{name: "template engine returns error", fields: fields{
-			TemplateEngine: mTemplateEngine,
-			response:       &http.Response{},
-			mockFunc: func() {
-				mTemplateEngine.On("Replace", "a", mock.Anything).Return("", errors.New("abc")).Once()
-			},
-		}, args: args{
-			name: "",
-		}, wantErr: true},
 		{name: "cookies are not found in response", fields: fields{
 			TemplateEngine: mTemplateEngine,
 			response:       &http.Response{},
@@ -2585,8 +3108,55 @@ func TestState_AssertResponseCookie(t *testing.T) {
 
 			tt.fields.mockFunc()
 
-			if err := s.AssertResponseCookie(tt.args.name); (err != nil) != tt.wantErr {
-				t.Errorf("AssertResponseCookie() error = %v, wantErr %v", err, tt.wantErr)
+			if err := s.AssertResponseCookieExists(tt.args.name); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseCookieExists() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAPIContext_AssertResponseCookieNotExists(t *testing.T) {
+	mTemplateEngine := new(mockedTemplateEngine)
+
+	type fields struct {
+		TemplateEngine template.Engine
+		response       *http.Response
+		mockFunc       func()
+	}
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "missing last response", fields: fields{
+			TemplateEngine: mTemplateEngine,
+			response:       nil,
+			mockFunc:       func() {},
+		}, args: args{
+			name: "",
+		}, wantErr: true},
+		{name: "cookies are not found in response", fields: fields{
+			TemplateEngine: mTemplateEngine,
+			response:       &http.Response{},
+			mockFunc: func() {
+			},
+		}, args: args{
+			name: "a",
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultAPIContext(false, "")
+			s.SetTemplateEngine(tt.fields.TemplateEngine)
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.response)
+
+			tt.fields.mockFunc()
+			if err := s.AssertResponseCookieNotExists(tt.args.name); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseCookieNotExists() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -2808,6 +3378,57 @@ user:
 				if _, err := s.Cache.GetSaved(tt.args.variableName); err != nil {
 					t.Errorf("%s was not saved to Cache", tt.args.node)
 				}
+			}
+		})
+	}
+}
+
+func TestAPIContext_SaveHeader(t *testing.T) {
+	type fields struct {
+		resp *http.Response
+	}
+
+	type args struct {
+		name     string
+		cacheKey string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+		want    any
+	}{
+		{name: "missing last response", fields: fields{resp: nil}, args: args{
+			name:     "Content-Length",
+			cacheKey: "LENGTH_OF_CONTENT",
+		}, wantErr: true, want: nil},
+		{name: "last response has no headers", fields: fields{resp: &http.Response{}}, args: args{
+			name:     "Content-Length",
+			cacheKey: "LENGTH_OF_CONTENT",
+		}, wantErr: true, want: nil},
+		{name: "response has header from name field #1", fields: fields{resp: &http.Response{}}, args: args{
+			name:     "Content-Length",
+			cacheKey: "LENGTH_OF_CONTENT",
+		}, wantErr: true, want: nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			apiCtx := NewDefaultAPIContext(false, "")
+
+			apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.resp)
+
+			if err := apiCtx.SaveHeader(tt.args.name, tt.args.cacheKey); (err != nil) != tt.wantErr {
+				t.Errorf("SaveHeader() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !tt.wantErr {
+				savedHeader, err := apiCtx.Cache.GetSaved(tt.args.cacheKey)
+				if err != nil {
+					t.Errorf("%s", err)
+				}
+
+				fmt.Println(savedHeader)
 			}
 		})
 	}
