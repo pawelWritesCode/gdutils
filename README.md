@@ -13,7 +13,7 @@ Library is suitable for steps in godog framework.
 ### Related project:
 
 Skeleton that allows to write e2e HTTP API tests using *godog & gdutils* almost instantly with minimal configuration.
-https://github.com/pawelWritesCode/godog-example-setup
+https://github.com/pawelWritesCode/godog-http-api
 
 ### Available methods:
 
