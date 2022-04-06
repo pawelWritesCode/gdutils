@@ -1,4 +1,4 @@
-[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-63.7%25-brightgreen)
+[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-64.1%25-brightgreen)
 
 # GDUTILS
 
@@ -33,7 +33,7 @@ https://github.com/pawelWritesCode/godog-example-setup
 | **Random data generation:** |
 | | |
 | GenerateRandomInt | Generates random integer from provided range and save it under provided cache key |
-| IGenerateARandomFloatInTheRangeToAndSaveItAs | Generates random float from provided range and save it under provided cache key |
+| GenerateFloat64 | Generates random float from provided range and save it under provided cache key |
 | GeneratorRandomRunes | Creates generator for random strings from provided charset in provided range |
 | GeneratorRandomSentence | Creates generator for random sentence from provided charset in provided range |
 | GetTimeAndTravel | Accepts time object and move in time by given time interval |
