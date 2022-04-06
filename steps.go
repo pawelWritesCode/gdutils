@@ -376,11 +376,11 @@ func (apiCtx *APIContext) GenerateRandomInt(from, to int, cacheKey string) error
 // GenerateFloat64 generates random float from provided range
 // and preserve it under given cacheKey key.
 func (apiCtx *APIContext) GenerateFloat64(from, to float64, cacheKey string) error {
-
 	randFloat, err := mathutils.RandomFloat64(from, to)
 	if err != nil {
 		return fmt.Errorf("problem during generating pseudo random float, randomFloat err: %w", err)
 	}
+
 	apiCtx.Cache.Save(cacheKey, randFloat)
 	return nil
 }

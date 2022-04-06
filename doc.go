@@ -31,7 +31,7 @@
 // * Data generation:
 //
 //	func (apiCtx *APIContext) GenerateRandomInt(from, to int, cacheKey string) error
-//	func (apiCtx *APIContext) IGenerateARandomFloatInTheRangeToAndSaveItAs(from, to int, cacheKey string) error
+//	func (apiCtx *APIContext) GenerateFloat64(from, to float64, cacheKey string) error
 //  func (apiCtx *APIContext) GeneratorRandomRunes(charset string) func(from, to int, cacheKey string) error
 //	func (apiCtx *APIContext) GeneratorRandomSentence(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error
 //	func (apiCtx *APIContext) GetTimeAndTravel(t time.Time, timeDirection timeutils.TimeDirection, timeDuration time.Duration, cacheKey string) error
@@ -53,17 +53,24 @@
 // * Assertions:
 //
 //	func (apiCtx *APIContext) AssertStatusCodeIs(code int) error
+//	func (apiCtx *APIContext) AssertStatusCodeIsNot(code int) error
 //	func (apiCtx *APIContext) AssertResponseFormatIs(dataFormat format.DataFormat) error
+//	func (apiCtx *APIContext) AssertResponseFormatIsNot(dataFormat format.DataFormat) error
 //	func (apiCtx *APIContext) AssertResponseCookieExists(name string) error
+//	func (apiCtx *APIContext) AssertResponseCookieNotExists(name string) error
 //	func (apiCtx *APIContext) AssertResponseCookieValueIs(name, valueTemplate string) error
-//	func (apiCtx *APIContext) AssertNodeExists(dataFormat format.DataFormat, exprTemplate string) error
-//	func (apiCtx *APIContext) AssertNodeIsNotType(df format.DataFormat, exprTemplate string, goType string) error
-//	func (apiCtx *APIContext) AssertNodeIsType(df format.DataFormat, exprTemplate string, goType string) error
-//	func (apiCtx *APIContext) AssertNodeMatchesRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error
 //	func (apiCtx *APIContext) AssertNodesExist(dataFormat format.DataFormat, expressionsTemplates string) error
+//	func (apiCtx *APIContext) AssertNodeExists(dataFormat format.DataFormat, exprTemplate string) error
+//	func (apiCtx *APIContext) AssertNodeNotExists(dataFormat format.DataFormat, exprTemplate string) error
+//	func (apiCtx *APIContext) AssertNodeIsType(df format.DataFormat, exprTemplate string, goType string) error
+//	func (apiCtx *APIContext) AssertNodeIsNotType(df format.DataFormat, exprTemplate string, goType string) error
+//	func (apiCtx *APIContext) AssertNodeMatchesRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error
+//	func (apiCtx *APIContext) AssertNodeNotMatchesRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error
 //	func (apiCtx *APIContext) AssertNodeSliceLengthIs(dataFormat format.DataFormat, exprTemplate string, length int) error
+//	func (apiCtx *APIContext) AssertNodeSliceLengthIsNot(dataFormat format.DataFormat, exprTemplate string, length int) error
 //	func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat, exprTemplate, dataType, dataValue string) error
 //	func (apiCtx *APIContext) AssertResponseHeaderExists(name string) error
+//	func (apiCtx *APIContext) AssertResponseHeaderNotExists(name string) error
 //	func (apiCtx *APIContext) AssertResponseHeaderValueIs(name, value string) error
 //  func (apiCtx *APIContext) AssertResponseMatchesSchemaByReference(referenceTemplate string) error
 //	func (apiCtx *APIContext) AssertResponseMatchesSchemaByString(schemaTemplate string) error
@@ -71,9 +78,10 @@
 //	func (apiCtx *APIContext) AssertNodeMatchesSchemaByReference(dataFormat format.DataFormat, exprTemplate, referenceTemplate string) error
 //	func (apiCtx *APIContext) AssertTimeBetweenRequestAndResponseIs(timeInterval time.Duration) error
 //
-// * Preserving JSON nodes:
+// * Preserving nodes:
 //
 //	func (apiCtx *APIContext) SaveNode(dataFormat format.DataFormat, exprTemplate, cacheKey string) error
+//	func (apiCtx *APIContext) SaveHeader(name, cacheKey string) error
 //  func (apiCtx *APIContext) Save(valueTemplate, cacheKey string) error
 //
 // * Flow control:
