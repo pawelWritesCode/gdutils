@@ -153,6 +153,11 @@ func (m *mockedJsonPathFinder) Find(expr string, jsonBytes []byte) (any, error) 
 	return args.Get(0).(any), args.Error(1)
 }
 
+func ExampleRunesFromCharset() {
+	fmt.Println(stringutils.RunesFromCharset(1, []rune("a")))
+	// Output: [97]
+}
+
 func TestState_RequestPrepare(t *testing.T) {
 	type args struct {
 		method      string
