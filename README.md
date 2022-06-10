@@ -1,10 +1,8 @@
-[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-64.1%25-brightgreen)
+[![gdutils](https://github.com/pawelWritesCode/gdutils/workflows/gdutils/badge.svg)](https://github.com/pawelWritesCode/gdutils/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/pawelWritesCode/gdutils.svg)](https://pkg.go.dev/github.com/pawelWritesCode/gdutils) ![Coverage](https://img.shields.io/badge/Coverage-63.7%25-brightgreen)
 
 # GDUTILS
 
 ## Simple library with methods useful for e2e testing of HTTP(s) API using JSON/YAML/XML.
-
-Library is suitable for steps in godog framework.
 
 ### Downloading
 
@@ -12,8 +10,34 @@ Library is suitable for steps in godog framework.
 
 ### Related project:
 
-Skeleton that allows to write e2e HTTP API tests using *godog & gdutils* almost instantly with minimal configuration.
+Skeleton that allows to write E2E tests covering any HTTP API using *godog & gdutils* almost instantly with minimal configuration.
 https://github.com/pawelWritesCode/godog-http-api
+
+### Simple usage:
+```go
+ac := gdutils.NewDefaultAPIContext(false, "")
+
+if err := ac.RequestPrepare("GET", "https://random-d.uk/api/v2/list", "DUCK_GIFS_LIST"); err != nil {
+	return err
+}
+
+if err := ac.RequestSend("DUCK_GIFS_LIST"); err != nil {
+    return err
+}
+
+if err := ac.AssertStatusCodeIs(200); err != nil {
+    return err
+}
+
+if err := ac.AssertResponseFormatIs(format.JSON); err != nil {
+    return err
+}
+
+if err := ac.AssertNodeIsType(format.JSON, "$.gifs", types.Array); err != nil {
+    return err
+}
+
+```
 
 ### Available methods:
 
