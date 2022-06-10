@@ -69,7 +69,7 @@ func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate stri
 	} else if format.IsXML([]byte(input)) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	switch dataFormat {
@@ -78,7 +78,7 @@ func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate stri
 	case format.YAML:
 		err = apiCtx.Formatters.YAML.Deserialize([]byte(input), &bodyAndHeaders)
 	default:
-		err = fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
@@ -92,7 +92,7 @@ func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate stri
 	case format.YAML:
 		reqBody, err = apiCtx.Formatters.YAML.Serialize(bodyAndHeaders.Body)
 	default:
-		err = fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
@@ -169,7 +169,7 @@ func (apiCtx *APIContext) RequestSetHeaders(cacheKey, headersTemplate string) er
 	} else if format.IsXML(headersBytes) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	req, err := apiCtx.GetPreparedRequest(cacheKey)
@@ -232,7 +232,7 @@ func (apiCtx *APIContext) RequestSetCookies(cacheKey, cookiesTemplate string) er
 	} else if format.IsXML(userCookiesBytes) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	for _, cookie := range cookies {
@@ -269,7 +269,7 @@ func (apiCtx *APIContext) RequestSetForm(cacheKey, formTemplate string) error {
 	} else if format.IsXML(formBytes) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
