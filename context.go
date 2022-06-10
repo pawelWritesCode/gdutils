@@ -12,6 +12,7 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/pathfinder"
 	"github.com/pawelWritesCode/gdutils/pkg/schema"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
+	"github.com/pawelWritesCode/gdutils/pkg/types"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
 
@@ -37,6 +38,9 @@ type APIContext struct {
 
 	// Formatters are entities that has ability to format data in particular format.
 	Formatters Formatters
+
+	// TypeMappers are entities that has ability to map underlying data type into different format data type.
+	TypeMappers TypeMappers
 
 	// fileRecognizer is entity that has ability to recognize file reference.
 	fileRecognizer osutils.FileRecognizer
@@ -76,6 +80,18 @@ type PathFinders struct {
 	XML pathfinder.PathFinder
 }
 
+// TypeMappers is container for different data format mappers
+type TypeMappers struct {
+	// JSON is entity that has ability to map underlying data type into JSON data type
+	JSON types.Mapper
+
+	// YAML is entity that has ability to map underlying data type into YAML data type
+	YAML types.Mapper
+
+	// GO is entity that has ability to map underlying data type into GO-like data type
+	GO types.Mapper
+}
+
 // NewDefaultAPIContext returns *APIContext with default services.
 // jsonSchemaDir may be empty string or valid full path to directory with JSON schemas.
 func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext {
@@ -101,13 +117,19 @@ func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext {
 		XML:  formatter.NewXMLFormatter(),
 	}
 
+	typeMappers := TypeMappers{
+		JSON: types.NewJSONTypeMapper(),
+		YAML: types.NewYAMLTypeMapper(),
+		GO:   types.NewGoTypeMapper(),
+	}
+
 	defaultDebugger := debugger.New(isDebug)
 
-	return NewAPIContext(defaultHttpClient, defaultCache, jsonSchemaValidators, pathFinders, formatters, defaultDebugger)
+	return NewAPIContext(defaultHttpClient, defaultCache, jsonSchemaValidators, pathFinders, formatters, typeMappers, defaultDebugger)
 }
 
 // NewAPIContext returns *APIContext
-func NewAPIContext(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, f Formatters, d debugger.Debugger) *APIContext {
+func NewAPIContext(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, f Formatters, t TypeMappers, d debugger.Debugger) *APIContext {
 	fileRecognizer := osutils.NewOSFileRecognizer("file://", osutils.NewFileValidator())
 
 	return &APIContext{
@@ -118,6 +140,7 @@ func NewAPIContext(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathF
 		SchemaValidators: jv,
 		PathFinders:      p,
 		Formatters:       f,
+		TypeMappers:      t,
 		fileRecognizer:   fileRecognizer,
 	}
 }
@@ -186,4 +209,19 @@ func (apiCtx *APIContext) SetYAMLFormatter(yd formatter.Formatter) {
 // SetXMLFormatter sets new XML formatter for APIContext.
 func (apiCtx *APIContext) SetXMLFormatter(xf formatter.Formatter) {
 	apiCtx.Formatters.XML = xf
+}
+
+// SetJSONTypeMapper sets new type mapper for JSON.
+func (apiCtx *APIContext) SetJSONTypeMapper(c types.Mapper) {
+	apiCtx.TypeMappers.JSON = c
+}
+
+// SetYAMLTypeMapper sets new type mapper for YAML.
+func (apiCtx *APIContext) SetYAMLTypeMapper(c types.Mapper) {
+	apiCtx.TypeMappers.YAML = c
+}
+
+// SetGoTypeMapper sets new type mapper for Go.
+func (apiCtx *APIContext) SetGoTypeMapper(c types.Mapper) {
+	apiCtx.TypeMappers.GO = c
 }

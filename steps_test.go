@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -20,8 +21,69 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
 	"github.com/pawelWritesCode/gdutils/pkg/timeutils"
+	"github.com/pawelWritesCode/gdutils/pkg/types"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
+
+var bigJson = `{
+	"number_1" : 210,
+	"number_2" : -210,
+	"number_3" : 21.05,
+	"number_4" : 1.0E+2,
+	"color": "purple",
+	"isHorizontal": false,
+	"isPopular": null,
+	"user": {
+		"name": "John",
+		"height": 180,
+		"isActive": true,
+		"address": null,
+		"roles": ["role_admin", "role_user"]
+	}
+}`
+
+var bigYaml = `---
+ doe: "a deer, a female deer"
+ ray: null
+ nakamoto: ~
+ pi: 3.14159
+ xmas: true
+ french-hens: 3
+ calling-birds:
+   - huey
+   - dewey
+   - louie
+   - fred
+ xmas-fifth-day:
+   calling-birds: four
+   french-hens: 3
+   golden-rings: 5
+   partridges:
+     count: 1
+     location: "a pear tree"
+   turtle-doves: two`
+
+var bigXML = `<?xml version="1.0"?>
+<weather xmlns="x-schema:weatherSchema.xml">
+  <description>Weather info</description>
+  <date>1970-09-30</date>
+  <degrees>67.5</degrees>
+  <humidity>95</humidity>
+  <isHot>true</isHot>
+</weather>
+`
+
+func createRespBody() io.ReadCloser {
+	return ioutil.NopCloser(bytes.NewBufferString(bigJson))
+}
+
+func createYamlRespBody() io.ReadCloser {
+	return ioutil.NopCloser(bytes.NewBufferString(bigYaml))
+}
+
+func createXMLRespBody() io.ReadCloser {
+	return ioutil.NopCloser(bytes.NewBufferString(bigXML))
+}
 
 type mockedHTTPContext struct {
 	mock.Mock
@@ -1187,7 +1249,7 @@ users:
 	}
 }
 
-func TestState_AssertNodeIsNotType(t *testing.T) {
+func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 	type fields struct {
 		saved        map[string]any
 		lastResponse *http.Response
@@ -1196,7 +1258,7 @@ func TestState_AssertNodeIsNotType(t *testing.T) {
 	type args struct {
 		df     format.DataFormat
 		node   string
-		goType string
+		goType types.DataType
 	}
 	tests := []struct {
 		name    string
@@ -1204,259 +1266,287 @@ func TestState_AssertNodeIsNotType(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// JSON
-		{name: "is not nil value", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": "abc"
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "nil"}, wantErr: false},
-		{name: "is nil value", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": nil
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "nil"}, wantErr: true},
-		{name: "is null value", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "nil"}, wantErr: true},
-		{name: "is not string #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "string"}, wantErr: false},
-		{name: "is not string #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": 2
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "string"}, wantErr: false},
-		{name: "is string", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": "abc"
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "string"}, wantErr: true},
-		{name: "is not int #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "int"}, wantErr: false},
-		{name: "is not int #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": 2.1
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "int"}, wantErr: false},
-		{name: "is int #1 <- special case", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": 2.0
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "int"}, wantErr: true},
-		{name: "is int #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": -1
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "int"}, wantErr: true},
-		{name: "is float", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": -1.0
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "int"}, wantErr: true},
-		{name: "is not float #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": -1
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "float"}, wantErr: false},
-		{name: "is not float #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "float"}, wantErr: false},
-		{name: "is not float #3", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": true
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "float"}, wantErr: false},
-		{name: "is bool", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": true
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "bool"}, wantErr: true},
-		{name: "is not bool #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "bool"}, wantErr: false},
-		{name: "is not bool #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": "false"
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "bool"}, wantErr: false},
-		{name: "is map #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": {}
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "map"}, wantErr: true},
-		{name: "is map #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": {"name": "pawel"}
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "map"}, wantErr: true},
-		{name: "is not map #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "map"}, wantErr: false},
-		{name: "is not map #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": "pawel"
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "map"}, wantErr: false},
-		{name: "is slice #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": []
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "slice"}, wantErr: true},
-		{name: "is slice #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": ["1"]
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "slice"}, wantErr: true},
-		{name: "is not slice #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": "xxx"
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "slice"}, wantErr: false},
-		{name: "is not slice #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": {}
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "slice"}, wantErr: false},
-		{name: "unknown type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": {}
-}`))},
-		}, args: args{node: "user", goType: "xxx"}, wantErr: true},
+		// JSON related types against json data
+		{
+			name:    "selected node does not exists",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "abc", goType: types.Null},
+			wantErr: true,
+		},
+		{
+			name:    "selected node value is null - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isPopular", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is null - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isPopular", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is boolean - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Null},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is boolean - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Null},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "color", goType: types.Boolean},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.color", goType: types.Number},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #1 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_1", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #1 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_1", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #2 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_2", goType: types.Boolean},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #2 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_2", goType: types.Object},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #3 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_3", goType: types.Array},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #3 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_3", goType: types.Array},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #4 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_4", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #4 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_4", goType: types.Boolean},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #5 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user.height", goType: types.Array},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #5- - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user.height", goType: types.Object},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is object - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is object - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user", goType: types.Boolean},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is array - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user.roles", goType: types.Object},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is array - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user.roles", goType: types.Boolean},
+			wantErr: false,
+		},
 
-		//YAML
-		{name: "is not nil value", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: abc`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "nil"}, wantErr: false},
-		{name: "is null value", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "nil"}, wantErr: true},
-		{name: "is not string #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "string"}, wantErr: false},
-		{name: "is not string #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: 2`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "string"}, wantErr: false},
-		{name: "is string", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: abc`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "string"}, wantErr: true},
-		{name: "is not int #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "int"}, wantErr: false},
-		{name: "is not int #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: 2.1`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "int"}, wantErr: false},
-		{name: "is int #1 <- special case", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: 2.0`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "int"}, wantErr: true},
-		{name: "is int #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: -1`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "int"}, wantErr: true},
-		{name: "is float", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: -1.0`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "int"}, wantErr: true},
-		{name: "is not float #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: -1`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "float"}, wantErr: false},
-		{name: "is not float #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "float"}, wantErr: false},
-		{name: "is not float #3", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: true`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "float"}, wantErr: false},
-		{name: "is bool", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: true`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "bool"}, wantErr: true},
-		{name: "is not bool #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "bool"}, wantErr: false},
-		{name: "is not bool #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: "false"`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "bool"}, wantErr: false},
-		{name: "is map #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-foo: bar
-     pleh: help
-     stuff:
-       foo: bar
-       bar: foo`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "map"}, wantErr: true},
-		{name: "is map #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-xmas-fifth-day:
-   calling-birds: four
-   french-hens: 3
-   golden-rings: 5`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "map"}, wantErr: true},
-		{name: "is not map #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "map"}, wantErr: false},
-		{name: "is not map #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: "pawel"`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "map"}, wantErr: false},
-		{name: "is slice #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-users:
-	- huey
-	- dewey`))},
-		}, args: args{df: format.YAML, node: "$.users", goType: "slice"}, wantErr: true},
-		{name: "is slice #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-recipe:
-	ingredients:
-		- oil
-		- tomato`))},
-		}, args: args{df: format.YAML, node: "$.recipe.ingredients", goType: "slice"}, wantErr: true},
-		{name: "is not slice #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "slice"}, wantErr: false},
-		{name: "is not slice #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-xmas-fifth-day:
-   calling-birds: four
-   french-hens: 3
-   golden-rings: 5`))},
-		}, args: args{df: format.YAML, node: "$.xmas-fifth-day", goType: "slice"}, wantErr: false},
-		{name: "unknown type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-users:
-	- huey
-	- dewey`))},
-		}, args: args{node: "$.users", goType: "xxx"}, wantErr: true},
-		{name: "format XML is not supported", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(``))},
-		}, args: args{df: format.XML, node: "$.users", goType: "xxx"}, wantErr: true},
+		// YAML related data types against YAML data
+		{
+			name:    "selected node does not exist",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.abc", goType: types.Null},
+			wantErr: true,
+		},
+		{
+			name:    "selected node value is scalar - null #1",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.ray", goType: types.Sequence},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - null #2",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.nakamoto", goType: types.Mapping},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - string #1",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.doe", goType: types.Sequence},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - string #2",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas-fifth-day.calling-birds", goType: types.Sequence},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - float",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.pi", goType: types.Mapping},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - int #1",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.french-hens", goType: types.Mapping},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - int #2",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas-fifth-day.french-hens", goType: types.Mapping},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - boolean",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas", goType: types.Sequence},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is sequence",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.calling-birds", goType: types.Scalar},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is mapping",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas-fifth-day", goType: types.Scalar},
+			wantErr: false,
+		},
+
+		//GO related types against JSON data
+		{
+			name:    "selected node value is nil - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isPopular", goType: types.Slice},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is nil - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isPopular", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is int #1 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_1", goType: types.Float},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is int #1 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_1", goType: types.Float},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is float - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_3", goType: types.Int},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is float - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_3", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "color", goType: types.Bool},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.color", goType: types.Int},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is bool - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Slice},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is bool - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Map},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is map - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is map - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user", goType: types.Slice},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is slice - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user.roles", goType: types.Bool},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is slice - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user.roles", goType: types.Float},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1465,7 +1555,7 @@ users:
 			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
 			if err := af.AssertNodeIsNotType(tt.args.df, tt.args.node, tt.args.goType); (err != nil) != tt.wantErr {
-				t.Errorf("TheJSONNodeShouldNotBe() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("AssertNodeIsNotType() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -1480,7 +1570,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 	type args struct {
 		df     format.DataFormat
 		node   string
-		goType string
+		goType types.DataType
 	}
 	tests := []struct {
 		name    string
@@ -1488,258 +1578,287 @@ func TestState_AssertNodeIsType(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{name: "is not nil value", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": "abc"
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "nil"}, wantErr: true},
-		{name: "is nil value", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": nil
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "nil"}, wantErr: false},
-		{name: "is null value", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "nil"}, wantErr: false},
-		{name: "is not string #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "string"}, wantErr: true},
-		{name: "is not string #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": 2
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "string"}, wantErr: true},
-		{name: "is string", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": "abc"
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "string"}, wantErr: false},
-		{name: "is not int #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "int"}, wantErr: true},
-		{name: "is not int #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": 2.1
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "int"}, wantErr: true},
-		{name: "is int #1 <- special case", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": 2.0
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "int"}, wantErr: false},
-		{name: "is int #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": -1
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "int"}, wantErr: false},
-		{name: "is float", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": -1.0
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "int"}, wantErr: false},
-		{name: "is not float #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": -1
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "float"}, wantErr: true},
-		{name: "is not float #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "float"}, wantErr: true},
-		{name: "is not float #3", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": true
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "float"}, wantErr: true},
-		{name: "is bool", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": true
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "bool"}, wantErr: false},
-		{name: "is not bool #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "bool"}, wantErr: true},
-		{name: "is not bool #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": "false"
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "bool"}, wantErr: true},
-		{name: "is map #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": {}
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "map"}, wantErr: false},
-		{name: "is map #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": {"name": "pawel"}
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "map"}, wantErr: false},
-		{name: "is not map #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": null
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "map"}, wantErr: true},
-		{name: "is not map #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": "pawel"
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "map"}, wantErr: true},
-		{name: "is slice #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": []
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "slice"}, wantErr: false},
-		{name: "is slice #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": ["1"]
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "slice"}, wantErr: false},
-		{name: "is not slice #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": "xxx"
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "slice"}, wantErr: true},
-		{name: "is not slice #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": {}
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "slice"}, wantErr: true},
-		{name: "unknown type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
-	"user": {}
-}`))},
-		}, args: args{df: format.JSON, node: "user", goType: "xxx"}, wantErr: true},
+		// JSON related types against json data
+		{
+			name:    "selected node does not exists",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "abc", goType: types.Null},
+			wantErr: true,
+		},
+		{
+			name:    "selected node value is null - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isPopular", goType: types.Null},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is null - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isPopular", goType: types.Null},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is boolean - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Boolean},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is boolean - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Boolean},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "color", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.color", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #1 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_1", goType: types.Number},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #1 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_1", goType: types.Number},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #2 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_2", goType: types.Number},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #2 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_2", goType: types.Number},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #3 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_3", goType: types.Number},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #3 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_3", goType: types.Number},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #4 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_4", goType: types.Number},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #4 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_4", goType: types.Number},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #5 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user.height", goType: types.Number},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #5- - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user.height", goType: types.Number},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is object - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user", goType: types.Object},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is object - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user", goType: types.Object},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is array - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user.roles", goType: types.Array},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is array - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user.roles", goType: types.Array},
+			wantErr: false,
+		},
 
-		//YAML
-		{name: "is not nil value", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: abc`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "nil"}, wantErr: true},
-		{name: "is null value", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "nil"}, wantErr: false},
-		{name: "is not string #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "string"}, wantErr: true},
-		{name: "is not string #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: 2`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "string"}, wantErr: true},
-		{name: "is string", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: abc`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "string"}, wantErr: false},
-		{name: "is not int #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "int"}, wantErr: true},
-		{name: "is not int #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: 2.1`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "int"}, wantErr: true},
-		{name: "is int #1 <- special case", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: 2.0`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "int"}, wantErr: false},
-		{name: "is int #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: -1`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "int"}, wantErr: false},
-		{name: "is float", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: -1.0`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "int"}, wantErr: false},
-		{name: "is not float #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: -1`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "float"}, wantErr: true},
-		{name: "is not float #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "float"}, wantErr: true},
-		{name: "is not float #3", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: true`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "float"}, wantErr: true},
-		{name: "is bool", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: true`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "bool"}, wantErr: false},
-		{name: "is not bool #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "bool"}, wantErr: true},
-		{name: "is not bool #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: "false"`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "bool"}, wantErr: true},
-		{name: "is map #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-foo: bar
-     pleh: help
-     stuff:
-       foo: bar
-       bar: foo`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "map"}, wantErr: false},
-		{name: "is map #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-xmas-fifth-day:
-   calling-birds: four
-   french-hens: 3
-   golden-rings: 5`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "map"}, wantErr: false},
-		{name: "is not map #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "map"}, wantErr: true},
-		{name: "is not map #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: "pawel"`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "map"}, wantErr: true},
-		{name: "is slice #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-users:
-	- huey
-	- dewey`))},
-		}, args: args{df: format.YAML, node: "$.users", goType: "slice"}, wantErr: false},
-		{name: "is slice #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-recipe:
-	ingredients:
-		- oil
-		- tomato`))},
-		}, args: args{df: format.YAML, node: "$.recipe.ingredients", goType: "slice"}, wantErr: false},
-		{name: "is not slice #1", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-user: null`))},
-		}, args: args{df: format.YAML, node: "$.user", goType: "slice"}, wantErr: true},
-		{name: "is not slice #2", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-xmas-fifth-day:
-   calling-birds: four
-   french-hens: 3
-   golden-rings: 5`))},
-		}, args: args{df: format.YAML, node: "$.xmas-fifth-day", goType: "slice"}, wantErr: true},
-		{name: "unknown type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`---
-users:
-	- huey
-	- dewey`))},
-		}, args: args{node: "$.users", goType: "xxx"}, wantErr: true},
-		{name: "format XML is not supported", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(``))},
-		}, args: args{df: format.XML, node: "$.users", goType: "xxx"}, wantErr: true},
+		// YAML related data types against YAML data
+		{
+			name:    "selected node does not exist",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.abc", goType: types.Null},
+			wantErr: true,
+		},
+		{
+			name:    "selected node value is scalar - null #1",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.ray", goType: types.Null},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - null #2",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.nakamoto", goType: types.Null},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - string #1",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.doe", goType: types.Scalar},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - string #2",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas-fifth-day.calling-birds", goType: types.Scalar},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - float",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.pi", goType: types.Scalar},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - int #1",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.french-hens", goType: types.Scalar},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - int #2",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas-fifth-day.french-hens", goType: types.Scalar},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - boolean",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas", goType: types.Scalar},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is sequence",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.calling-birds", goType: types.Sequence},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is mapping",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas-fifth-day", goType: types.Mapping},
+			wantErr: false,
+		},
+
+		//GO related types against JSON data
+		{
+			name:    "selected node value is nil - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isPopular", goType: types.Nil},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is nil - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isPopular", goType: types.Nil},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is int #1 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_1", goType: types.Int},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is int #1 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_1", goType: types.Int},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is float - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_3", goType: types.Float},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is float - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_3", goType: types.Float},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "color", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.color", goType: types.String},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is bool - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Bool},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is bool - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Bool},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is map - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user", goType: types.Map},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is map - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user", goType: types.Map},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is slice - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user.roles", goType: types.Slice},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is slice - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user.roles", goType: types.Slice},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2248,7 +2367,7 @@ name: "ivo"
 
 			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
 
-			if err := af.AssertNodeIsTypeAndValue(tt.args.df, tt.args.expr, tt.args.dataType, tt.args.dataValue); (err != nil) != tt.wantErr {
+			if err := af.AssertNodeIsTypeAndValue(tt.args.df, tt.args.expr, types.DataType(tt.args.dataType), tt.args.dataValue); (err != nil) != tt.wantErr {
 				t.Errorf("TheJSONNodeShouldBeOfValue() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -3429,6 +3548,255 @@ func TestAPIContext_SaveHeader(t *testing.T) {
 				}
 
 				fmt.Println(savedHeader)
+			}
+		})
+	}
+}
+
+func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
+	type fields struct {
+		saved        map[string]any
+		lastResponse *http.Response
+		isDebug      bool
+	}
+	type args struct {
+		df     format.DataFormat
+		node   string
+		goType types.DataType
+		val    string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// JSON related types against json data
+		{
+			name:    "selected node does not exists",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "abc", goType: types.Null, val: "abc"},
+			wantErr: true,
+		},
+		{
+			name:    "selected node value is boolean - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Boolean, val: "false"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is boolean - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Boolean, val: "false"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "color", goType: types.String, val: "purple"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.color", goType: types.String, val: "purple"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #1 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_1", goType: types.Number, val: "210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #1 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_1", goType: types.Number, val: "210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #2 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_2", goType: types.Number, val: "-210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #2 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_2", goType: types.Number, val: "-210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #3 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_3", goType: types.Number, val: "21.05"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #3 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_3", goType: types.Number, val: "21.05"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #4 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_4", goType: types.Number, val: "1.0E+2"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #4 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_4", goType: types.Number, val: "1.0E+2"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #5 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user.height", goType: types.Number, val: "180"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #5- - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user.height", goType: types.Number, val: "180"},
+			wantErr: false,
+		},
+
+		// YAML related data types against YAML data
+		{
+			name:    "selected node does not exist",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.abc", goType: types.Null},
+			wantErr: true,
+		},
+		{
+			name:    "selected node value is scalar - string #1",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.doe", goType: types.Scalar, val: "a deer, a female deer"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - string #2",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas-fifth-day.calling-birds", goType: types.Scalar, val: "four"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - float",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.pi", goType: types.Scalar, val: "3.14159"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - int #1",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.french-hens", goType: types.Scalar, val: "3"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - int #2",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas-fifth-day.french-hens", goType: types.Scalar, val: "3"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - boolean",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas", goType: types.Scalar, val: "true"},
+			wantErr: false,
+		},
+
+		//GO related types against JSON data
+		{
+			name:    "selected node value is int #1 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_1", goType: types.Int, val: "210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is int #1 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_1", goType: types.Int, val: "210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is float - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_3", goType: types.Float, val: "21.05"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is float - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_3", goType: types.Float, val: "21.05"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "color", goType: types.String, val: "purple"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.color", goType: types.String, val: "purple"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is bool - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Bool, val: "false"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is bool - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Bool, val: "false"},
+			wantErr: false,
+		},
+
+		// XML
+		{
+			name:    "selected node does not exist",
+			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
+			args:    args{df: format.XML, node: "//abc", goType: types.Nil, val: "true"},
+			wantErr: true,
+		},
+		{
+			name:    "selected node value is string ",
+			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
+			args:    args{df: format.XML, node: "//description", goType: types.String, val: "Weather info"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is boolean ",
+			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
+			args:    args{df: format.XML, node: "//isHot", goType: types.Boolean, val: "true"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is float ",
+			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
+			args:    args{df: format.XML, node: "//weather//degrees", goType: types.Float, val: "67.5"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is integer ",
+			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
+			args:    args{df: format.XML, node: "//weather//humidity", goType: types.Integer, val: "95"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			af := NewDefaultAPIContext(tt.fields.isDebug, "")
+
+			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
+
+			if err := af.AssertNodeIsTypeAndValue(tt.args.df, tt.args.node, tt.args.goType, tt.args.val); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNodeIsTypeAndValue() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

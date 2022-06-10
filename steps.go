@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -26,9 +25,9 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
 	"github.com/pawelWritesCode/gdutils/pkg/osutils"
-	"github.com/pawelWritesCode/gdutils/pkg/reflectutils"
 	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
 	"github.com/pawelWritesCode/gdutils/pkg/timeutils"
+	"github.com/pawelWritesCode/gdutils/pkg/types"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
 
@@ -70,7 +69,7 @@ func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate stri
 	} else if format.IsXML([]byte(input)) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	switch dataFormat {
@@ -79,7 +78,7 @@ func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate stri
 	case format.YAML:
 		err = apiCtx.Formatters.YAML.Deserialize([]byte(input), &bodyAndHeaders)
 	default:
-		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		err = fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
@@ -93,7 +92,7 @@ func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate stri
 	case format.YAML:
 		reqBody, err = apiCtx.Formatters.YAML.Serialize(bodyAndHeaders.Body)
 	default:
-		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		err = fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
@@ -170,7 +169,7 @@ func (apiCtx *APIContext) RequestSetHeaders(cacheKey, headersTemplate string) er
 	} else if format.IsXML(headersBytes) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	req, err := apiCtx.GetPreparedRequest(cacheKey)
@@ -233,7 +232,7 @@ func (apiCtx *APIContext) RequestSetCookies(cacheKey, cookiesTemplate string) er
 	} else if format.IsXML(userCookiesBytes) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	for _, cookie := range cookies {
@@ -270,7 +269,7 @@ func (apiCtx *APIContext) RequestSetForm(cacheKey, formTemplate string) error {
 	} else if format.IsXML(formBytes) {
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Map your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
 	}
 
 	if err != nil {
@@ -702,26 +701,10 @@ func (apiCtx *APIContext) AssertNodesExist(dataFormat format.DataFormat, express
 	return nil
 }
 
-// AssertNodeIsType checks whether node from last response body is of provided type
-// goType may be one of: nil, string, int, float, bool, map, slice
-// expr should be valid according to injected PathResolver
-func (apiCtx *APIContext) AssertNodeIsType(dataFormat format.DataFormat, exprTemplate string, goType string) error {
-	switch goType {
-	case "nil", "string", "int", "float", "bool", "map", "slice":
-		if err := apiCtx.AssertNodeIsNotType(dataFormat, exprTemplate, goType); err == nil {
-			return fmt.Errorf("%s value is not \"%s\", but expected to be", exprTemplate, goType)
-		}
-
-		return nil
-	default:
-		return fmt.Errorf("%s is not one of available types", goType)
-	}
-}
-
-// AssertNodeIsNotType checks whether node from last response body is not of provided type.
-// goType may be one of: nil, string, int, float, bool, map, slice,
-// expr should be valid according to injected PathFinder for given data format.
-func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, exprTemplate string, goType string) error {
+// AssertNodeIsType checks whether node from last response body is of provided type.
+// available types are listed in types subpackage.
+// expr should be valid according to injected PathResolver.
+func (apiCtx *APIContext) AssertNodeIsType(dataFormat format.DataFormat, exprTemplate string, inType types.DataType) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
@@ -736,76 +719,132 @@ func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, expr
 	switch dataFormat {
 	case format.JSON:
 		iNodeVal, err = apiCtx.PathFinders.JSON.Find(expr, body)
+		if err != nil {
+			return fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
+		}
+
+		if !(inType.IsValidJSONDataType() || inType.IsValidGoDataType()) {
+			return fmt.Errorf("%s is not any of JSON data types and is not any of Go Data types", inType)
+		}
+
+		recognizedDataType := apiCtx.TypeMappers.JSON.Map(iNodeVal)
+		if recognizedDataType != inType {
+			tmpRecognizedDataType := recognizedDataType
+			recognizedDataType = apiCtx.TypeMappers.GO.Map(iNodeVal)
+
+			if recognizedDataType != inType {
+				return fmt.Errorf("expected node '%s' to be '%s', but is detected as '%s' in terms of JSON and '%s' in terms of Go", expr, inType, tmpRecognizedDataType, recognizedDataType)
+			}
+		}
+
+		return nil
 	case format.YAML:
 		iNodeVal, err = apiCtx.PathFinders.YAML.Find(expr, body)
+		if err != nil {
+			return fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
+		}
+
+		if !(inType.IsValidYAMLDataType() || inType.IsValidGoDataType()) {
+			return fmt.Errorf("%s is not any of YAML data types and is not any of Go Data types", inType)
+		}
+
+		recognizedDataType := apiCtx.TypeMappers.YAML.Map(iNodeVal)
+		if recognizedDataType != inType {
+			tmpRecognizedDataType := recognizedDataType
+			recognizedDataType = apiCtx.TypeMappers.GO.Map(iNodeVal)
+
+			if recognizedDataType != inType {
+				return fmt.Errorf("expected node '%s' to be '%s', but is detected as '%s' in terms of YAML and '%s' in terms of Go", expr, inType, tmpRecognizedDataType, recognizedDataType)
+			}
+		}
+
+		return nil
 	case format.XML:
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	default:
-		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
-			dataFormat, format.JSON, format.YAML, format.XML)
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s",
+			dataFormat, format.JSON, format.YAML)
 	}
+}
 
+// AssertNodeIsNotType checks whether node from last response body is of provided type.
+// available types are listed in types subpackage.
+// expr should be valid according to injected PathResolver.
+func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, exprTemplate string, inType types.DataType) error {
+	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
-		return err
+		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
-	vNodeVal := reflect.ValueOf(iNodeVal)
-	errInvalidType := fmt.Errorf("%s value is \"%s\", but expected not to be", expr, goType)
-	switch goType {
-	case "nil":
-		if !vNodeVal.IsValid() || reflectutils.IsValueNil(vNodeVal) {
-			return errInvalidType
-		}
-	case "string":
-		if vNodeVal.Kind() == reflect.String {
-			return errInvalidType
-		}
-	case "int":
-		if vNodeVal.Kind() == reflect.Int64 || vNodeVal.Kind() == reflect.Int32 || vNodeVal.Kind() == reflect.Int16 ||
-			vNodeVal.Kind() == reflect.Int8 || vNodeVal.Kind() == reflect.Int || vNodeVal.Kind() == reflect.Uint ||
-			vNodeVal.Kind() == reflect.Uint8 || vNodeVal.Kind() == reflect.Uint16 || vNodeVal.Kind() == reflect.Uint32 ||
-			vNodeVal.Kind() == reflect.Uint64 {
-			return errInvalidType
+	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
+	}
+
+	var iNodeVal any
+	switch dataFormat {
+	case format.JSON:
+		iNodeVal, err = apiCtx.PathFinders.JSON.Find(expr, body)
+		if err != nil {
+			return fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
 		}
 
-		if vNodeVal.Kind() == reflect.Float64 {
-			_, frac := math.Modf(vNodeVal.Float())
-			if frac == 0 {
-				return errInvalidType
-			}
+		if !(inType.IsValidJSONDataType() || inType.IsValidGoDataType()) {
+			return fmt.Errorf("%s is not any of JSON data types and is not any of Go Data types", inType)
 		}
-	case "float":
-		if vNodeVal.Kind() == reflect.Float64 || vNodeVal.Kind() == reflect.Float32 {
-			_, frac := math.Modf(vNodeVal.Float())
-			if frac == 0 {
+
+		if inType.IsValidJSONDataType() {
+			recognizedDataType := apiCtx.TypeMappers.JSON.Map(iNodeVal)
+			if recognizedDataType != inType {
 				return nil
 			}
 
-			return errInvalidType
+			return fmt.Errorf("node %s is '%s', but expected not to be", expr, inType)
 		}
-	case "bool":
-		if vNodeVal.Kind() == reflect.Bool {
-			return errInvalidType
-		}
-	case "map":
-		if vNodeVal.Kind() == reflect.Map {
-			return errInvalidType
-		}
-	case "slice":
-		if vNodeVal.Kind() == reflect.Slice {
-			return errInvalidType
-		}
-	default:
-		return fmt.Errorf("%s is not one of available types", goType)
-	}
 
-	return nil
+		recognizedDataType := apiCtx.TypeMappers.GO.Map(iNodeVal)
+		if recognizedDataType != inType {
+			return nil
+		}
+
+		return fmt.Errorf("node %s is '%s', but expected not to be", expr, inType)
+	case format.YAML:
+		iNodeVal, err = apiCtx.PathFinders.YAML.Find(expr, body)
+		if err != nil {
+			return fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
+		}
+
+		if !(inType.IsValidYAMLDataType() || inType.IsValidGoDataType()) {
+			return fmt.Errorf("%s is not any of YAML data types and is not any of Go Data types", inType)
+		}
+
+		if inType.IsValidJSONDataType() {
+			recognizedDataType := apiCtx.TypeMappers.YAML.Map(iNodeVal)
+			if recognizedDataType != inType {
+				return nil
+			}
+
+			return fmt.Errorf("node %s is '%s', but expected not to be", expr, inType)
+		}
+
+		recognizedDataType := apiCtx.TypeMappers.GO.Map(iNodeVal)
+		if recognizedDataType != inType {
+			return nil
+		}
+
+		return fmt.Errorf("node %s is '%s', but expected not to be", expr, inType)
+	case format.XML:
+		return fmt.Errorf("this method does not support data in format: %s", format.XML)
+	default:
+		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s",
+			dataFormat, format.JSON, format.YAML)
+	}
 }
 
 // AssertNodeIsTypeAndValue compares json node value from expression to expected by user dataValue of given by user dataType
 // Available data types are listed in switch section in each case directive.
 // expr should be valid according to injected PathFinder for provided dataFormat.
-func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat, exprTemplate, dataType, dataValue string) error {
+func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat, exprTemplate string, dataType types.DataType, dataValue string) error {
 	nodeValueReplaced, err := apiCtx.TemplateEngine.Replace(dataValue, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'value' template, err: %w", err)
@@ -828,105 +867,84 @@ func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat,
 	switch dataFormat {
 	case format.JSON:
 		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
+		if err != nil {
+			return fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
+		}
+
+		if !(dataType.IsValidJSONDataType() || dataType.IsValidGoDataType()) {
+			return fmt.Errorf("%s is not any of JSON data types and is not any of Go Data types", dataType)
+		}
+
+		recognizedDataType := apiCtx.TypeMappers.JSON.Map(iValue)
+		if recognizedDataType != dataType {
+			tmpRecognizedDataType := recognizedDataType
+			recognizedDataType = apiCtx.TypeMappers.GO.Map(iValue)
+
+			if recognizedDataType != dataType {
+				return fmt.Errorf("expected node '%s' to be '%s', but is detected as '%s' in terms of JSON and '%s' in terms of Go", expr, dataType, tmpRecognizedDataType, recognizedDataType)
+			}
+		}
 	case format.YAML:
 		iValue, err = apiCtx.PathFinders.YAML.Find(expr, body)
+		if err != nil {
+			return fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
+		}
+
+		if !(dataType.IsValidYAMLDataType() || dataType.IsValidGoDataType()) {
+			return fmt.Errorf("%s is not any of YAML data types and is not any of Go Data types", dataType)
+		}
+
+		recognizedDataType := apiCtx.TypeMappers.YAML.Map(iValue)
+		if recognizedDataType != dataType {
+			tmpRecognizedDataType := recognizedDataType
+			recognizedDataType = apiCtx.TypeMappers.GO.Map(iValue)
+
+			if recognizedDataType != dataType {
+				return fmt.Errorf("expected node '%s' to be '%s', but is detected as '%s' in terms of YAML and '%s' in terms of Go", expr, dataType, tmpRecognizedDataType, recognizedDataType)
+			}
+		}
 	case format.XML:
 		iValue, err = apiCtx.PathFinders.XML.Find(expr, body)
+		if err != nil {
+			return fmt.Errorf("node '%s', err: %s", expr, err.Error())
+		}
+
+		if !(dataType.IsValidXMLDataType() || dataType.IsValidGoDataType()) {
+			return fmt.Errorf("%s is not any of XML data types and is not any of Go Data types", dataType)
+		}
 	default:
 		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
 			dataFormat, format.JSON, format.YAML, format.XML)
 	}
 
-	if err != nil {
-		return fmt.Errorf("node '%s', err: %s", expr, err.Error())
-	}
-
+	//TODO: Add handling DateTime for XML
 	switch dataType {
-	case "string":
-		strVal, ok := iValue.(string)
-		if !ok {
-			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
+	case types.String:
+		if err = checkString(iValue, nodeValueReplaced, expr); err != nil {
+			return err
 		}
-
-		if strVal != nodeValueReplaced {
-			return fmt.Errorf("node %s string value: %s is not equal to expected string value: %s", expr, strVal, nodeValueReplaced)
+	case types.Int, types.Integer:
+		if err = checkInt(iValue, nodeValueReplaced, expr); err != nil {
+			return err
 		}
-	case "int":
-		intNodeValue, err := strconv.Atoi(nodeValueReplaced)
-		if err != nil {
-			return fmt.Errorf("replaced node %s value %s could not be converted to int", expr, nodeValueReplaced)
+	case types.Float:
+		if err = checkFloat(iValue, nodeValueReplaced, expr); err != nil {
+			return err
 		}
-
-		if strVal, ok := iValue.(string); ok {
-			if intVal, errAtoi := strconv.Atoi(strVal); errAtoi == nil {
-				if intVal != intNodeValue {
-					return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intVal, intNodeValue)
-				}
-
-				return nil
-			}
+	case types.Number:
+		if errInt, errFloat := checkInt(iValue, nodeValueReplaced, expr), checkFloat(iValue, nodeValueReplaced, expr); errInt != nil && errFloat != nil {
+			return fmt.Errorf("intErr: %s\n, floatErr: %s", errInt, errFloat)
 		}
-
-		floatVal, ok := iValue.(float64)
-		if !ok {
-			uint64Val, ok := iValue.(uint64)
-			if !ok {
-				return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
-			}
-
-			floatVal = float64(uint64Val)
+	case types.Bool, types.Boolean:
+		if err = checkBool(iValue, nodeValueReplaced, expr); err != nil {
+			return err
 		}
-
-		intVal := int(floatVal)
-		if intVal != intNodeValue {
-			return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intVal, intNodeValue)
+	case types.Scalar:
+		if errBool, errString, errInt, errFloat := checkBool(iValue, nodeValueReplaced, expr), checkString(iValue, nodeValueReplaced, expr), checkInt(iValue, nodeValueReplaced, expr), checkFloat(iValue, nodeValueReplaced, expr); errBool != nil && errString != nil && errInt != nil && errFloat != nil {
+			return fmt.Errorf("boolErr: %s\n, stringErr: %s\n, intErr: %s\n, floatErr: %s", errBool, errString, errInt, errFloat)
 		}
-	case "float":
-		floatNodeValue, err := strconv.ParseFloat(nodeValueReplaced, 64)
-		if err != nil {
-			return fmt.Errorf("replaced node %s value %s could not be converted to float64", expr, nodeValueReplaced)
-		}
-
-		if strVal, ok := iValue.(string); ok {
-			if floatVal, errParseFloat := strconv.ParseFloat(strVal, 64); errParseFloat == nil {
-				if floatVal != floatNodeValue {
-					return fmt.Errorf("node %s float value: %f is not equal to expected int value: %f", expr, floatVal, floatNodeValue)
-				}
-
-				return nil
-			}
-		}
-
-		floatVal, ok := iValue.(float64)
-		if !ok {
-			return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
-		}
-
-		if floatVal != floatNodeValue {
-			return fmt.Errorf("node %s float value %f is not equal to expected float value %f", expr, floatVal, floatNodeValue)
-		}
-	case "bool":
-		boolVal, ok := iValue.(bool)
-		if !ok {
-			strVal, ok := iValue.(string)
-			if !ok {
-				return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
-			}
-
-			boolVal, err = strconv.ParseBool(strVal)
-			if err != nil {
-				return fmt.Errorf("expected %s to be %s, got %v", expr, dataType, iValue)
-			}
-		}
-
-		boolNodeValue, err := strconv.ParseBool(nodeValueReplaced)
-		if err != nil {
-			return fmt.Errorf("replaced node %s value %s could not be converted to bool", expr, nodeValueReplaced)
-		}
-
-		if boolVal != boolNodeValue {
-			return fmt.Errorf("node %s bool value %t is not equal to expected bool value %t", expr, boolVal, boolNodeValue)
-		}
+	default:
+		return fmt.Errorf("provided data type: '%s' can't be proceeded", dataType)
 	}
 
 	return nil
@@ -1652,4 +1670,117 @@ func (apiCtx *APIContext) iValidateNodeWithSchemaGeneral(dataFormat format.DataF
 	}
 
 	return validator.Validate(string(jsonNode), reference)
+}
+
+//TODO: Use following methods to create XML type checker. It is required because X-PATH engine returns everything as string
+//TODO: XML types are listed here: https://www.w3.org/TR/xmlschema-2
+
+// checkBool contains algorithm to compare nodeValue obtained from expr with expectedValue.
+// internally it expects nodeValue to contain representation of bool data type.
+func checkBool(nodeValue any, expectedValue, expr string) error {
+	var err error
+	boolVal, ok := nodeValue.(bool)
+	if !ok {
+		strVal, ok := nodeValue.(string)
+		if !ok {
+			return fmt.Errorf("expected %s to be %s, got %v", expr, "bool", nodeValue)
+		}
+
+		boolVal, err = strconv.ParseBool(strVal)
+		if err != nil {
+			return fmt.Errorf("expected %s to be %s, got %v", expr, "bool", nodeValue)
+		}
+	}
+
+	boolNodeValue, err := strconv.ParseBool(expectedValue)
+	if err != nil {
+		return fmt.Errorf("replaced node %s value %s could not be converted to bool", expr, expectedValue)
+	}
+
+	if boolVal != boolNodeValue {
+		return fmt.Errorf("node %s bool value %t is not equal to expected bool value %t", expr, boolVal, boolNodeValue)
+	}
+
+	return nil
+}
+
+// checkString contains algorithm to compare nodeValue obtained from expr with expectedValue.
+// internally it expects nodeValue to contain representation of string data type.
+func checkString(nodeValue any, expectedValue, expr string) error {
+	strVal, ok := nodeValue.(string)
+	if !ok {
+		return fmt.Errorf("expected %s to be %s, got %v", expr, "string", nodeValue)
+	}
+
+	if strVal != expectedValue {
+		return fmt.Errorf("node %s string value: %s is not equal to expected string value: %s", expr, strVal, expectedValue)
+	}
+
+	return nil
+}
+
+// checkInt contains algorithm to compare nodeValue obtained from expr with expectedValue.
+// internally it expects nodeValue to contain representation of int data type.
+func checkInt(nodeValue any, expectedValue, expr string) error {
+	intNodeValue, err := strconv.Atoi(expectedValue)
+	if err != nil {
+		return fmt.Errorf("replaced node %s value %s could not be converted to int", expr, expectedValue)
+	}
+
+	if strVal, ok := nodeValue.(string); ok {
+		if intVal, errAtoi := strconv.Atoi(strVal); errAtoi == nil {
+			if intVal != intNodeValue {
+				return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intVal, intNodeValue)
+			}
+
+			return nil
+		}
+	}
+
+	floatVal, ok := nodeValue.(float64)
+	if !ok {
+		uint64Val, ok := nodeValue.(uint64)
+		if !ok {
+			return fmt.Errorf("expected node '%s' to be %s, got %v", expr, "int", nodeValue)
+		}
+
+		floatVal = float64(uint64Val)
+	}
+
+	intVal := int(floatVal)
+	if intVal != intNodeValue {
+		return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intVal, intNodeValue)
+	}
+
+	return nil
+}
+
+// checkFloat contains algorithm to compare nodeValue obtained from expr with expectedValue.
+// internally it expects nodeValue to contain representation of float data type.
+func checkFloat(nodeValue any, expectedValue, expr string) error {
+	floatNodeValue, err := strconv.ParseFloat(expectedValue, 64)
+	if err != nil {
+		return fmt.Errorf("replaced node %s value %s could not be converted to float64", expr, expectedValue)
+	}
+
+	if strVal, ok := nodeValue.(string); ok {
+		if floatVal, errParseFloat := strconv.ParseFloat(strVal, 64); errParseFloat == nil {
+			if floatVal != floatNodeValue {
+				return fmt.Errorf("node %s float value: %f is not equal to expected int value: %f", expr, floatVal, floatNodeValue)
+			}
+
+			return nil
+		}
+	}
+
+	floatVal, ok := nodeValue.(float64)
+	if !ok {
+		return fmt.Errorf("expected %s to be %s, got %v", expr, "float", nodeValue)
+	}
+
+	if floatVal != floatNodeValue {
+		return fmt.Errorf("node %s float value %f is not equal to expected float value %f", expr, floatVal, floatNodeValue)
+	}
+
+	return nil
 }

@@ -15,6 +15,7 @@ require (
 
 require (
 	github.com/antchfx/xpath v1.2.0 // indirect
+	github.com/datainq/xml-date-time v0.0.0-20170820214645-2292f08baa38 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
