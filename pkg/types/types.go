@@ -27,6 +27,9 @@ const (
 const (
 	// Unknown represents unknown data type.
 	Unknown DataType = "unknown"
+
+	// Any represents any data type
+	Any DataType = "any"
 )
 
 // Mapper is entity that has ability to map data's type into corresponding DataType of given format.
