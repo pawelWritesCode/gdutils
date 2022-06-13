@@ -2379,6 +2379,1328 @@ name: "ivo"
 	}
 }
 
+func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
+	type fields struct {
+		saved        map[string]any
+		lastResponse *http.Response
+		isDebug      bool
+	}
+	type args struct {
+		df     format.DataFormat
+		node   string
+		goType types.DataType
+		val    string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// JSON related types against json data
+		{
+			name:    "selected node does not exists",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "abc", goType: types.Null, val: "abc"},
+			wantErr: true,
+		},
+		{
+			name:    "selected node value is boolean - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Boolean, val: "false"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is boolean - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Boolean, val: "false"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "color", goType: types.String, val: "purple"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.color", goType: types.String, val: "purple"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #1 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_1", goType: types.Number, val: "210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #1 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_1", goType: types.Number, val: "210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #2 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_2", goType: types.Number, val: "-210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #2 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_2", goType: types.Number, val: "-210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #3 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_3", goType: types.Number, val: "21.05"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #3 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_3", goType: types.Number, val: "21.05"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #4 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_4", goType: types.Number, val: "1.0E+2"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #4 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_4", goType: types.Number, val: "1.0E+2"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #5 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "user.height", goType: types.Number, val: "180"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is number #5- - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.user.height", goType: types.Number, val: "180"},
+			wantErr: false,
+		},
+
+		// YAML related data types against YAML data
+		{
+			name:    "selected node does not exist",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.abc", goType: types.Null},
+			wantErr: true,
+		},
+		{
+			name:    "selected node value is scalar - string #1",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.doe", goType: types.Scalar, val: "a deer, a female deer"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - string #2",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas-fifth-day.calling-birds", goType: types.Scalar, val: "four"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - float",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.pi", goType: types.Scalar, val: "3.14159"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - int #1",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.french-hens", goType: types.Scalar, val: "3"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - int #2",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas-fifth-day.french-hens", goType: types.Scalar, val: "3"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is scalar - boolean",
+			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
+			args:    args{df: format.YAML, node: "$.xmas", goType: types.Scalar, val: "true"},
+			wantErr: false,
+		},
+
+		//GO related types against JSON data
+		{
+			name:    "selected node value is int #1 - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_1", goType: types.Int, val: "210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is int #1 - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_1", goType: types.Int, val: "210"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is float - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "number_3", goType: types.Float, val: "21.05"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is float - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.number_3", goType: types.Float, val: "21.05"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "color", goType: types.String, val: "purple"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is string - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.color", goType: types.String, val: "purple"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is bool - qjson",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Bool, val: "false"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is bool - oliveagle",
+			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
+			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Bool, val: "false"},
+			wantErr: false,
+		},
+
+		// XML
+		{
+			name:    "selected node does not exist",
+			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
+			args:    args{df: format.XML, node: "//abc", goType: types.Nil, val: "true"},
+			wantErr: true,
+		},
+		{
+			name:    "selected node value is string ",
+			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
+			args:    args{df: format.XML, node: "//description", goType: types.String, val: "Weather info"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is boolean ",
+			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
+			args:    args{df: format.XML, node: "//isHot", goType: types.Boolean, val: "true"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is float ",
+			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
+			args:    args{df: format.XML, node: "//weather//degrees", goType: types.Float, val: "67.5"},
+			wantErr: false,
+		},
+		{
+			name:    "selected node value is integer ",
+			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
+			args:    args{df: format.XML, node: "//weather//humidity", goType: types.Integer, val: "95"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			af := NewDefaultAPIContext(tt.fields.isDebug, "")
+
+			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
+
+			if err := af.AssertNodeIsTypeAndValue(tt.args.df, tt.args.node, tt.args.goType, tt.args.val); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNodeIsTypeAndValue() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
+	type fields struct {
+		lastResponse *http.Response
+		cacheData    map[string]any
+	}
+	type args struct {
+		dataFormat      format.DataFormat
+		exprTemplate    string
+		dataType        types.DataType
+		valuesTemplates string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "template engine can't fulfill valuesTemplates because of missing cache data",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.user.name",
+				dataType:        types.String,
+				valuesTemplates: "{{.NOT_EXISTING_VALUE}}",
+			},
+			wantErr: true,
+		},
+		{
+			name: "template engine can't fulfill exprTemplate because of missing cache data",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.user.{{.PROPERTY}}",
+				dataType:        types.String,
+				valuesTemplates: "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing last response body",
+			fields: fields{
+				lastResponse: nil,
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.user.name",
+				dataType:        types.String,
+				valuesTemplates: "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node that doesn't exist",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.abc",
+				dataType:        types.String,
+				valuesTemplates: "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node that has different type than expected",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.color",
+				dataType:        types.Number,
+				valuesTemplates: "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node and one of values is present #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.color",
+				dataType:        types.String,
+				valuesTemplates: "purple",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.color",
+				dataType:        types.String,
+				valuesTemplates: "red, purple",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.user.name",
+				dataType:        types.String,
+				valuesTemplates: "Ivo, John, Kristine",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #4",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.number_1",
+				dataType:        types.Number,
+				valuesTemplates: "210, 20, -30",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #4",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.isHorizontal",
+				dataType:        types.Boolean,
+				valuesTemplates: "true, false",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and none of values is present #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.number_2",
+				dataType:        types.Int,
+				valuesTemplates: "1, 2, -3",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node and none of values is present #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.user.roles[0]",
+				dataType:        types.String,
+				valuesTemplates: "a, b",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node and none of values is present #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.JSON,
+				exprTemplate:    "$.isHorizontal",
+				dataType:        types.Boolean,
+				valuesTemplates: "true",
+			},
+			wantErr: true,
+		},
+
+		// YAML
+		{
+			name: "expression points at node that doesn't exist",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.YAML,
+				exprTemplate:    "$.abc",
+				dataType:        types.Scalar,
+				valuesTemplates: "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node that has different type than expected",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.YAML,
+				exprTemplate:    "$.pi",
+				dataType:        types.Mapping,
+				valuesTemplates: "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node and one of values is present #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.YAML,
+				exprTemplate:    "$.xmas-fifth-day.calling-birds",
+				dataType:        types.Scalar,
+				valuesTemplates: "four",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.YAML,
+				exprTemplate:    "$.xmas-fifth-day.calling-birds",
+				dataType:        types.String,
+				valuesTemplates: "three, four",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.YAML,
+				exprTemplate:    "$.xmas-fifth-day.calling-birds",
+				dataType:        types.String,
+				valuesTemplates: "one, four, three",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #4",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.YAML,
+				exprTemplate:    "$.pi",
+				dataType:        types.Scalar,
+				valuesTemplates: "3, 3.14, 3.14159",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #4",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.YAML,
+				exprTemplate:    "$.xmas",
+				dataType:        types.Scalar,
+				valuesTemplates: "true, false",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and none of values is present #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.YAML,
+				exprTemplate:    "$.french-hens",
+				dataType:        types.Scalar,
+				valuesTemplates: "1, 2, -3",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node and none of values is present #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.YAML,
+				exprTemplate:    "$.doe",
+				dataType:        types.String,
+				valuesTemplates: "a, b",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node and none of values is present #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.YAML,
+				exprTemplate:    "$.xmas",
+				dataType:        types.Scalar,
+				valuesTemplates: "false",
+			},
+			wantErr: true,
+		},
+		// XML
+		{
+			name: "expression points at node that doesn't exist",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.XML,
+				exprTemplate:    "//abc",
+				dataType:        types.String,
+				valuesTemplates: "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node that has different type than expected",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.XML,
+				exprTemplate:    "//date",
+				dataType:        types.Mapping,
+				valuesTemplates: "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node and one of values is present #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.XML,
+				exprTemplate:    "//description",
+				dataType:        types.String,
+				valuesTemplates: "Weather info",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.XML,
+				exprTemplate:    "//description",
+				dataType:        types.String,
+				valuesTemplates: "three, Weather info",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.XML,
+				exprTemplate:    "//description",
+				dataType:        types.String,
+				valuesTemplates: "one, four, Weather info",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #4",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.XML,
+				exprTemplate:    "//humidity",
+				dataType:        types.Int,
+				valuesTemplates: "3, 95, 15, 32",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and one of values is present #4",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.XML,
+				exprTemplate:    "//degrees",
+				dataType:        types.Float,
+				valuesTemplates: "10.5, 67.5,13,34",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at node and none of values is present #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.XML,
+				exprTemplate:    "//description",
+				dataType:        types.String,
+				valuesTemplates: "a, b, c",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node and none of values is present #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.XML,
+				exprTemplate:    "//degrees",
+				dataType:        types.Int,
+				valuesTemplates: "1,2,3",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at node and none of values is present #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.XML,
+				exprTemplate:    "//isHot",
+				dataType:        types.Boolean,
+				valuesTemplates: "false",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			apiCtx := NewDefaultAPIContext(false, "")
+
+			apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
+
+			for key, val := range tt.fields.cacheData {
+				apiCtx.Cache.Save(key, val)
+			}
+
+			if err := apiCtx.AssertNodeIsTypeAndHasOneOfValues(tt.args.dataFormat, tt.args.exprTemplate, tt.args.dataType, tt.args.valuesTemplates); (err != nil) != tt.wantErr {
+				t.Errorf("AssertNodeIsTypeAndHasOneOfValues() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
+	type fields struct {
+		lastResponse *http.Response
+		cacheData    map[string]any
+	}
+	type args struct {
+		dataFormat   format.DataFormat
+		exprTemplate string
+		sub          string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "template engine can't fulfill template because cache is missing data",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.{{.USER_PROPERTY}}",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing last response body",
+			fields: fields{
+				lastResponse: nil,
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.{{.USER_PROPERTY}}",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		// JSON related
+		{
+			name: "expression points at not existing node",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.abc",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, but it doesn't contain string value",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.number_1",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value, but it does not contain substring",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.name",
+				sub:          "Ivo",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.name",
+				sub:          "Jo",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    map[string]any{"USER_PROPERTY": "name"},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.{{.USER_PROPERTY}}",
+				sub:          "Jo",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    map[string]any{"USER_PROPERTY": "name", "USER_NAME_FIRST_LETTER": "J"},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.{{.USER_PROPERTY}}",
+				sub:          "{{.USER_NAME_FIRST_LETTER}}",
+			},
+			wantErr: false,
+		},
+
+		// YAML RELATED
+		{
+			name: "expression points at not existing node",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.abc",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, but it doesn't contain string value",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.pi",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value, but it does not contain substring",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.doe",
+				sub:          "Ivo",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.doe",
+				sub:          "deer",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    map[string]any{"PROPERTY": "doe"},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.{{.PROPERTY}}",
+				sub:          "deer",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    map[string]any{"PROPERTY": "doe", "PROPERTY_SUBSTRING": "deer"},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.{{.PROPERTY}}",
+				sub:          "{{.PROPERTY_SUBSTRING}}",
+			},
+			wantErr: false,
+		},
+
+		// XML RELATED
+		{
+			name: "expression points at not existing node",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+			},
+			args: args{
+				dataFormat:   format.XML,
+				exprTemplate: "//abc",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, but it doesn't contain string value",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+			},
+			args: args{
+				dataFormat:   format.XML,
+				exprTemplate: "//date",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value, but it does not contain substring",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+			},
+			args: args{
+				dataFormat:   format.XML,
+				exprTemplate: "//description",
+				sub:          "Ivo",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+			},
+			args: args{
+				dataFormat:   format.XML,
+				exprTemplate: "//description",
+				sub:          "Weather",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    map[string]any{"PROPERTY": "description"},
+			},
+			args: args{
+				dataFormat:   format.XML,
+				exprTemplate: "//{{.PROPERTY}}",
+				sub:          "Weather",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    map[string]any{"PROPERTY": "description", "PROPERTY_SUBSTRING": "Weather"},
+			},
+			args: args{
+				dataFormat:   format.XML,
+				exprTemplate: "//{{.PROPERTY}}",
+				sub:          "{{.PROPERTY_SUBSTRING}}",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			apiCtx := NewDefaultAPIContext(false, "")
+
+			apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
+
+			for key, val := range tt.fields.cacheData {
+				apiCtx.Cache.Save(key, val)
+			}
+
+			if err := apiCtx.AsserNodeContainsSubString(tt.args.dataFormat, tt.args.exprTemplate, tt.args.sub); (err != nil) != tt.wantErr {
+				t.Errorf("AsserNodeContainsSubString() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
+	type fields struct {
+		lastResponse *http.Response
+		cacheData    map[string]any
+	}
+	type args struct {
+		dataFormat   format.DataFormat
+		exprTemplate string
+		sub          string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "template engine can't fulfill template because cache is missing data",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.{{.USER_PROPERTY}}",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing last response body",
+			fields: fields{
+				lastResponse: nil,
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.{{.USER_PROPERTY}}",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		// JSON related
+		{
+			name: "expression points at not existing node",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.abc",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, but it doesn't contain string value",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.number_1",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value, but it does not contain substring",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.name",
+				sub:          "Ivo",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.name",
+				sub:          "Jo",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    map[string]any{"USER_PROPERTY": "name"},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.{{.USER_PROPERTY}}",
+				sub:          "Jo",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				cacheData:    map[string]any{"USER_PROPERTY": "name", "USER_NAME_FIRST_LETTER": "J"},
+			},
+			args: args{
+				dataFormat:   format.JSON,
+				exprTemplate: "$.user.{{.USER_PROPERTY}}",
+				sub:          "{{.USER_NAME_FIRST_LETTER}}",
+			},
+			wantErr: true,
+		},
+
+		// YAML RELATED
+		{
+			name: "expression points at not existing node",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.abc",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, but it doesn't contain string value",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.pi",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value, but it does not contain substring",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.doe",
+				sub:          "Ivo",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.doe",
+				sub:          "deer",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    map[string]any{"PROPERTY": "doe"},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.{{.PROPERTY}}",
+				sub:          "deer",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
+				cacheData:    map[string]any{"PROPERTY": "doe", "PROPERTY_SUBSTRING": "deer"},
+			},
+			args: args{
+				dataFormat:   format.YAML,
+				exprTemplate: "$.{{.PROPERTY}}",
+				sub:          "{{.PROPERTY_SUBSTRING}}",
+			},
+			wantErr: true,
+		},
+
+		// XML RELATED
+		{
+			name: "expression points at not existing node",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+			},
+			args: args{
+				dataFormat:   format.XML,
+				exprTemplate: "//abc",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		//TODO: Until there is no mapper, XML nodes will be always seen as strings
+		//{
+		//	name: "expression points at existing node, but it doesn't contain string value",
+		//	fields: fields{
+		//		lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+		//	},
+		//	args: args{
+		//		dataFormat:   format.XML,
+		//		exprTemplate: "//degrees",
+		//		sub:          "John",
+		//	},
+		//	wantErr: true,
+		//},
+		{
+			name: "expression points at existing node, with string value, but it does not contain substring",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+			},
+			args: args{
+				dataFormat:   format.XML,
+				exprTemplate: "//description",
+				sub:          "Ivo",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #1",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+			},
+			args: args{
+				dataFormat:   format.XML,
+				exprTemplate: "//description",
+				sub:          "Weather",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #2",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    map[string]any{"PROPERTY": "description"},
+			},
+			args: args{
+				dataFormat:   format.XML,
+				exprTemplate: "//{{.PROPERTY}}",
+				sub:          "Weather",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing node, with string value and it contains substring #3",
+			fields: fields{
+				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
+				cacheData:    map[string]any{"PROPERTY": "description", "PROPERTY_SUBSTRING": "Weather"},
+			},
+			args: args{
+				dataFormat:   format.XML,
+				exprTemplate: "//{{.PROPERTY}}",
+				sub:          "{{.PROPERTY_SUBSTRING}}",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			apiCtx := NewDefaultAPIContext(false, "")
+
+			apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
+
+			for key, val := range tt.fields.cacheData {
+				apiCtx.Cache.Save(key, val)
+			}
+
+			if err := apiCtx.AsserNodeNotContainsSubString(tt.args.dataFormat, tt.args.exprTemplate, tt.args.sub); (err != nil) != tt.wantErr {
+				t.Errorf("AsserNodeNotContainsSubString() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestState_AssertNodeMatchesRegExp(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 	mJsonPathResolver := new(mockedJsonPathFinder)
@@ -3239,6 +4561,68 @@ func TestState_AssertResponseCookieExists(t *testing.T) {
 	}
 }
 
+func TestAPIContext_AssertResponseCookieValueMatchesRegExp(t *testing.T) {
+	mTemplateEngine := new(mockedTemplateEngine)
+
+	type fields struct {
+		TemplateEngine template.Engine
+		response       *http.Response
+		mockFunc       func()
+	}
+	type args struct {
+		name           string
+		regExpTemplate string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "missing last response", fields: fields{
+			TemplateEngine: mTemplateEngine,
+			response:       nil,
+			mockFunc:       func() {},
+		}, args: args{
+			name:           "",
+			regExpTemplate: "",
+		}, wantErr: true},
+		{name: "template engine returns error", fields: fields{
+			TemplateEngine: mTemplateEngine,
+			response:       &http.Response{},
+			mockFunc: func() {
+				mTemplateEngine.On("Replace", "a", mock.Anything).Return("", errors.New("abc")).Once()
+			},
+		}, args: args{
+			name:           "",
+			regExpTemplate: "a",
+		}, wantErr: true},
+		{name: "cookies are not found in response", fields: fields{
+			TemplateEngine: mTemplateEngine,
+			response:       &http.Response{},
+			mockFunc: func() {
+				mTemplateEngine.On("Replace", "a", mock.Anything).Return("a", nil).Once()
+			},
+		}, args: args{
+			name:           "a",
+			regExpTemplate: "a",
+		}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewDefaultAPIContext(false, "")
+			s.SetTemplateEngine(tt.fields.TemplateEngine)
+			s.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.response)
+
+			tt.fields.mockFunc()
+
+			if err := s.AssertResponseCookieValueMatchesRegExp(tt.args.name, tt.args.regExpTemplate); (err != nil) != tt.wantErr {
+				t.Errorf("AssertResponseCookieValueMatchesRegExp() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestAPIContext_AssertResponseCookieNotExists(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 
@@ -3553,255 +4937,6 @@ func TestAPIContext_SaveHeader(t *testing.T) {
 				}
 
 				fmt.Println(savedHeader)
-			}
-		})
-	}
-}
-
-func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
-	type fields struct {
-		saved        map[string]any
-		lastResponse *http.Response
-		isDebug      bool
-	}
-	type args struct {
-		df     format.DataFormat
-		node   string
-		goType types.DataType
-		val    string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		// JSON related types against json data
-		{
-			name:    "selected node does not exists",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "abc", goType: types.Null, val: "abc"},
-			wantErr: true,
-		},
-		{
-			name:    "selected node value is boolean - qjson",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Boolean, val: "false"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is boolean - oliveagle",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Boolean, val: "false"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is string - qjson",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "color", goType: types.String, val: "purple"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is string - oliveagle",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.color", goType: types.String, val: "purple"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is number #1 - qjson",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_1", goType: types.Number, val: "210"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is number #1 - oliveagle",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_1", goType: types.Number, val: "210"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is number #2 - qjson",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_2", goType: types.Number, val: "-210"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is number #2 - oliveagle",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_2", goType: types.Number, val: "-210"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is number #3 - qjson",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_3", goType: types.Number, val: "21.05"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is number #3 - oliveagle",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_3", goType: types.Number, val: "21.05"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is number #4 - qjson",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_4", goType: types.Number, val: "1.0E+2"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is number #4 - oliveagle",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_4", goType: types.Number, val: "1.0E+2"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is number #5 - qjson",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user.height", goType: types.Number, val: "180"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is number #5- - oliveagle",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user.height", goType: types.Number, val: "180"},
-			wantErr: false,
-		},
-
-		// YAML related data types against YAML data
-		{
-			name:    "selected node does not exist",
-			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.abc", goType: types.Null},
-			wantErr: true,
-		},
-		{
-			name:    "selected node value is scalar - string #1",
-			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.doe", goType: types.Scalar, val: "a deer, a female deer"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is scalar - string #2",
-			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas-fifth-day.calling-birds", goType: types.Scalar, val: "four"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is scalar - float",
-			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.pi", goType: types.Scalar, val: "3.14159"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is scalar - int #1",
-			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.french-hens", goType: types.Scalar, val: "3"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is scalar - int #2",
-			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas-fifth-day.french-hens", goType: types.Scalar, val: "3"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is scalar - boolean",
-			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas", goType: types.Scalar, val: "true"},
-			wantErr: false,
-		},
-
-		//GO related types against JSON data
-		{
-			name:    "selected node value is int #1 - qjson",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_1", goType: types.Int, val: "210"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is int #1 - oliveagle",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_1", goType: types.Int, val: "210"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is float - qjson",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_3", goType: types.Float, val: "21.05"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is float - oliveagle",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_3", goType: types.Float, val: "21.05"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is string - qjson",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "color", goType: types.String, val: "purple"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is string - oliveagle",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.color", goType: types.String, val: "purple"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is bool - qjson",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Bool, val: "false"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is bool - oliveagle",
-			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Bool, val: "false"},
-			wantErr: false,
-		},
-
-		// XML
-		{
-			name:    "selected node does not exist",
-			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
-			args:    args{df: format.XML, node: "//abc", goType: types.Nil, val: "true"},
-			wantErr: true,
-		},
-		{
-			name:    "selected node value is string ",
-			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
-			args:    args{df: format.XML, node: "//description", goType: types.String, val: "Weather info"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is boolean ",
-			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
-			args:    args{df: format.XML, node: "//isHot", goType: types.Boolean, val: "true"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is float ",
-			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
-			args:    args{df: format.XML, node: "//weather//degrees", goType: types.Float, val: "67.5"},
-			wantErr: false,
-		},
-		{
-			name:    "selected node value is integer ",
-			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
-			args:    args{df: format.XML, node: "//weather//humidity", goType: types.Integer, val: "95"},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			af := NewDefaultAPIContext(tt.fields.isDebug, "")
-
-			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
-
-			if err := af.AssertNodeIsTypeAndValue(tt.args.df, tt.args.node, tt.args.goType, tt.args.val); (err != nil) != tt.wantErr {
-				t.Errorf("AssertNodeIsTypeAndValue() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
