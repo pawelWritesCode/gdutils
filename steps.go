@@ -764,7 +764,7 @@ func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, expr
 	}
 }
 
-// AssertNodeIsTypeAndValue compares json node value from expression to expected by user dataValue of given by user dataType
+// AssertNodeIsTypeAndValue compares node value from expression to expected by user dataValue of given by user dataType
 // Available data types are listed in switch section in each case directive.
 // expr should be valid according to injected PathFinder for provided dataFormat.
 func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat, exprTemplate string, dataType types.DataType, dataValue string) error {
@@ -795,10 +795,16 @@ func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat,
 	return assertNodeTypeAndValue(expr, dataType, iValue, nodeValueReplaced)
 }
 
+// AssertNodeIsTypeAndHasOneOfValues checks whether node value obtained using exprTemplate matches one of values held by
+// valuesTemplates argument. Values should be separated by comma (,) and may contain template values.
 func (apiCtx *APIContext) AssertNodeIsTypeAndHasOneOfValues(dataFormat format.DataFormat, exprTemplate string, dataType types.DataType, valuesTemplates string) error {
 	values, err := apiCtx.TemplateEngine.Replace(valuesTemplates, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'valuesTemplates' template, err: %w", err)
+	}
+
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("provided values template: '%s' was replace to: '%s'", valuesTemplates, values))
 	}
 
 	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
@@ -807,7 +813,7 @@ func (apiCtx *APIContext) AssertNodeIsTypeAndHasOneOfValues(dataFormat format.Da
 	}
 
 	if apiCtx.Debugger.IsOn() {
-		apiCtx.Debugger.Print(fmt.Sprintf("provided expression template '%s' was replace to '%s'", exprTemplate, expr))
+		apiCtx.Debugger.Print(fmt.Sprintf("provided expression template: '%s' was replace to: '%s'", exprTemplate, expr))
 	}
 
 	body, err := apiCtx.GetLastResponseBody()
@@ -832,10 +838,23 @@ func (apiCtx *APIContext) AssertNodeIsTypeAndHasOneOfValues(dataFormat format.Da
 
 // AsserNodeContainsSubString checks whether value of last HTTP response node, obtained using exprTemplate
 // is string type and contains given substring
-func (apiCtx *APIContext) AsserNodeContainsSubString(dataFormat format.DataFormat, exprTemplate string, sub string) error {
+func (apiCtx *APIContext) AsserNodeContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error {
 	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'expr' template, err: %w", err)
+	}
+
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("provided expression template: '%s' was replace to: '%s'", exprTemplate, expr))
+	}
+
+	sub, err := apiCtx.TemplateEngine.Replace(subTemplate, apiCtx.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'sub' template, err: %w", err)
+	}
+
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("provided substring template: '%s' was replace to: '%s'", subTemplate, sub))
 	}
 
 	body, err := apiCtx.GetLastResponseBody()
@@ -854,7 +873,7 @@ func (apiCtx *APIContext) AsserNodeContainsSubString(dataFormat format.DataForma
 	}
 
 	if !strings.Contains(valueString, sub) {
-		return fmt.Errorf("node value doesn't contain any '%s'", sub)
+		return fmt.Errorf("node string value doesn't contain any occurence of '%s'", sub)
 	}
 
 	return nil
@@ -862,10 +881,23 @@ func (apiCtx *APIContext) AsserNodeContainsSubString(dataFormat format.DataForma
 
 // AsserNodeNotContainsSubString checks whether value of last HTTP response node, obtained using exprTemplate
 // is string type and doesn't contain given substring
-func (apiCtx *APIContext) AsserNodeNotContainsSubString(dataFormat format.DataFormat, exprTemplate string, contains string) error {
+func (apiCtx *APIContext) AsserNodeNotContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error {
 	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'expr' template, err: %w", err)
+	}
+
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("provided expression template: '%s' was replace to: '%s'", exprTemplate, expr))
+	}
+
+	sub, err := apiCtx.TemplateEngine.Replace(subTemplate, apiCtx.Cache.All())
+	if err != nil {
+		return fmt.Errorf("template engine has problem with 'sub' template, err: %w", err)
+	}
+
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("provided substring template: '%s' was replace to: '%s'", subTemplate, sub))
 	}
 
 	body, err := apiCtx.GetLastResponseBody()
@@ -883,8 +915,8 @@ func (apiCtx *APIContext) AsserNodeNotContainsSubString(dataFormat format.DataFo
 		return fmt.Errorf("node '%s' value detected as string, but can't be converted to string, err: %w", expr, err)
 	}
 
-	if strings.Contains(valueString, contains) {
-		return fmt.Errorf("node value contain some '%s', but expected not to", contains)
+	if strings.Contains(valueString, sub) {
+		return fmt.Errorf("node value contain some '%s', but expected not to", sub)
 	}
 
 	return nil
@@ -1297,13 +1329,17 @@ func (apiCtx *APIContext) AssertResponseCookieValueMatchesRegExp(name, regExpTem
 
 	defer func() {
 		if apiCtx.Debugger.IsOn() {
-			apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response cookies: %+v", lastResp.Cookies()))
+			apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response cookies: %#v", lastResp.Cookies()))
 		}
 	}()
 
 	regExp, err := apiCtx.TemplateEngine.Replace(regExpTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'regExp' template, err: %w", err)
+	}
+
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("provided regExp template: '%s' was replace to: '%s'", regExpTemplate, regExp))
 	}
 
 	for _, cookie := range lastResp.Cookies() {
@@ -1334,13 +1370,17 @@ func (apiCtx *APIContext) AssertResponseCookieValueNotMatchesRegExp(name, regExp
 
 	defer func() {
 		if apiCtx.Debugger.IsOn() {
-			apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response cookies: %+v", lastResp.Cookies()))
+			apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response cookies: %#v", lastResp.Cookies()))
 		}
 	}()
 
 	regExp, err := apiCtx.TemplateEngine.Replace(regExpTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'regExp' template, err: %w", err)
+	}
+
+	if apiCtx.Debugger.IsOn() {
+		apiCtx.Debugger.Print(fmt.Sprintf("provided regExp template: '%s' was replace to: '%s'", regExpTemplate, regExp))
 	}
 
 	for _, cookie := range lastResp.Cookies() {
@@ -1625,9 +1665,86 @@ func (apiCtx *APIContext) iValidateNodeWithSchemaGeneral(dataFormat format.DataF
 	return validator.Validate(string(jsonNode), reference)
 }
 
+// getNode returns node value, when dataFormat and dataType matches expectations.
+func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.DataFormat, dataType types.DataType) (any, error) {
+	if body == nil || len(body) == 0 {
+		return nil, fmt.Errorf("provided nil body")
+	}
+
+	var iValue any
+	var err error
+	switch dataFormat {
+	case format.JSON:
+		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
+		if err != nil {
+			return nil, fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
+		}
+
+		if dataType == types.Any {
+			return iValue, nil
+		}
+
+		if !(dataType.IsValidJSONDataType() || dataType.IsValidGoDataType()) {
+			return nil, fmt.Errorf("%s is not any of JSON data types and is not any of Go Data types", dataType)
+		}
+
+		recognizedDataType := apiCtx.TypeMappers.JSON.Map(iValue)
+		if recognizedDataType != dataType {
+			tmpRecognizedDataType := recognizedDataType
+			recognizedDataType = apiCtx.TypeMappers.GO.Map(iValue)
+
+			if recognizedDataType != dataType {
+				return nil, fmt.Errorf("expected node '%s' to be '%s', but is detected as '%s' in terms of JSON and '%s' in terms of Go",
+					expr, dataType, tmpRecognizedDataType, recognizedDataType)
+			}
+		}
+	case format.YAML:
+		iValue, err = apiCtx.PathFinders.YAML.Find(expr, body)
+		if err != nil {
+			return nil, fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
+		}
+
+		if dataType == types.Any {
+			return iValue, nil
+		}
+
+		if !(dataType.IsValidYAMLDataType() || dataType.IsValidGoDataType()) {
+			return nil, fmt.Errorf("%s is not any of YAML data types and is not any of Go Data types", dataType)
+		}
+
+		recognizedDataType := apiCtx.TypeMappers.YAML.Map(iValue)
+		if recognizedDataType != dataType {
+			tmpRecognizedDataType := recognizedDataType
+			recognizedDataType = apiCtx.TypeMappers.GO.Map(iValue)
+
+			if recognizedDataType != dataType {
+				return nil, fmt.Errorf("expected node '%s' to be '%s', but is detected as '%s' in terms of YAML and '%s' in terms of Go",
+					expr, dataType, tmpRecognizedDataType, recognizedDataType)
+			}
+		}
+	case format.XML:
+		iValue, err = apiCtx.PathFinders.XML.Find(expr, body)
+		if err != nil {
+			return nil, fmt.Errorf("node '%s', err: %s", expr, err.Error())
+		}
+
+		if dataType == types.Any {
+			return iValue, nil
+		}
+
+		if !(dataType.IsValidXMLDataType() || dataType.IsValidGoDataType()) {
+			return nil, fmt.Errorf("%s is not any of XML data types and is not any of Go Data types", dataType)
+		}
+	default:
+		return nil, fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
+			dataFormat, format.JSON, format.YAML, format.XML)
+	}
+
+	return iValue, nil
+}
+
 //TODO: Use following methods to create XML type checker. It is required because X-PATH engine returns everything as string
 //TODO: XML types are listed here: https://www.w3.org/TR/xmlschema-2
-
 // checkBool contains algorithm to compare nodeValue obtained from expr with expectedValue.
 // internally it expects nodeValue to contain representation of bool data type.
 func checkBool(nodeValue any, expectedValue, expr string) error {
@@ -1736,84 +1853,6 @@ func checkFloat(nodeValue any, expectedValue, expr string) error {
 	}
 
 	return nil
-}
-
-// getNode returns node value, when dataFormat and dataType matches expectations.
-func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.DataFormat, dataType types.DataType) (any, error) {
-	if body == nil || len(body) == 0 {
-		return nil, fmt.Errorf("provided nil body")
-	}
-
-	var iValue any
-	var err error
-	switch dataFormat {
-	case format.JSON:
-		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
-		if err != nil {
-			return nil, fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
-		}
-
-		if dataType == types.Any {
-			return iValue, nil
-		}
-
-		if !(dataType.IsValidJSONDataType() || dataType.IsValidGoDataType()) {
-			return nil, fmt.Errorf("%s is not any of JSON data types and is not any of Go Data types", dataType)
-		}
-
-		recognizedDataType := apiCtx.TypeMappers.JSON.Map(iValue)
-		if recognizedDataType != dataType {
-			tmpRecognizedDataType := recognizedDataType
-			recognizedDataType = apiCtx.TypeMappers.GO.Map(iValue)
-
-			if recognizedDataType != dataType {
-				return nil, fmt.Errorf("expected node '%s' to be '%s', but is detected as '%s' in terms of JSON and '%s' in terms of Go",
-					expr, dataType, tmpRecognizedDataType, recognizedDataType)
-			}
-		}
-	case format.YAML:
-		iValue, err = apiCtx.PathFinders.YAML.Find(expr, body)
-		if err != nil {
-			return nil, fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
-		}
-
-		if dataType == types.Any {
-			return iValue, nil
-		}
-
-		if !(dataType.IsValidYAMLDataType() || dataType.IsValidGoDataType()) {
-			return nil, fmt.Errorf("%s is not any of YAML data types and is not any of Go Data types", dataType)
-		}
-
-		recognizedDataType := apiCtx.TypeMappers.YAML.Map(iValue)
-		if recognizedDataType != dataType {
-			tmpRecognizedDataType := recognizedDataType
-			recognizedDataType = apiCtx.TypeMappers.GO.Map(iValue)
-
-			if recognizedDataType != dataType {
-				return nil, fmt.Errorf("expected node '%s' to be '%s', but is detected as '%s' in terms of YAML and '%s' in terms of Go",
-					expr, dataType, tmpRecognizedDataType, recognizedDataType)
-			}
-		}
-	case format.XML:
-		iValue, err = apiCtx.PathFinders.XML.Find(expr, body)
-		if err != nil {
-			return nil, fmt.Errorf("node '%s', err: %s", expr, err.Error())
-		}
-
-		if dataType == types.Any {
-			return iValue, nil
-		}
-
-		if !(dataType.IsValidXMLDataType() || dataType.IsValidGoDataType()) {
-			return nil, fmt.Errorf("%s is not any of XML data types and is not any of Go Data types", dataType)
-		}
-	default:
-		return nil, fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
-			dataFormat, format.JSON, format.YAML, format.XML)
-	}
-
-	return iValue, nil
 }
 
 // assertNodeTypeAndValue checks node value against given dataType and its expectedValue yet represented as string
