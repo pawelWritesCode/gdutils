@@ -62,6 +62,7 @@
 //	func (apiCtx *APIContext) AssertResponseCookieExists(name string) error
 //	func (apiCtx *APIContext) AssertResponseCookieNotExists(name string) error
 //	func (apiCtx *APIContext) AssertResponseCookieValueIs(name, valueTemplate string) error
+//	func (apiCtx *APIContext) AssertResponseCookieValueNotMatchesRegExp(name, regExpTemplate string) error
 //	func (apiCtx *APIContext) AssertNodesExist(dataFormat format.DataFormat, expressionsTemplates string) error
 //	func (apiCtx *APIContext) AssertNodeExists(dataFormat format.DataFormat, exprTemplate string) error
 //	func (apiCtx *APIContext) AssertNodeNotExists(dataFormat format.DataFormat, exprTemplate string) error
@@ -69,9 +70,12 @@
 //	func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, exprTemplate string, inType types.DataType) error
 //	func (apiCtx *APIContext) AssertNodeMatchesRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error
 //	func (apiCtx *APIContext) AssertNodeNotMatchesRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error
+//	func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat, exprTemplate string, dataType types.DataType, dataValue string) error
+//	func (apiCtx *APIContext) AssertNodeIsTypeAndHasOneOfValues(dataFormat format.DataFormat, exprTemplate string, dataType types.DataType, valuesTemplates string) error
+//	func (apiCtx *APIContext) AsserNodeNotContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error
+//	func (apiCtx *APIContext) AsserNodeContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error
 //	func (apiCtx *APIContext) AssertNodeSliceLengthIs(dataFormat format.DataFormat, exprTemplate string, length int) error
 //	func (apiCtx *APIContext) AssertNodeSliceLengthIsNot(dataFormat format.DataFormat, exprTemplate string, length int) error
-//	func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat, exprTemplate string, dataType types.DataType, dataValue string) error
 //	func (apiCtx *APIContext) AssertResponseHeaderExists(name string) error
 //	func (apiCtx *APIContext) AssertResponseHeaderNotExists(name string) error
 //	func (apiCtx *APIContext) AssertResponseHeaderValueIs(name, value string) error
@@ -116,7 +120,7 @@
 //    		return err
 //	}
 //
-//	if err := ac.AssertNodeIsType(format.JSON, "$.gifs", types.Slice); err != nil {
+//	if err := ac.AssertNodeIsType(format.JSON, "$.gifs", types.Array); err != nil {
 //    		return err
 //	}
 package gdutils
