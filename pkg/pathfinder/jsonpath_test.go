@@ -173,18 +173,13 @@ func TestOliveagleJSONFInder_Find(t *testing.T) {
 	}
 }
 
-func TestDynamicJSONPathResolver_Resolve(t *testing.T) {
-	type fields struct {
-		qjson             QJSONFinder
-		oliveagleJSONpath OliveagleJSONFinder
-	}
+func TestDynamicJSONPathResolver_Find(t *testing.T) {
 	type args struct {
 		expr      string
 		jsonBytes []byte
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		want    any
 		wantErr bool
@@ -234,15 +229,15 @@ func TestDynamicJSONPathResolver_Resolve(t *testing.T) {
 			jsonBytes: jsonBytes,
 		}, want: []any{"Sword of Honour", "The Lord of the Rings"}, wantErr: false},
 		{name: "successful fetch data #1", args: args{
-			expr:      "store.book[0].category",
+			expr:      "store.book.0.category",
 			jsonBytes: jsonBytes,
 		}, want: any("reference"), wantErr: false},
 		{name: "successful fetch data #2", args: args{
-			expr:      "store.book[1].price",
+			expr:      "store.book.1.price",
 			jsonBytes: jsonBytes,
 		}, want: any(float64(12.99)), wantErr: false},
 		{name: "successful fetch data #3", args: args{
-			expr:      "store.book[2].available",
+			expr:      "store.book.2.available",
 			jsonBytes: jsonBytes,
 		}, want: any(true), wantErr: false},
 		{name: "successful fetch data #4", args: args{
@@ -253,14 +248,82 @@ func TestDynamicJSONPathResolver_Resolve(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := DynamicJSONPathFinder{
-				qjson:               tt.fields.qjson,
-				oliveagleJSONFinder: tt.fields.oliveagleJSONpath,
+				gjson:               NewGJSONFinder(),
+				oliveagleJSONFinder: NewOliveagleJSONFinder(),
 			}
 			got, err := d.Find(tt.args.expr, tt.args.jsonBytes)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Find() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Find() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGJSONFinder_Find(t *testing.T) {
+	type args struct {
+		expr  string
+		bytes []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    any
+		wantErr bool
+	}{
+		{name: "no expression", args: args{
+			expr:  "",
+			bytes: []byte("{}"),
+		}, want: nil, wantErr: true},
+		{name: "no jsonBytes", args: args{
+			expr:  "data",
+			bytes: []byte(""),
+		}, want: nil, wantErr: true},
+		{name: "expression points to nothing", args: args{
+			expr:  "data",
+			bytes: []byte(`{"a": "b"}`),
+		}, want: nil, wantErr: true},
+		{name: "successful fetch data #1", args: args{
+			expr:  "expensive",
+			bytes: jsonBytes,
+		}, want: any(float64(10)), wantErr: false},
+		{name: "successful fetch data #2", args: args{
+			expr:  "store.book.0.price",
+			bytes: jsonBytes,
+		}, want: any(8.95), wantErr: false},
+		{name: "successful fetch data #4", args: args{
+			expr:  "store.bicycle",
+			bytes: jsonBytes,
+		}, want: any(map[string]any{"color": "red", "price": float64(19.95)}), wantErr: false},
+		{name: "successful fetch data #1", args: args{
+			expr:  "store.book.0.category",
+			bytes: jsonBytes,
+		}, want: any("reference"), wantErr: false},
+		{name: "successful fetch data #2", args: args{
+			expr:  "store.book.1.price",
+			bytes: jsonBytes,
+		}, want: any(float64(12.99)), wantErr: false},
+		{name: "successful fetch data #3", args: args{
+			expr:  "store.book.2.available",
+			bytes: jsonBytes,
+		}, want: any(true), wantErr: false},
+		{name: "successful fetch data #4", args: args{
+			expr:  "store.bicycle",
+			bytes: jsonBytes,
+		}, want: any(map[string]any{"color": "red", "price": float64(19.95)}), wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			G := GJSONFinder{}
+			got, err := G.Find(tt.args.expr, tt.args.bytes)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Find() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Find() got = %v, want %v", got, tt.want)
 			}
