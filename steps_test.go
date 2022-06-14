@@ -900,7 +900,7 @@ users:
 			dataFormat:  format.JSON,
 			expressions: "age",
 		}, wantErr: true},
-		{name: "last response body has expected key #1 - qjson expression", fields: fields{body: []byte(json)}, args: args{
+		{name: "last response body has expected key #1 - gjson expression", fields: fields{body: []byte(json)}, args: args{
 			dataFormat:  format.JSON,
 			expressions: "users",
 		}, wantErr: false},
@@ -908,15 +908,15 @@ users:
 			dataFormat:  format.JSON,
 			expressions: "$.users[0]",
 		}, wantErr: false},
-		{name: "last response body has expected key #3 - qjson expression ", fields: fields{body: []byte(json)}, args: args{
+		{name: "last response body has expected key #3 - gjson expression ", fields: fields{body: []byte(json)}, args: args{
 			dataFormat:  format.JSON,
-			expressions: "users[1].name",
+			expressions: "users.1.name",
 		}, wantErr: false},
-		{name: "last response body has expected key #4 - qjson expression with template value", fields: fields{body: []byte(json), cacheData: map[string]any{
+		{name: "last response body has expected key #4 - gjson expression with template value", fields: fields{body: []byte(json), cacheData: map[string]any{
 			"USER_ID": 1,
 		}}, args: args{
 			dataFormat:  format.JSON,
-			expressions: "users[{{.USER_ID}}].name",
+			expressions: "users.{{.USER_ID}}.name",
 		}, wantErr: false},
 
 		// XML
@@ -1028,7 +1028,7 @@ users:
 			dataFormat:  format.JSON,
 			expressions: "age",
 		}, wantErr: false},
-		{name: "last response body has expected key #1 - qjson expression", fields: fields{body: []byte(json)}, args: args{
+		{name: "last response body has expected key #1 - gjson expression", fields: fields{body: []byte(json)}, args: args{
 			dataFormat:  format.JSON,
 			expressions: "users",
 		}, wantErr: true},
@@ -1036,15 +1036,15 @@ users:
 			dataFormat:  format.JSON,
 			expressions: "$.users[0]",
 		}, wantErr: true},
-		{name: "last response body has expected key #3 - qjson expression ", fields: fields{body: []byte(json)}, args: args{
+		{name: "last response body has expected key #3 - gjson expression ", fields: fields{body: []byte(json)}, args: args{
 			dataFormat:  format.JSON,
-			expressions: "users[1].name",
+			expressions: "users.1.name",
 		}, wantErr: true},
-		{name: "last response body has expected key #4 - qjson expression with template value", fields: fields{body: []byte(json), cacheData: map[string]any{
+		{name: "last response body has expected key #4 - gjson expression with template value", fields: fields{body: []byte(json), cacheData: map[string]any{
 			"USER_ID": 1,
 		}}, args: args{
 			dataFormat:  format.JSON,
-			expressions: "users[{{.USER_ID}}].name",
+			expressions: "users.{{.USER_ID}}.name",
 		}, wantErr: true},
 
 		// XML
@@ -1155,7 +1155,7 @@ users:
 			dataFormat:  format.JSON,
 			expressions: "age",
 		}, wantErr: true},
-		{name: "last response body has expected key #1 - qjson expression", fields: fields{body: []byte(json)}, args: args{
+		{name: "last response body has expected key #1 - gjson expression", fields: fields{body: []byte(json)}, args: args{
 			dataFormat:  format.JSON,
 			expressions: "users",
 		}, wantErr: false},
@@ -1163,20 +1163,20 @@ users:
 			dataFormat:  format.JSON,
 			expressions: "users, $.users",
 		}, wantErr: false},
-		{name: "last response body has expected keys #3 - qjson expressions", fields: fields{body: []byte(json)}, args: args{
+		{name: "last response body has expected keys #3 - gjson expressions", fields: fields{body: []byte(json)}, args: args{
 			dataFormat:  format.JSON,
-			expressions: "users, users[0]",
+			expressions: "users, users.0",
 		}, wantErr: false},
-		{name: "last response body has expected keys #4 - qjson expressions", fields: fields{body: []byte(json)}, args: args{
+		{name: "last response body has expected keys #4 - gjson expressions", fields: fields{body: []byte(json)}, args: args{
 			dataFormat:  format.JSON,
-			expressions: "users[0].name, users[1].name",
+			expressions: "users.0.name, users.1.name",
 		}, wantErr: false},
-		{name: "last response body has expected keys #1 - qjson expressions with template values", fields: fields{body: []byte(json), cacheKeys: map[string]any{
+		{name: "last response body has expected keys #1 - gjson expressions with template values", fields: fields{body: []byte(json), cacheKeys: map[string]any{
 			"USER1_ID": 0,
 			"USER2_ID": 1,
 		}}, args: args{
 			dataFormat:  format.JSON,
-			expressions: "users[{{.USER1_ID}}].name, users[{{.USER2_ID}}].name",
+			expressions: "users.{{.USER1_ID}}.name, users.{{.USER2_ID}}.name",
 		}, wantErr: false},
 
 		// XML
@@ -1279,7 +1279,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "selected node value is null - qjson",
+			name:    "selected node value is null - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "isPopular", goType: types.String},
 			wantErr: false,
@@ -1291,7 +1291,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is boolean - qjson",
+			name:    "selected node value is boolean - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Null},
 			wantErr: false,
@@ -1303,7 +1303,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is string - qjson",
+			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "color", goType: types.Boolean},
 			wantErr: false,
@@ -1315,7 +1315,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #1 - qjson",
+			name:    "selected node value is number #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_1", goType: types.String},
 			wantErr: false,
@@ -1327,7 +1327,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #2 - qjson",
+			name:    "selected node value is number #2 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_2", goType: types.Boolean},
 			wantErr: false,
@@ -1339,7 +1339,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #3 - qjson",
+			name:    "selected node value is number #3 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_3", goType: types.Array},
 			wantErr: false,
@@ -1351,7 +1351,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #4 - qjson",
+			name:    "selected node value is number #4 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_4", goType: types.String},
 			wantErr: false,
@@ -1363,7 +1363,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #5 - qjson",
+			name:    "selected node value is number #5 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "user.height", goType: types.Array},
 			wantErr: false,
@@ -1375,7 +1375,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is object - qjson",
+			name:    "selected node value is object - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "user", goType: types.String},
 			wantErr: false,
@@ -1387,7 +1387,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is array - qjson",
+			name:    "selected node value is array - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "user.roles", goType: types.Object},
 			wantErr: false,
@@ -1469,7 +1469,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 
 		//GO related types against JSON data
 		{
-			name:    "selected node value is nil - qjson",
+			name:    "selected node value is nil - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "isPopular", goType: types.Slice},
 			wantErr: false,
@@ -1481,7 +1481,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is int #1 - qjson",
+			name:    "selected node value is int #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_1", goType: types.Float},
 			wantErr: false,
@@ -1493,7 +1493,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is float - qjson",
+			name:    "selected node value is float - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_3", goType: types.Int},
 			wantErr: false,
@@ -1505,7 +1505,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is string - qjson",
+			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "color", goType: types.Bool},
 			wantErr: false,
@@ -1517,7 +1517,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is bool - qjson",
+			name:    "selected node value is bool - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Slice},
 			wantErr: false,
@@ -1529,7 +1529,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is map - qjson",
+			name:    "selected node value is map - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "user", goType: types.String},
 			wantErr: false,
@@ -1541,7 +1541,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is slice - qjson",
+			name:    "selected node value is slice - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "user.roles", goType: types.Bool},
 			wantErr: false,
@@ -1591,7 +1591,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "selected node value is null - qjson",
+			name:    "selected node value is null - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "isPopular", goType: types.Null},
 			wantErr: false,
@@ -1603,7 +1603,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is boolean - qjson",
+			name:    "selected node value is boolean - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Boolean},
 			wantErr: false,
@@ -1615,7 +1615,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is string - qjson",
+			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "color", goType: types.String},
 			wantErr: false,
@@ -1627,7 +1627,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #1 - qjson",
+			name:    "selected node value is number #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_1", goType: types.Number},
 			wantErr: false,
@@ -1639,7 +1639,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #2 - qjson",
+			name:    "selected node value is number #2 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_2", goType: types.Number},
 			wantErr: false,
@@ -1651,7 +1651,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #3 - qjson",
+			name:    "selected node value is number #3 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_3", goType: types.Number},
 			wantErr: false,
@@ -1663,7 +1663,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #4 - qjson",
+			name:    "selected node value is number #4 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_4", goType: types.Number},
 			wantErr: false,
@@ -1675,7 +1675,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #5 - qjson",
+			name:    "selected node value is number #5 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "user.height", goType: types.Number},
 			wantErr: false,
@@ -1687,7 +1687,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is object - qjson",
+			name:    "selected node value is object - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "user", goType: types.Object},
 			wantErr: false,
@@ -1699,7 +1699,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is array - qjson",
+			name:    "selected node value is array - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "user.roles", goType: types.Array},
 			wantErr: false,
@@ -1781,7 +1781,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 
 		//GO related types against JSON data
 		{
-			name:    "selected node value is nil - qjson",
+			name:    "selected node value is nil - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "isPopular", goType: types.Nil},
 			wantErr: false,
@@ -1793,7 +1793,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is int #1 - qjson",
+			name:    "selected node value is int #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_1", goType: types.Int},
 			wantErr: false,
@@ -1805,7 +1805,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is float - qjson",
+			name:    "selected node value is float - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_3", goType: types.Float},
 			wantErr: false,
@@ -1817,7 +1817,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is string - qjson",
+			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "color", goType: types.String},
 			wantErr: false,
@@ -1829,7 +1829,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is bool - qjson",
+			name:    "selected node value is bool - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Bool},
 			wantErr: false,
@@ -1841,7 +1841,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is map - qjson",
+			name:    "selected node value is map - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "user", goType: types.Map},
 			wantErr: false,
@@ -1853,7 +1853,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is slice - qjson",
+			name:    "selected node value is slice - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "user.roles", goType: types.Slice},
 			wantErr: false,
@@ -2209,7 +2209,7 @@ func TestState_AssertNodeIsTypeAndValue(t *testing.T) {
 }`))},
 		}, args: args{
 			df:        format.JSON,
-			expr:      "data[1].value",
+			expr:      "data.1.value",
 			dataType:  "bool",
 			dataValue: "false",
 		}, wantErr: false},
@@ -2223,7 +2223,7 @@ func TestState_AssertNodeIsTypeAndValue(t *testing.T) {
 }`))},
 		}, args: args{
 			df:        format.JSON,
-			expr:      "data[1]",
+			expr:      "data.1",
 			dataType:  "bool",
 			dataValue: "false",
 		}, wantErr: false},
@@ -2405,7 +2405,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "selected node value is boolean - qjson",
+			name:    "selected node value is boolean - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Boolean, val: "false"},
 			wantErr: false,
@@ -2417,7 +2417,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is string - qjson",
+			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "color", goType: types.String, val: "purple"},
 			wantErr: false,
@@ -2429,7 +2429,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #1 - qjson",
+			name:    "selected node value is number #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_1", goType: types.Number, val: "210"},
 			wantErr: false,
@@ -2441,7 +2441,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #2 - qjson",
+			name:    "selected node value is number #2 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_2", goType: types.Number, val: "-210"},
 			wantErr: false,
@@ -2453,7 +2453,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #3 - qjson",
+			name:    "selected node value is number #3 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_3", goType: types.Number, val: "21.05"},
 			wantErr: false,
@@ -2465,7 +2465,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #4 - qjson",
+			name:    "selected node value is number #4 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_4", goType: types.Number, val: "1.0E+2"},
 			wantErr: false,
@@ -2477,7 +2477,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is number #5 - qjson",
+			name:    "selected node value is number #5 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "user.height", goType: types.Number, val: "180"},
 			wantErr: false,
@@ -2535,7 +2535,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 
 		//GO related types against JSON data
 		{
-			name:    "selected node value is int #1 - qjson",
+			name:    "selected node value is int #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_1", goType: types.Int, val: "210"},
 			wantErr: false,
@@ -2547,7 +2547,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is float - qjson",
+			name:    "selected node value is float - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "number_3", goType: types.Float, val: "21.05"},
 			wantErr: false,
@@ -2559,7 +2559,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is string - qjson",
+			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "color", goType: types.String, val: "purple"},
 			wantErr: false,
@@ -2571,7 +2571,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "selected node value is bool - qjson",
+			name:    "selected node value is bool - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
 			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Bool, val: "false"},
 			wantErr: false,
