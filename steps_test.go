@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -85,10 +86,6 @@ func createXMLRespBody() io.ReadCloser {
 	return ioutil.NopCloser(bytes.NewBufferString(bigXML))
 }
 
-type mockedHTTPContext struct {
-	mock.Mock
-}
-
 type mockedJSONValidator struct {
 	mock.Mock
 }
@@ -127,24 +124,6 @@ func (m *mockedJSONValidator) Validate(document, schemaPath string) error {
 	args := m.Called(document, schemaPath)
 
 	return args.Error(0)
-}
-
-func (m *mockedHTTPContext) GetHTTPClient() *http.Client {
-	args := m.Called()
-
-	return args.Get(0).(*http.Client)
-}
-
-func (m *mockedHTTPContext) GetLastResponse() (*http.Response, error) {
-	args := m.Called()
-
-	return args.Get(0).(*http.Response), args.Error(1)
-}
-
-func (m *mockedHTTPContext) GetLastResponseBody() ([]byte, error) {
-	args := m.Called()
-
-	return args.Get(0).([]byte), args.Error(1)
 }
 
 func (m *mockedJsonPathFinder) Find(expr string, jsonBytes []byte) (any, error) {
@@ -483,6 +462,20 @@ func TestState_AssertStatusCodeIs(t *testing.T) {
 	}
 }
 
+func ExampleAPIContext_AssertStatusCodeIs() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{StatusCode: 201})
+
+	err := apiCtx.AssertStatusCodeIs(200)
+	fmt.Println(err)
+
+	// Output:
+	// expected status code 200, but got 201
+}
+
 func TestAPIContext_AssertStatusCodeIsNot(t *testing.T) {
 	type fields struct {
 		cache        map[string]any
@@ -518,6 +511,20 @@ func TestAPIContext_AssertStatusCodeIsNot(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ExampleAPIContext_AssertStatusCodeIsNot() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{StatusCode: 200})
+
+	err := apiCtx.AssertStatusCodeIsNot(200)
+	fmt.Println(err)
+
+	// Output:
+	// expected status code different than 200, but got 200
 }
 
 func TestState_AssertResponseFormatIs(t *testing.T) {
@@ -581,6 +588,20 @@ user:
 	}
 }
 
+func ExampleAPIContext_AssertResponseFormatIs() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader("abc"))})
+
+	err := apiCtx.AssertResponseFormatIs(format.JSON)
+	fmt.Println(err)
+
+	// Output:
+	// response body doesn't have format JSON
+}
+
 func TestAPIContext_AssertResponseFormatIsNot(t *testing.T) {
 	yaml := `
 ---
@@ -641,6 +662,20 @@ user:
 	}
 }
 
+func ExampleAPIContext_AssertResponseFormatIsNot() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader("{}"))})
+
+	err := apiCtx.AssertResponseFormatIsNot(format.JSON)
+	fmt.Println(err)
+
+	// Output:
+	// response body has format JSON
+}
+
 func TestState_GenerateRandomInt(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 	for i := 0; i < 100; i++ {
@@ -662,6 +697,48 @@ func TestState_GenerateRandomInt(t *testing.T) {
 			t.Errorf("randomInt should not be greater than 100000")
 		}
 	}
+}
+
+func ExampleAPIContext_GenerateRandomInt() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	if err := apiCtx.GenerateRandomInt(2, 2, "MYINT"); err != nil {
+		log.Fatal(err)
+
+		return
+	}
+
+	myInt, err := apiCtx.Cache.GetSaved("MYINT")
+	if err != nil {
+		log.Fatal(err)
+
+		return
+	}
+
+	fmt.Println(myInt)
+	// Output:
+	// 2
+}
+
+func ExampleAPIContext_GenerateFloat64() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	if err := apiCtx.GenerateFloat64(0, 0, "MYFLOAT"); err != nil {
+		log.Fatal(err)
+
+		return
+	}
+
+	myFloat, err := apiCtx.Cache.GetSaved("MYFLOAT")
+	if err != nil {
+		log.Fatal(err)
+
+		return
+	}
+
+	fmt.Println(myFloat)
+	// Output:
+	// 0
 }
 
 func TestState_GeneratorRandomRunes(t *testing.T) {
@@ -716,6 +793,29 @@ func TestState_GeneratorRandomRunes(t *testing.T) {
 	}
 }
 
+func ExampleAPIContext_GeneratorRandomRunes() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	generateA := apiCtx.GeneratorRandomRunes("A")
+	err := generateA(2, 2, "TWO_A")
+	if err != nil {
+		log.Fatal(err)
+
+		return
+	}
+
+	myA, err := apiCtx.Cache.GetSaved("TWO_A")
+	if err != nil {
+		log.Fatal(err)
+
+		return
+	}
+
+	fmt.Println(myA)
+	// Output:
+	// AA
+}
+
 func TestState_GeneratorRandomSentence_ASCII(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 	sentenceGen := s.GeneratorRandomSentence("ab", 1, 1)
@@ -742,6 +842,29 @@ func TestState_GeneratorRandomSentence_ASCII(t *testing.T) {
 			t.Errorf("expected sentence to have between (%d, %d) words, got %d, sentence: %s", 2, rndNumberOfWords, len(words), obtainedSentence)
 		}
 	}
+}
+
+func ExampleAPIContext_GeneratorRandomSentence() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	generateA := apiCtx.GeneratorRandomSentence("A", 2, 2)
+	err := generateA(2, 2, "TWO_WORDS_A")
+	if err != nil {
+		log.Fatal(err)
+
+		return
+	}
+
+	myA, err := apiCtx.Cache.GetSaved("TWO_WORDS_A")
+	if err != nil {
+		log.Fatal(err)
+
+		return
+	}
+
+	fmt.Println(myA)
+	// Output:
+	// AA AA
 }
 
 func TestState_GeneratorRandomSentence_Unicode(t *testing.T) {
@@ -980,6 +1103,20 @@ users:
 	}
 }
 
+func ExampleAPIContext_AssertNodeExists() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader("{}"))})
+
+	err := apiCtx.AssertNodeExists(format.JSON, "user")
+	fmt.Println(err)
+
+	// Output:
+	// node 'user' could not be found within last response body, reason: could not find node using provided expression: 'user', err: could not find node, using expression user
+}
+
 func TestAPIContext_AssertNodeNotExists(t *testing.T) {
 	json := `{
 	"users": [
@@ -1105,6 +1242,20 @@ users:
 			}
 		})
 	}
+}
+
+func ExampleAPIContext_AssertNodeNotExists() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
+
+	err := apiCtx.AssertNodeNotExists(format.JSON, "user")
+	fmt.Println(err)
+
+	// Output:
+	// JSON node 'user' exists
 }
 
 func TestState_AssertNodesExist(t *testing.T) {
@@ -1252,6 +1403,21 @@ users:
 			}
 		})
 	}
+}
+
+func ExampleAPIContext_AssertNodesExist() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user":"abc"}`))})
+
+	err := apiCtx.AssertNodesExist(format.JSON, "user, address, roles")
+	fmt.Println(err)
+
+	// Output:
+	// node 'address', err: could not find node using provided expression: 'address', err: could not find node, using expression address
+	//node 'roles', err: could not find node using provided expression: 'roles', err: could not find node, using expression roles
 }
 
 func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
@@ -1566,6 +1732,20 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 	}
 }
 
+func ExampleAPIContext_AssertNodeIsNotType() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user":"abc"}`))})
+
+	err := apiCtx.AssertNodeIsNotType(format.JSON, "user", types.String)
+	fmt.Println(err)
+
+	// Output:
+	// node 'user' has type 'string', but expected not to be
+}
+
 func TestState_AssertNodeIsType(t *testing.T) {
 	type fields struct {
 		saved        map[string]any
@@ -1878,6 +2058,20 @@ func TestState_AssertNodeIsType(t *testing.T) {
 	}
 }
 
+func ExampleAPIContext_AssertNodeIsType() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user":"abc"}`))})
+
+	err := apiCtx.AssertNodeIsType(format.JSON, "user", types.Number)
+	fmt.Println(err)
+
+	// Output:
+	// expected node 'user' to be 'number', but node value is detected as 'string' in terms of JSON and 'string' in terms of Go
+}
+
 func TestState_AssertNodeSliceLengthIs(t *testing.T) {
 	json := `{
 	"count": 2,
@@ -1994,6 +2188,20 @@ data:
 	}
 }
 
+func ExampleAPIContext_AssertNodeSliceLengthIs() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user":[]}`))})
+
+	err := apiCtx.AssertNodeSliceLengthIs(format.JSON, "user", 1)
+	fmt.Println(err)
+
+	// Output:
+	// node 'user' contains slice(array) which has length: 0, but expected: 1
+}
+
 func TestAPIContext_AssertNodeSliceLengthIsNot(t *testing.T) {
 	json := `{
 	"count": 2,
@@ -2108,6 +2316,20 @@ data:
 			}
 		})
 	}
+}
+
+func ExampleAPIContext_AssertNodeSliceLengthIsNot() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user":[]}`))})
+
+	err := apiCtx.AssertNodeSliceLengthIsNot(format.JSON, "user", 0)
+	fmt.Println(err)
+
+	// Output:
+	// node 'user' contains slice(array) which has length: 0, but expected not to have it
 }
 
 // TODO: Add YAML cases
@@ -2628,6 +2850,20 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 	}
 }
 
+func ExampleAPIContext_AssertNodeIsTypeAndValue() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
+
+	err := apiCtx.AssertNodeIsTypeAndValue(format.JSON, "user", types.String, "def")
+	fmt.Println(err)
+
+	// Output:
+	// node 'user' has string value: 'abc', but expected: 'def'
+}
+
 func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 	type fields struct {
 		lastResponse *http.Response
@@ -3128,6 +3364,20 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 	}
 }
 
+func ExampleAPIContext_AssertNodeIsTypeAndHasOneOfValues() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
+
+	err := apiCtx.AssertNodeIsTypeAndHasOneOfValues(format.JSON, "user", types.String, "def, ghi")
+	fmt.Println(err)
+
+	// Output:
+	// node 'user' doesn't contain any of: []string{"def", "ghi"}
+}
+
 func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 	type fields struct {
 		lastResponse *http.Response
@@ -3407,11 +3657,25 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				apiCtx.Cache.Save(key, val)
 			}
 
-			if err := apiCtx.AsserNodeContainsSubString(tt.args.dataFormat, tt.args.exprTemplate, tt.args.sub); (err != nil) != tt.wantErr {
+			if err := apiCtx.AssertNodeContainsSubString(tt.args.dataFormat, tt.args.exprTemplate, tt.args.sub); (err != nil) != tt.wantErr {
 				t.Errorf("AsserNodeContainsSubString() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
+}
+
+func ExampleAPIContext_AssertNodeContainsSubString() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
+
+	err := apiCtx.AssertNodeContainsSubString(format.JSON, "user", "abcd")
+	fmt.Println(err)
+
+	// Output:
+	// node 'user' string value doesn't contain any occurrence of 'abcd'
 }
 
 func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
@@ -3694,11 +3958,25 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				apiCtx.Cache.Save(key, val)
 			}
 
-			if err := apiCtx.AsserNodeNotContainsSubString(tt.args.dataFormat, tt.args.exprTemplate, tt.args.sub); (err != nil) != tt.wantErr {
+			if err := apiCtx.AssertNodeNotContainsSubString(tt.args.dataFormat, tt.args.exprTemplate, tt.args.sub); (err != nil) != tt.wantErr {
 				t.Errorf("AsserNodeNotContainsSubString() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
+}
+
+func ExampleAPIContext_AssertNodeNotContainsSubString() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
+
+	err := apiCtx.AssertNodeNotContainsSubString(format.JSON, "user", "a")
+	fmt.Println(err)
+
+	// Output:
+	// node 'user' string value contain some 'a', but expected not to
 }
 
 func TestState_AssertNodeMatchesRegExp(t *testing.T) {
@@ -3850,6 +4128,20 @@ name: abcdef`,
 	}
 }
 
+func ExampleAPIContext_AssertNodeMatchesRegExp() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
+
+	err := apiCtx.AssertNodeMatchesRegExp(format.JSON, "user", `ac.*`)
+	fmt.Println(err)
+
+	// Output:
+	// node 'user' does not match regExp: 'ac.*'
+}
+
 func TestAPIContext_AssertNodeNotMatchesRegExp(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 	mJsonPathResolver := new(mockedJsonPathFinder)
@@ -3998,6 +4290,20 @@ name: abcdef`,
 	}
 }
 
+func ExampleAPIContext_AssertNodeNotMatchesRegExp() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
+
+	err := apiCtx.AssertNodeNotMatchesRegExp(format.JSON, "user", `ab.*`)
+	fmt.Println(err)
+
+	// Output:
+	// node 'user' matches regExp: 'ab.*', but expected not to
+}
+
 func TestState_AssertResponseHeaderExists(t *testing.T) {
 	type fields struct {
 		cache        map[string]any
@@ -4043,6 +4349,20 @@ func TestState_AssertResponseHeaderExists(t *testing.T) {
 	}
 }
 
+func ExampleAPIContext_AssertResponseHeaderExists() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Header: map[string][]string{"Content-Type": {"application/json"}}})
+
+	err := apiCtx.AssertResponseHeaderExists("Content-Length")
+	fmt.Println(err)
+
+	// Output:
+	// could not find header 'Content-Length' in last HTTP response
+}
+
 func TestAPIContext_AssertResponseHeaderNotExists(t *testing.T) {
 	type fields struct {
 		cache        map[string]any
@@ -4085,6 +4405,20 @@ func TestAPIContext_AssertResponseHeaderNotExists(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ExampleAPIContext_AssertResponseHeaderNotExists() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Header: map[string][]string{"Content-Type": {"application/json"}}})
+
+	err := apiCtx.AssertResponseHeaderNotExists("content-type")
+	fmt.Println(err)
+
+	// Output:
+	// last HTTP(s) response has header 'content-type', but expected not to
 }
 
 func TestState_AssertResponseHeaderValueIs(t *testing.T) {
@@ -4148,6 +4482,20 @@ func TestState_AssertResponseHeaderValueIs(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ExampleAPIContext_AssertResponseHeaderValueIs() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Header: map[string][]string{"Content-Type": {"application/json"}}})
+
+	err := apiCtx.AssertResponseHeaderValueIs("content-type", "application/json+ld")
+	fmt.Println(err)
+
+	// Output:
+	// last HTTP(s) response contains header 'content-type', but it's expected value: 'application/json+ld', is not equal to actual value: 'application/json'
 }
 
 func TestState_AssertResponseMatchesSchemaByReference(t *testing.T) {
@@ -4750,6 +5098,23 @@ func TestState_Save(t *testing.T) {
 	}
 }
 
+func ExampleAPIContext_Save() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	apiCtx.Cache.Save("MY_KEY", "MY_VAL")
+
+	val, err := apiCtx.Cache.GetSaved("MY_KEY")
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	fmt.Println(val)
+	// Output:
+	// MY_VAL
+}
+
 func TestState_SaveNode(t *testing.T) {
 	type fields struct {
 		cache        cache.Cache
@@ -4891,6 +5256,32 @@ user:
 	}
 }
 
+func ExampleAPIContext_SaveNode() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
+
+	err := apiCtx.SaveNode(format.JSON, "user", "USER_NAME")
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	val, err := apiCtx.Cache.GetSaved("USER_NAME")
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	fmt.Println(val)
+	// Output:
+	// abc
+}
+
 func TestAPIContext_SaveHeader(t *testing.T) {
 	type fields struct {
 		resp *http.Response
@@ -4940,4 +5331,30 @@ func TestAPIContext_SaveHeader(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ExampleAPIContext_SaveHeader() {
+	apiCtx := NewDefaultAPIContext(false, "")
+
+	// instead of sending real HTTP(s) request with apiCtx.RequestSend
+	// we simply mock last HTTP(s) request's response
+	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Header: map[string][]string{"Content-Type": {"application/json"}}})
+
+	if err := apiCtx.SaveHeader("content-type", "CONTENT_TYPE_VALUE"); err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	val, err := apiCtx.Cache.GetSaved("CONTENT_TYPE_VALUE")
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	fmt.Println(val)
+
+	// Output:
+	// application/json
 }

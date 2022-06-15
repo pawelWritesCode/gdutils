@@ -488,7 +488,7 @@ func (apiCtx *APIContext) AssertStatusCodeIsNot(code int) error {
 		return nil
 	}
 
-	return fmt.Errorf("expected status code is other than %d, but is %d", code, lastResponse.StatusCode)
+	return fmt.Errorf("expected status code different than %d, but got %d", code, lastResponse.StatusCode)
 }
 
 // AssertResponseFormatIs checks whether last response body has given data format.
@@ -596,7 +596,7 @@ func (apiCtx *APIContext) AssertNodeExists(dataFormat format.DataFormat, exprTem
 			apiCtx.Debugger.Print(fmt.Sprintf("last response body:\n\n%s", body))
 		}
 
-		return fmt.Errorf("node '%s', err: %w", expr, err)
+		return fmt.Errorf("node '%s' could not be found within last response body, reason: %w", expr, err)
 	}
 
 	return nil
@@ -722,7 +722,7 @@ func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, expr
 				return nil
 			}
 
-			return fmt.Errorf("node %s is '%s', but expected not to be", expr, inType)
+			return fmt.Errorf("node '%s' has type '%s', but expected not to be", expr, inType)
 		}
 
 		recognizedDataType := apiCtx.TypeMappers.GO.Map(iNodeVal)
@@ -730,7 +730,7 @@ func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, expr
 			return nil
 		}
 
-		return fmt.Errorf("node %s is '%s', but expected not to be", expr, inType)
+		return fmt.Errorf("node '%s' has type '%s', but expected not to be", expr, inType)
 	case format.YAML:
 		iNodeVal, err = apiCtx.PathFinders.YAML.Find(expr, body)
 		if err != nil {
@@ -747,7 +747,7 @@ func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, expr
 				return nil
 			}
 
-			return fmt.Errorf("node %s is '%s', but expected not to be", expr, inType)
+			return fmt.Errorf("node '%s' has type '%s', but expected not to be", expr, inType)
 		}
 
 		recognizedDataType := apiCtx.TypeMappers.GO.Map(iNodeVal)
@@ -755,7 +755,7 @@ func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, expr
 			return nil
 		}
 
-		return fmt.Errorf("node %s is '%s', but expected not to be", expr, inType)
+		return fmt.Errorf("node '%s' has type '%s', but expected not to be", expr, inType)
 	case format.XML:
 		return fmt.Errorf("this method does not support data in format: %s", format.XML)
 	default:
@@ -827,18 +827,23 @@ func (apiCtx *APIContext) AssertNodeIsTypeAndHasOneOfValues(dataFormat format.Da
 	}
 
 	valuesSlice := strings.Split(values, ",")
-	for _, value := range valuesSlice {
-		if err = assertNodeTypeAndValue(expr, dataType, iValue, strings.TrimSpace(value)); err == nil {
+	valuesSliceTrimmed := make([]string, 0, len(valuesSlice))
+	for _, v := range valuesSlice {
+		valuesSliceTrimmed = append(valuesSliceTrimmed, strings.TrimSpace(v))
+	}
+
+	for _, value := range valuesSliceTrimmed {
+		if err = assertNodeTypeAndValue(expr, dataType, iValue, value); err == nil {
 			return nil
 		}
 	}
 
-	return fmt.Errorf("node '%s' doesn't contain any of: %#v", expr, valuesSlice)
+	return fmt.Errorf("node '%s' doesn't contain any of: %#v", expr, valuesSliceTrimmed)
 }
 
 // AsserNodeContainsSubString checks whether value of last HTTP response node, obtained using exprTemplate
 // is string type and contains given substring
-func (apiCtx *APIContext) AsserNodeContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error {
+func (apiCtx *APIContext) AssertNodeContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error {
 	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'expr' template, err: %w", err)
@@ -873,7 +878,7 @@ func (apiCtx *APIContext) AsserNodeContainsSubString(dataFormat format.DataForma
 	}
 
 	if !strings.Contains(valueString, sub) {
-		return fmt.Errorf("node string value doesn't contain any occurence of '%s'", sub)
+		return fmt.Errorf("node '%s' string value doesn't contain any occurrence of '%s'", expr, sub)
 	}
 
 	return nil
@@ -881,7 +886,7 @@ func (apiCtx *APIContext) AsserNodeContainsSubString(dataFormat format.DataForma
 
 // AsserNodeNotContainsSubString checks whether value of last HTTP response node, obtained using exprTemplate
 // is string type and doesn't contain given substring
-func (apiCtx *APIContext) AsserNodeNotContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error {
+func (apiCtx *APIContext) AssertNodeNotContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error {
 	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'expr' template, err: %w", err)
@@ -916,7 +921,7 @@ func (apiCtx *APIContext) AsserNodeNotContainsSubString(dataFormat format.DataFo
 	}
 
 	if strings.Contains(valueString, sub) {
-		return fmt.Errorf("node value contain some '%s', but expected not to", sub)
+		return fmt.Errorf("node '%s' string value contain some '%s', but expected not to", expr, sub)
 	}
 
 	return nil
@@ -947,7 +952,7 @@ func (apiCtx *APIContext) AssertNodeSliceLengthIs(dataFormat format.DataFormat, 
 	v := reflect.ValueOf(iValue)
 	if v.Kind() == reflect.Slice {
 		if v.Len() != length {
-			return fmt.Errorf("%s slice has length: %d, expected: %d", expr, v.Len(), length)
+			return fmt.Errorf("node '%s' contains slice(array) which has length: %d, but expected: %d", expr, v.Len(), length)
 		}
 
 		return nil
@@ -988,7 +993,7 @@ func (apiCtx *APIContext) AssertNodeSliceLengthIsNot(dataFormat format.DataForma
 			return nil
 		}
 
-		return fmt.Errorf("%s slice has length: %d, expected not to have: %d", expr, v.Len(), length)
+		return fmt.Errorf("node '%s' contains slice(array) which has length: %d, but expected not to have it", expr, v.Len())
 	}
 
 	if apiCtx.Debugger.IsOn() {
@@ -1035,7 +1040,7 @@ func (apiCtx *APIContext) AssertNodeMatchesRegExp(dataFormat format.DataFormat, 
 	}
 
 	if !matched {
-		return fmt.Errorf("%s does not contain any: %s", string(jsonValue), regExpString)
+		return fmt.Errorf("node '%s' does not match regExp: '%s'", expr, regExpString)
 	}
 
 	return nil
@@ -1081,7 +1086,7 @@ func (apiCtx *APIContext) AssertNodeNotMatchesRegExp(dataFormat format.DataForma
 		return nil
 	}
 
-	return fmt.Errorf("%s contains some: %s", string(jsonValue), regExpString)
+	return fmt.Errorf("node '%s' matches regExp: '%s', but expected not to", expr, regExpString)
 }
 
 // AssertResponseHeaderExists checks whether last HTTP response has given header.
@@ -1111,7 +1116,7 @@ func (apiCtx *APIContext) AssertResponseHeaderExists(name string) error {
 		apiCtx.Debugger.Print(fmt.Sprintf("last HTTP(s) response headers: %#v", lastResp.Header))
 	}
 
-	return fmt.Errorf("could not find header %s in last HTTP response", name)
+	return fmt.Errorf("could not find header '%s' in last HTTP response", name)
 }
 
 // AssertResponseHeaderNotExists checks whether last HTTP response does not have given header.
@@ -1137,7 +1142,7 @@ func (apiCtx *APIContext) AssertResponseHeaderNotExists(name string) error {
 		return nil
 	}
 
-	return fmt.Errorf("last response has header %s", name)
+	return fmt.Errorf("last HTTP(s) response has header '%s', but expected not to", name)
 }
 
 // AssertResponseHeaderValueIs checks whether last HTTP response has given header with provided valueTemplate.
@@ -1172,7 +1177,7 @@ func (apiCtx *APIContext) AssertResponseHeaderValueIs(name, valueTemplate string
 		return nil
 	}
 
-	return fmt.Errorf("%s header exists but, expected value: %s, is not equal to actual: %s", name, value, header)
+	return fmt.Errorf("last HTTP(s) response contains header '%s', but it's expected value: '%s', is not equal to actual value: '%s'", name, value, header)
 }
 
 // AssertResponseMatchesSchemaByReference validates last response body against schema as provided in referenceTemplate.
@@ -1694,7 +1699,7 @@ func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.Da
 			recognizedDataType = apiCtx.TypeMappers.GO.Map(iValue)
 
 			if recognizedDataType != dataType {
-				return nil, fmt.Errorf("expected node '%s' to be '%s', but is detected as '%s' in terms of JSON and '%s' in terms of Go",
+				return nil, fmt.Errorf("expected node '%s' to be '%s', but node value is detected as '%s' in terms of JSON and '%s' in terms of Go",
 					expr, dataType, tmpRecognizedDataType, recognizedDataType)
 			}
 		}
@@ -1718,7 +1723,7 @@ func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.Da
 			recognizedDataType = apiCtx.TypeMappers.GO.Map(iValue)
 
 			if recognizedDataType != dataType {
-				return nil, fmt.Errorf("expected node '%s' to be '%s', but is detected as '%s' in terms of YAML and '%s' in terms of Go",
+				return nil, fmt.Errorf("expected node '%s' to be '%s', but node value is detected as '%s' in terms of YAML and '%s' in terms of Go",
 					expr, dataType, tmpRecognizedDataType, recognizedDataType)
 			}
 		}
@@ -1753,22 +1758,22 @@ func checkBool(nodeValue any, expectedValue, expr string) error {
 	if !ok {
 		strVal, ok := nodeValue.(string)
 		if !ok {
-			return fmt.Errorf("expected %s to be %s, got %v", expr, "bool", nodeValue)
+			return fmt.Errorf("expected '%s' to be '%s', got '%v'", expr, "bool", nodeValue)
 		}
 
 		boolVal, err = strconv.ParseBool(strVal)
 		if err != nil {
-			return fmt.Errorf("expected %s to be %s, got %v", expr, "bool", nodeValue)
+			return fmt.Errorf("expected '%s' to be '%s', got '%v'", expr, "bool", nodeValue)
 		}
 	}
 
 	boolNodeValue, err := strconv.ParseBool(expectedValue)
 	if err != nil {
-		return fmt.Errorf("replaced node %s value %s could not be converted to bool", expr, expectedValue)
+		return fmt.Errorf("node '%s' value '%s' could not be converted to bool", expr, expectedValue)
 	}
 
 	if boolVal != boolNodeValue {
-		return fmt.Errorf("node %s bool value %t is not equal to expected bool value %t", expr, boolVal, boolNodeValue)
+		return fmt.Errorf("node '%s' has bool value '%t', but expected '%t'", expr, boolVal, boolNodeValue)
 	}
 
 	return nil
@@ -1779,11 +1784,11 @@ func checkBool(nodeValue any, expectedValue, expr string) error {
 func checkString(nodeValue any, expectedValue, expr string) error {
 	strVal, ok := nodeValue.(string)
 	if !ok {
-		return fmt.Errorf("expected %s to be %s, got %v", expr, "string", nodeValue)
+		return fmt.Errorf("expected '%s' to be '%s', got '%v'", expr, "string", nodeValue)
 	}
 
 	if strVal != expectedValue {
-		return fmt.Errorf("node %s string value: %s is not equal to expected string value: %s", expr, strVal, expectedValue)
+		return fmt.Errorf("node '%s' has string value: '%s', but expected: '%s'", expr, strVal, expectedValue)
 	}
 
 	return nil
@@ -1794,13 +1799,13 @@ func checkString(nodeValue any, expectedValue, expr string) error {
 func checkInt(nodeValue any, expectedValue, expr string) error {
 	intNodeValue, err := strconv.Atoi(expectedValue)
 	if err != nil {
-		return fmt.Errorf("replaced node %s value %s could not be converted to int", expr, expectedValue)
+		return fmt.Errorf("node '%s' value '%s' could not be converted to int", expr, expectedValue)
 	}
 
 	if strVal, ok := nodeValue.(string); ok {
 		if intVal, errAtoi := strconv.Atoi(strVal); errAtoi == nil {
 			if intVal != intNodeValue {
-				return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intVal, intNodeValue)
+				return fmt.Errorf("node '%s' has int value: '%d', but expected: '%d'", expr, intVal, intNodeValue)
 			}
 
 			return nil
@@ -1819,7 +1824,7 @@ func checkInt(nodeValue any, expectedValue, expr string) error {
 
 	intVal := int(floatVal)
 	if intVal != intNodeValue {
-		return fmt.Errorf("node %s int value: %d is not equal to expected int value: %d", expr, intVal, intNodeValue)
+		return fmt.Errorf("node '%s' has int value: '%d', but expected: '%d'", expr, intVal, intNodeValue)
 	}
 
 	return nil
@@ -1830,13 +1835,13 @@ func checkInt(nodeValue any, expectedValue, expr string) error {
 func checkFloat(nodeValue any, expectedValue, expr string) error {
 	floatNodeValue, err := strconv.ParseFloat(expectedValue, 64)
 	if err != nil {
-		return fmt.Errorf("replaced node %s value %s could not be converted to float64", expr, expectedValue)
+		return fmt.Errorf("node '%s' value '%s' could not be converted to float64", expr, expectedValue)
 	}
 
 	if strVal, ok := nodeValue.(string); ok {
 		if floatVal, errParseFloat := strconv.ParseFloat(strVal, 64); errParseFloat == nil {
 			if floatVal != floatNodeValue {
-				return fmt.Errorf("node %s float value: %f is not equal to expected int value: %f", expr, floatVal, floatNodeValue)
+				return fmt.Errorf("node '%s' has float value: '%f', but expected: '%f'", expr, floatVal, floatNodeValue)
 			}
 
 			return nil
@@ -1845,11 +1850,11 @@ func checkFloat(nodeValue any, expectedValue, expr string) error {
 
 	floatVal, ok := nodeValue.(float64)
 	if !ok {
-		return fmt.Errorf("expected %s to be %s, got %v", expr, "float", nodeValue)
+		return fmt.Errorf("expected '%s' to be '%s', got '%v'", expr, "float", nodeValue)
 	}
 
 	if floatVal != floatNodeValue {
-		return fmt.Errorf("node %s float value %f is not equal to expected float value %f", expr, floatVal, floatNodeValue)
+		return fmt.Errorf("node '%s' has float value: '%f', but expected '%f'", expr, floatVal, floatNodeValue)
 	}
 
 	return nil
