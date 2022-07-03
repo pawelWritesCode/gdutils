@@ -92,13 +92,26 @@ type TypeMappers struct {
 	GO types.Mapper
 }
 
+type CustomTransport struct {
+	http.RoundTripper
+}
+
+func (ct *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Add("User-Agent", "gdutils")
+	return ct.RoundTripper.RoundTrip(req)
+}
+
+var DefaultTransport http.RoundTripper = &http.Transport{
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+}
+
 // NewDefaultAPIContext returns *APIContext with default services.
 // jsonSchemaDir may be empty string or valid full path to directory with JSON schemas.
 func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext {
 	defaultCache := cache.NewConcurrentCache()
-	defaultHttpClient := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}}
+	tr := &CustomTransport{DefaultTransport}
+
+	defaultHttpClient := &http.Client{Transport: tr}
 
 	jsonSchemaValidators := SchemaValidators{
 		StringValidator:    schema.NewJSONSchemaRawValidator(),

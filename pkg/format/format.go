@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"strings"
 
 	"github.com/goccy/go-yaml"
 )
@@ -58,5 +59,10 @@ func IsYAML(b []byte) bool {
 func IsXML(b []byte) bool {
 	var v any
 	err := xml.Unmarshal(b, &v)
-	return err == nil
+	if err == nil {
+		return true
+	}
+
+	idx := strings.Index(strings.TrimSpace(string(b)), "<?xml version=")
+	return idx == 0
 }

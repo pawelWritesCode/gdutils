@@ -521,13 +521,12 @@ func (apiCtx *APIContext) AssertResponseFormatIs(dataFormat format.DataFormat) e
 		}
 
 		return fmt.Errorf("response body doesn't have format %s", format.XML)
-	//This case checks whether last response body is not any of known types - then it assumes it is plain text
 	case format.PlainText:
-		if !(format.IsJSON(body) || format.IsYAML(body) || format.IsXML(body)) {
+		if !(format.IsJSON(body) || format.IsXML(body)) {
 			return nil
 		}
 
-		return fmt.Errorf("response body is not plain text, it has one of following formats: %s, %s or %s", format.JSON, format.YAML, format.XML)
+		return fmt.Errorf("response body is not plain text, it has one of following formats: %s or %s", format.JSON, format.XML)
 	default:
 		return fmt.Errorf("unknown last response body data format, available formats: %s, %s, %s, %s",
 			format.JSON, format.YAML, format.XML, format.PlainText)
