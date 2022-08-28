@@ -42,12 +42,12 @@ type BodyHeaders struct {
 }
 
 /*
-	RequestSendWithBodyAndHeaders sends HTTP(s) requests with provided body and headers.
+		RequestSendWithBodyAndHeaders sends HTTP(s) requests with provided body and headers.
 
-	Argument "method" indices HTTP request method for example: "POST", "GET" etc.
- 	Argument "urlTemplate" should be full valid URL. May include template values.
-	Argument "bodyTemplate" should contain data (may include template values)
-	in JSON or YAML format with keys "body" and "headers".
+		Argument "method" indices HTTP request method for example: "POST", "GET" etc.
+	 	Argument "urlTemplate" should be full valid URL. May include template values.
+		Argument "bodyTemplate" should contain data (may include template values)
+		in JSON or YAML format with keys "body" and "headers".
 */
 func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate string, bodyAndHeaderTemplate string) error {
 	input, err := apiCtx.TemplateEngine.Replace(bodyAndHeaderTemplate, apiCtx.Cache.All())
@@ -245,9 +245,9 @@ func (apiCtx *APIContext) RequestSetCookies(cacheKey, cookiesTemplate string) er
 }
 
 /*
-	RequestSetForm sets form for previously prepared request.
-	Internally method sets proper Content-Type: multipart/form-data header.
-	formTemplate should be YAML or JSON deserializable on map[string]string.
+RequestSetForm sets form for previously prepared request.
+Internally method sets proper Content-Type: multipart/form-data header.
+formTemplate should be YAML or JSON deserializable on map[string]string.
 */
 func (apiCtx *APIContext) RequestSetForm(cacheKey, formTemplate string) error {
 	form, err := apiCtx.TemplateEngine.Replace(formTemplate, apiCtx.Cache.All())
@@ -400,8 +400,8 @@ func (apiCtx *APIContext) GeneratorRandomRunes(charset string) func(from, to int
 }
 
 /*
-	GeneratorRandomSentence creates generator func for creating random sentences
-	each sentence has length from - to as provided in params and is saved in provided cacheKey
+GeneratorRandomSentence creates generator func for creating random sentences
+each sentence has length from - to as provided in params and is saved in provided cacheKey
 */
 func (apiCtx *APIContext) GeneratorRandomSentence(charset string, wordMinLength, wordMaxLength int) func(from, to int, cacheKey string) error {
 	return func(from, to int, cacheKey string) error {
@@ -521,6 +521,13 @@ func (apiCtx *APIContext) AssertResponseFormatIs(dataFormat format.DataFormat) e
 		}
 
 		return fmt.Errorf("response body doesn't have format %s", format.XML)
+	case format.HTML:
+		isHTML := format.IsHTML(body)
+		if isHTML {
+			return nil
+		}
+
+		return fmt.Errorf("response body doesn't have format %s", format.HTML)
 	case format.PlainText:
 		if !(format.IsJSON(body) || format.IsXML(body)) {
 			return nil
@@ -560,6 +567,13 @@ func (apiCtx *APIContext) AssertResponseFormatIsNot(dataFormat format.DataFormat
 		isXml := format.IsXML(body)
 		if isXml {
 			return fmt.Errorf("response body has format %s", format.XML)
+		}
+
+		return nil
+	case format.HTML:
+		isHTML := format.IsHTML(body)
+		if isHTML {
+			return fmt.Errorf("response body has format %s", format.HTML)
 		}
 
 		return nil
@@ -840,7 +854,7 @@ func (apiCtx *APIContext) AssertNodeIsTypeAndHasOneOfValues(dataFormat format.Da
 	return fmt.Errorf("node '%s' doesn't contain any of: %#v", expr, valuesSliceTrimmed)
 }
 
-// AsserNodeContainsSubString checks whether value of last HTTP response node, obtained using exprTemplate
+// AssertNodeContainsSubString AsserNodeContainsSubString checks whether value of last HTTP response node, obtained using exprTemplate
 // is string type and contains given substring
 func (apiCtx *APIContext) AssertNodeContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error {
 	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
@@ -883,7 +897,7 @@ func (apiCtx *APIContext) AssertNodeContainsSubString(dataFormat format.DataForm
 	return nil
 }
 
-// AsserNodeNotContainsSubString checks whether value of last HTTP response node, obtained using exprTemplate
+// AssertNodeNotContainsSubString AsserNodeNotContainsSubString checks whether value of last HTTP response node, obtained using exprTemplate
 // is string type and doesn't contain given substring
 func (apiCtx *APIContext) AssertNodeNotContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error {
 	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
@@ -1739,6 +1753,19 @@ func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.Da
 		if !(dataType.IsValidXMLDataType() || dataType.IsValidGoDataType()) {
 			return nil, fmt.Errorf("%s is not any of XML data types and is not any of Go Data types", dataType)
 		}
+	case format.HTML:
+		iValue, err = apiCtx.PathFinders.HTML.Find(expr, body)
+		if err != nil {
+			return nil, fmt.Errorf("node '%s', err: %s", expr, err.Error())
+		}
+
+		if dataType == types.Any {
+			return iValue, nil
+		}
+
+		if !(dataType.IsValidGoDataType()) {
+			return nil, fmt.Errorf("%s is not any of Go Data types", dataType)
+		}
 	default:
 		return nil, fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
 			dataFormat, format.JSON, format.YAML, format.XML)
@@ -1747,8 +1774,8 @@ func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.Da
 	return iValue, nil
 }
 
-//TODO: Use following methods to create XML type checker. It is required because X-PATH engine returns everything as string
-//TODO: XML types are listed here: https://www.w3.org/TR/xmlschema-2
+// TODO: Use following methods to create XML type checker. It is required because X-PATH engine returns everything as string
+// TODO: XML types are listed here: https://www.w3.org/TR/xmlschema-2
 // checkBool contains algorithm to compare nodeValue obtained from expr with expectedValue.
 // internally it expects nodeValue to contain representation of bool data type.
 func checkBool(nodeValue any, expectedValue, expr string) error {

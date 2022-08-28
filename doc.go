@@ -3,12 +3,15 @@
 // APIContext may be initialized by two ways:
 //
 // First, returns *APIContext with default services:
+//
 //	func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext
 //
 // Second, more customisable returns *APIContext with provided services:
+//
 //	func NewAPIContext(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, f Formatters, t TypeMappers, d debugger.Debugger) *APIContext
 //
 // No matter which way you choose, you can inject your custom services afterwards with one of available setters:
+//
 //	func (apiCtx *APIContext) SetDebugger(d debugger.Debugger)
 //	func (apiCtx *APIContext) SetCache(c cache.Cache)
 //	func (apiCtx *APIContext) SetRequestDoer(r httpctx.RequestDoer)
@@ -18,9 +21,10 @@
 //	func (apiCtx *APIContext) SetJSONPathFinder(r pathfinder.PathFinder)
 //	func (apiCtx *APIContext) SetJSONFormatter(jf formatter.Formatter)
 //	func (apiCtx *APIContext) SetXMLPathFinder(r pathfinder.PathFinder)
-//	func (apiCtx *APIContext) SetYAMLPathFinder(r pathfinder.PathFinder)
-//	func (apiCtx *APIContext) SetYAMLFormatter(yd formatter.Formatter)
 //	func (apiCtx *APIContext) SetXMLFormatter(xf formatter.Formatter)
+//	func (apiCtx *APIContext) SetYAMLFormatter(yd formatter.Formatter)
+//	func (apiCtx *APIContext) SetYAMLPathFinder(r pathfinder.PathFinder)
+//	func (apiCtx *APIContext) SetHTMLPathFinder(r pathfinder.PathFinder)
 //	func (apiCtx *APIContext) SetJSONTypeMapper(c types.Checker)
 //	func (apiCtx *APIContext) SetYAMLTypeMapper(c types.Checker)
 //	func (apiCtx *APIContext) SetGoTypeMapper(c types.Checker)
@@ -102,25 +106,26 @@
 //	func (apiCtx *APIContext) DebugStop() error
 //
 // Here is example lib usage to test endpoint returning list of ducks gifs:
-//	ac := gdutils.NewDefaultAPIContext(false, "")
 //
-//	if err := ac.RequestPrepare("GET", "https://random-d.uk/api/v2/list", "DUCK_GIFS_LIST"); err != nil {
-//		return err
-//	}
+//		ac := gdutils.NewDefaultAPIContext(false, "")
 //
-//	if err := ac.RequestSend("DUCK_GIFS_LIST"); err != nil {
-//    		return err
-//	}
+//		if err := ac.RequestPrepare("GET", "https://random-d.uk/api/v2/list", "DUCK_GIFS_LIST"); err != nil {
+//			return err
+//		}
 //
-//	if err := ac.AssertStatusCodeIs(200); err != nil {
-//    		return err
-//	}
+//		if err := ac.RequestSend("DUCK_GIFS_LIST"); err != nil {
+//	   		return err
+//		}
 //
-//	if err := ac.AssertResponseFormatIs(format.JSON); err != nil {
-//    		return err
-//	}
+//		if err := ac.AssertStatusCodeIs(200); err != nil {
+//	   		return err
+//		}
 //
-//	if err := ac.AssertNodeIsType(format.JSON, "$.gifs", types.Array); err != nil {
-//    		return err
-//	}
+//		if err := ac.AssertResponseFormatIs(format.JSON); err != nil {
+//	   		return err
+//		}
+//
+//		if err := ac.AssertNodeIsType(format.JSON, "$.gifs", types.Array); err != nil {
+//	   		return err
+//		}
 package gdutils
