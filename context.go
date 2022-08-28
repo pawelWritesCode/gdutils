@@ -78,6 +78,9 @@ type PathFinders struct {
 
 	// XML is entity that has ability to obtain data from bytes in XML format.
 	XML pathfinder.PathFinder
+
+	// HTML is entity that has ability to obtain data from bytes in HTML format.
+	HTML pathfinder.PathFinder
 }
 
 // TypeMappers is container for different data format mappers
@@ -122,6 +125,7 @@ func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext {
 		JSON: pathfinder.NewDynamicJSONPathFinder(pathfinder.NewGJSONFinder(), pathfinder.NewOliveagleJSONFinder()),
 		YAML: pathfinder.NewGoccyGoYamlFinder(),
 		XML:  pathfinder.NewAntchfxXMLFinder(),
+		HTML: pathfinder.NewAntchfxHTMLFinder(),
 	}
 
 	formatters := Formatters{
@@ -207,6 +211,11 @@ func (apiCtx *APIContext) SetYAMLPathFinder(r pathfinder.PathFinder) {
 // SetXMLPathFinder sets new XML pathfinder for APIContext.
 func (apiCtx *APIContext) SetXMLPathFinder(r pathfinder.PathFinder) {
 	apiCtx.PathFinders.XML = r
+}
+
+// SetHTMLPathFinder sets new HTML pathfinder for APIContext.
+func (apiCtx *APIContext) SetHTMLPathFinder(r pathfinder.PathFinder) {
+	apiCtx.PathFinders.HTML = r
 }
 
 // SetJSONFormatter sets new JSON formatter for APIContext.

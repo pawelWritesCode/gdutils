@@ -120,3 +120,66 @@ name: "abc"`)}, want: false},
 		})
 	}
 }
+
+func TestIsHTML(t *testing.T) {
+	type args struct {
+		b []byte
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "valid example #1", args: args{b: []byte(`<!DOCTYPE html>
+<html>
+<body>
+
+<h1>My First Heading</h1>
+
+<p>My first paragraph.</p>
+
+</body>
+</html>`)}, want: true},
+		{name: "valid example #1", args: args{b: []byte(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Img Width Attribute</title>
+  </head>
+  <body>
+    <img src="image.png" alt="Image" width="100" />
+  </body>
+</html>
+`)}, want: true},
+		{name: "valid example #2", args: args{b: []byte(`<html>
+  <head>
+    <title>Div Align Attribbute</title>
+  </head>
+  <body>
+    <div align="left">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
+      labore et dolore magna aliqua.
+    </div>
+    <div align="right">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
+      labore et dolore magna aliqua.
+    </div>
+    <div align="center">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
+      labore et dolore magna aliqua.
+    </div>
+    <div align="justify">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
+      labore et dolore magna aliqua.
+    </div>
+  </body>
+</html>
+`)}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsHTML(tt.args.b); got != tt.want {
+				t.Errorf("IsHTML() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

@@ -19,6 +19,9 @@ const (
 	// XML describes XML data format.
 	XML DataFormat = "XML"
 
+	// HTML describes HTML data format.
+	HTML DataFormat = "HTML"
+
 	// PlainText describes plan text data format.
 	PlainText DataFormat = "plain text"
 )
@@ -34,7 +37,7 @@ func IsJSON(b []byte) bool {
 	return err == nil
 }
 
-//IsYAML checks whether bytes are in YAML format.
+// IsYAML checks whether bytes are in YAML format.
 func IsYAML(b []byte) bool {
 	if IsJSON(b) {
 		return false
@@ -65,4 +68,18 @@ func IsXML(b []byte) bool {
 
 	idx := strings.Index(strings.TrimSpace(string(b)), "<?xml version=")
 	return idx == 0
+}
+
+// IsHTML checks whether bytes are in HTML format.
+func IsHTML(b []byte) bool {
+	var points, confidenceLevel = 0, 3
+	shouldContain := []string{"<!doctype html>", "</head>", "</html>", "</body>", "</title>", "</a>", "</div>"}
+
+	for _, s := range shouldContain {
+		if strings.Contains(strings.ToLower(string(b)), s) {
+			points++
+		}
+	}
+
+	return points >= confidenceLevel
 }

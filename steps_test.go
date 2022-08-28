@@ -74,6 +74,35 @@ var bigXML = `<?xml version="1.0"?>
 </weather>
 `
 
+var bigHTML = `<html>
+  <head>
+    <title>Div Align Attribbute</title>
+  </head>
+  <body>
+    <div align="left">
+      a
+    </div>
+    <div align="right">
+      b
+    </div>
+    <div align="center">
+      c
+    </div>
+    <div align="justify">
+      d
+    </div>
+	<div>
+		<p>Hello world</p>
+	</div>
+	<div>
+		<i>1</i>
+		<i>2</i>
+        <i>3</i>
+	</div>
+  </body>
+</html>
+`
+
 func createRespBody() io.ReadCloser {
 	return ioutil.NopCloser(bytes.NewBufferString(bigJson))
 }
@@ -84,6 +113,10 @@ func createYamlRespBody() io.ReadCloser {
 
 func createXMLRespBody() io.ReadCloser {
 	return ioutil.NopCloser(bytes.NewBufferString(bigXML))
+}
+
+func createHTMLRespBody() io.ReadCloser {
+	return ioutil.NopCloser(bytes.NewBufferString(bigHTML))
 }
 
 type mockedJSONValidator struct {
@@ -535,9 +568,19 @@ user:
    last_name: b
 `
 
-	xml := `<this>is xml</this>`
+	xml := `<?xml version="1.0" encoding="UTF-8"?><this>is xml</this>`
 	plainText := `this is plain text`
 	json := `{"this_is": "json"}`
+	html := `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Img Width Attribute</title>
+  </head>
+  <body>
+    <img src="image.png" alt="Image" width="100" />
+  </body>
+</html>
+`
 	type fields struct {
 		body []byte
 	}
@@ -556,12 +599,14 @@ user:
 		{name: "response body has plain text format but JSON format expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(plainText)}, wantErr: true},
 		{name: "response body has XML format but JSON format expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(xml)}, wantErr: true},
 		{name: "response body has YAML format but JSON format expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(yaml)}, wantErr: true},
+		{name: "response body has HTML format but JSON format expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(html)}, wantErr: true},
 
 		// YAML
 		{name: "response body has JSON format but YAML format expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(json)}, wantErr: true},
 		{name: "response body has plain text format but YAML format expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(plainText)}, wantErr: true},
 		{name: "response body has XML format but YAML format expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(xml)}, wantErr: true},
 		{name: "response body has YAML format and YAML format expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(yaml)}, wantErr: false},
+		{name: "response body has HTML format and YAML format expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(html)}, wantErr: true},
 
 		// XML
 		{name: "response body has JSON format but XML format expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(json)}, wantErr: true},
@@ -574,6 +619,12 @@ user:
 		{name: "response body has plain text format and plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(plainText)}, wantErr: false},
 		{name: "response body has XML format but plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(xml)}, wantErr: true},
 		{name: "response body has YAML format but plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(yaml)}, wantErr: false},
+
+		//HTML
+		{name: "response body has HTML format and html format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(html)}, wantErr: false},
+		{name: "response body has JSON format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(json)}, wantErr: true},
+		{name: "response body has plain text format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(plainText)}, wantErr: true},
+		{name: "response body has YAML format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(yaml)}, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -613,6 +664,16 @@ user:
 	xml := `<this>is xml</this>`
 	plainText := `this is plain text`
 	json := `{"this_is": "json"}`
+	html := `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Img Width Attribute</title>
+  </head>
+  <body>
+    <img src="image.png" alt="Image" width="100" />
+  </body>
+</html>
+`
 
 	type fields struct {
 		body []byte
@@ -649,6 +710,12 @@ user:
 		{name: "response body has plain text format and plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(plainText)}, wantErr: true},
 		{name: "response body has XML format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(xml)}, wantErr: false},
 		{name: "response body has YAML format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(yaml)}, wantErr: false},
+
+		//HTML
+		{name: "response body has HTML format and html format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(html)}, wantErr: true},
+		{name: "response body has JSON format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(json)}, wantErr: false},
+		{name: "response body has plain text format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(plainText)}, wantErr: false},
+		{name: "response body has YAML format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(yaml)}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1003,6 +1070,35 @@ users:
 	</user>
 </users>`
 
+	html := `<html>
+  <head>
+    <title>Div Align Attribbute</title>
+  </head>
+  <body>
+    <div align="left">
+      a
+    </div>
+    <div align="right">
+      b
+    </div>
+    <div align="center">
+      c
+    </div>
+    <div align="justify">
+      d
+    </div>
+	<div>
+		<p>Hello world</p>
+	</div>
+	<div>
+		<i>1</i>
+		<i>2</i>
+        <i>3</i>
+	</div>
+  </body>
+</html>
+`
+
 	type fields struct {
 		body      []byte
 		cacheData map[string]any
@@ -1084,6 +1180,19 @@ users:
 		}}, args: args{
 			dataFormat:  format.YAML,
 			expressions: "$.users[{{.USER_ID}}].name",
+		}, wantErr: false},
+
+		{name: "last response body is missing expected node in HTML", fields: fields{body: []byte(html)}, args: args{
+			dataFormat:  format.HTML,
+			expressions: "//strong",
+		}, wantErr: true},
+		{name: "last response body has expected node #1 in HTML", fields: fields{body: []byte(html)}, args: args{
+			dataFormat:  format.HTML,
+			expressions: "//i",
+		}, wantErr: false},
+		{name: "last response body has expected node #2 in HTML", fields: fields{body: []byte(html)}, args: args{
+			dataFormat:  format.HTML,
+			expressions: "//div[@align=\"justify\"]",
 		}, wantErr: false},
 	}
 	for _, tt := range tests {
@@ -1145,6 +1254,35 @@ users:
 	</user>
 </users>`
 
+	html := `<html>
+  <head>
+    <title>Div Align Attribbute</title>
+  </head>
+  <body>
+    <div align="left">
+      a
+    </div>
+    <div align="right">
+      b
+    </div>
+    <div align="center">
+      c
+    </div>
+    <div align="justify">
+      d
+    </div>
+	<div>
+		<p>Hello world</p>
+	</div>
+	<div>
+		<i>1</i>
+		<i>2</i>
+        <i>3</i>
+	</div>
+  </body>
+</html>
+`
+
 	type fields struct {
 		body      []byte
 		cacheData map[string]any
@@ -1226,6 +1364,20 @@ users:
 		}}, args: args{
 			dataFormat:  format.YAML,
 			expressions: "$.users[{{.USER_ID}}].name",
+		}, wantErr: true},
+
+		// HTML
+		{name: "last response body is missing expected node in HTML", fields: fields{body: []byte(html)}, args: args{
+			dataFormat:  format.HTML,
+			expressions: "//strong",
+		}, wantErr: false},
+		{name: "last response body has expected node #1 in HTML", fields: fields{body: []byte(html)}, args: args{
+			dataFormat:  format.HTML,
+			expressions: "//i",
+		}, wantErr: true},
+		{name: "last response body has expected node #2 in HTML", fields: fields{body: []byte(html)}, args: args{
+			dataFormat:  format.HTML,
+			expressions: "//div[@align=\"justify\"]",
 		}, wantErr: true},
 	}
 	for _, tt := range tests {
@@ -2332,275 +2484,6 @@ func ExampleAPIContext_AssertNodeSliceLengthIsNot() {
 	// node 'user' contains slice(array) which has length: 0, but expected not to have it
 }
 
-// TODO: Add YAML cases
-func TestState_AssertNodeIsTypeAndValue(t *testing.T) {
-	type fields struct {
-		lastResponse *http.Response
-	}
-	type args struct {
-		df        format.DataFormat
-		expr      string
-		dataType  string
-		dataValue string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{name: "empty json", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(``))},
-		}, args: args{
-			df:        format.JSON,
-			expr:      "name",
-			dataType:  "string",
-			dataValue: "ivo",
-		}, wantErr: true},
-		{name: "json with first level field with string data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"name": "ivo"
-}`))},
-		}, args: args{
-			df:        format.JSON,
-			expr:      "name",
-			dataType:  "string",
-			dataValue: "ivo",
-		}, wantErr: false},
-		{name: "json with first level field with int data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"number": 10
-}`))},
-		}, args: args{
-			df:        format.JSON,
-			expr:      "number",
-			dataType:  "int",
-			dataValue: "10",
-		}, wantErr: false},
-		{name: "json with first level field with float64 data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"number": 10.1
-}`))},
-		}, args: args{
-			df:        format.JSON,
-			expr:      "number",
-			dataType:  "float",
-			dataValue: "10.1",
-		}, wantErr: false},
-		{name: "json with first level field with bool data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"is": true
-}`))},
-		}, args: args{
-			df:        format.JSON,
-			expr:      "is",
-			dataType:  "bool",
-			dataValue: "true",
-		}, wantErr: false},
-		{name: "json with second level field with bool data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"data": {
-		"name": "Is empty",
-		"value": true
-	}
-}`))},
-		}, args: args{
-			df:        format.JSON,
-			expr:      "data.value",
-			dataType:  "bool",
-			dataValue: "true",
-		}, wantErr: false},
-		{name: "json with second level field with bool data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"data":	[
-			{
-				"name": "Is empty",
-				"value": true
-			},
-			{
-				"name": "Is big",
-				"value": false
-			}
-		]
-}`))},
-		}, args: args{
-			df:        format.JSON,
-			expr:      "data.1.value",
-			dataType:  "bool",
-			dataValue: "false",
-		}, wantErr: false},
-		{name: "json with second level field with bool data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"data":	[
-			true,
-			false
-		]
-}`))},
-		}, args: args{
-			df:        format.JSON,
-			expr:      "data.1",
-			dataType:  "bool",
-			dataValue: "false",
-		}, wantErr: false},
-
-		{name: "empty yaml", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(``))},
-		}, args: args{
-			df:        format.YAML,
-			expr:      "$.name",
-			dataType:  "string",
-			dataValue: "ivo",
-		}, wantErr: true},
-		{name: "yaml with first level field with string data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
----
-name: "ivo"
-`))},
-		}, args: args{
-			df:        format.YAML,
-			expr:      "$.name",
-			dataType:  "string",
-			dataValue: "ivo",
-		}, wantErr: false},
-		{name: "yaml with first level field with int data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"number": 10
-}`))},
-		}, args: args{
-			df:        format.YAML,
-			expr:      "$.number",
-			dataType:  "int",
-			dataValue: "10",
-		}, wantErr: false},
-		{name: "yaml with first level field with float64 data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"number": 10.1
-}`))},
-		}, args: args{
-			df:        format.YAML,
-			expr:      "$.number",
-			dataType:  "float",
-			dataValue: "10.1",
-		}, wantErr: false},
-		{name: "yaml with first level field with bool data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"is": true
-}`))},
-		}, args: args{
-			df:        format.YAML,
-			expr:      "$.is",
-			dataType:  "bool",
-			dataValue: "true",
-		}, wantErr: false},
-		{name: "yaml with second level field with bool data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"data": {
-		"name": "Is empty",
-		"value": true
-	}
-}`))},
-		}, args: args{
-			df:        format.YAML,
-			expr:      "$.data.value",
-			dataType:  "bool",
-			dataValue: "true",
-		}, wantErr: false},
-		{name: "yaml with second level field with bool data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"data":	[
-			{
-				"name": "Is empty",
-				"value": true
-			},
-			{
-				"name": "Is big",
-				"value": false
-			}
-		]
-}`))},
-		}, args: args{
-			df:        format.YAML,
-			expr:      "$.data[1].value",
-			dataType:  "bool",
-			dataValue: "false",
-		}, wantErr: false},
-		{name: "yaml with second level field with bool data type", fields: fields{
-			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
-{
-	"data":	[
-			{"is": false},
-			{"is": true}
-	]
-}`))},
-		}, args: args{
-			df:        format.YAML,
-			expr:      "$.data[1].is",
-			dataType:  "bool",
-			dataValue: "true",
-		}, wantErr: false},
-
-		{name: "XML node string", fields: fields{lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
-<root>
-	<name>aa</name>
-</root>`))}}, args: args{
-			df:        format.XML,
-			expr:      "//name",
-			dataType:  "string",
-			dataValue: "aa",
-		}, wantErr: false},
-		{name: "XML node bool", fields: fields{lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
-<root>
-	<isLow>true</isLow>
-</root>`))}}, args: args{
-			df:        format.XML,
-			expr:      "//isLow",
-			dataType:  "bool",
-			dataValue: "true",
-		}, wantErr: false},
-		{name: "XML node int", fields: fields{lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
-<root>
-	<height>10</height>
-</root>`))}}, args: args{
-			df:        format.XML,
-			expr:      "//height",
-			dataType:  "int",
-			dataValue: "10",
-		}, wantErr: false},
-		{name: "XML node float", fields: fields{lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
-<root>
-	<height>10.02</height>
-</root>`))}}, args: args{
-			df:        format.XML,
-			expr:      "//height",
-			dataType:  "float",
-			dataValue: "10.02",
-		}, wantErr: false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			af := NewDefaultAPIContext(false, "")
-
-			af.Cache.Save(httpcache.LastHTTPResponseCacheKey, tt.fields.lastResponse)
-
-			if err := af.AssertNodeIsTypeAndValue(tt.args.df, tt.args.expr, types.DataType(tt.args.dataType), tt.args.dataValue); (err != nil) != tt.wantErr {
-				t.Errorf("TheJSONNodeShouldBeOfValue() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 	type fields struct {
 		saved        map[string]any
@@ -2834,6 +2717,26 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 			name:    "selected node value is integer ",
 			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
 			args:    args{df: format.XML, node: "//weather//humidity", goType: types.Integer, val: "95"},
+			wantErr: false,
+		},
+
+		// HTML
+		{
+			name:    "selected HTML node does not exist",
+			fields:  fields{lastResponse: &http.Response{Body: createHTMLRespBody()}},
+			args:    args{df: format.HTML, node: "//strong", goType: types.String, val: "true"},
+			wantErr: true,
+		},
+		{
+			name:    "selected HTML node exist but its value is different",
+			fields:  fields{lastResponse: &http.Response{Body: createHTMLRespBody()}},
+			args:    args{df: format.HTML, node: "//i[2]", goType: types.String, val: "3"},
+			wantErr: true,
+		},
+		{
+			name:    "selected HTML node exist and its value is correct",
+			fields:  fields{lastResponse: &http.Response{Body: createHTMLRespBody()}},
+			args:    args{df: format.HTML, node: "//i[2]", goType: types.String, val: "2"},
 			wantErr: false,
 		},
 	}
@@ -3346,6 +3249,64 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 			},
 			wantErr: true,
 		},
+
+		// HTML
+		{
+			name: "expression points at HTML node that doesn't exist",
+			fields: fields{
+				lastResponse: &http.Response{Body: createHTMLRespBody()},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.HTML,
+				exprTemplate:    "//abc",
+				dataType:        types.String,
+				valuesTemplates: "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at HTML node that exists but has different type",
+			fields: fields{
+				lastResponse: &http.Response{Body: createHTMLRespBody()},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.HTML,
+				exprTemplate:    "//p",
+				dataType:        types.Int,
+				valuesTemplates: "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at HTML node that exists but none of values are correct",
+			fields: fields{
+				lastResponse: &http.Response{Body: createHTMLRespBody()},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.HTML,
+				exprTemplate:    "//i",
+				dataType:        types.Int,
+				valuesTemplates: "2,3,4",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at HTML node that exists and one of values is correct",
+			fields: fields{
+				lastResponse: &http.Response{Body: createHTMLRespBody()},
+				cacheData:    nil,
+			},
+			args: args{
+				dataFormat:      format.HTML,
+				exprTemplate:    "//i",
+				dataType:        types.Int,
+				valuesTemplates: "2,3,1,4",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3397,7 +3358,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 		{
 			name: "template engine can't fulfill template because cache is missing data",
 			fields: fields{
-				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
+				lastResponse: &http.Response{Body: createRespBody()},
 				cacheData:    nil,
 			},
 			args: args{
@@ -3643,6 +3604,44 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				dataFormat:   format.XML,
 				exprTemplate: "//{{.PROPERTY}}",
 				sub:          "{{.PROPERTY_SUBSTRING}}",
+			},
+			wantErr: false,
+		},
+
+		// HTML
+		{
+			name: "expression points at not existing HTML node",
+			fields: fields{
+				lastResponse: &http.Response{Body: createHTMLRespBody()},
+			},
+			args: args{
+				dataFormat:   format.HTML,
+				exprTemplate: "//abc",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing HTML node but substring is not present",
+			fields: fields{
+				lastResponse: &http.Response{Body: createHTMLRespBody()},
+			},
+			args: args{
+				dataFormat:   format.HTML,
+				exprTemplate: "//p",
+				sub:          "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing HTML node and substring is present",
+			fields: fields{
+				lastResponse: &http.Response{Body: createHTMLRespBody()},
+			},
+			args: args{
+				dataFormat:   format.HTML,
+				exprTemplate: "//p",
+				sub:          "world",
 			},
 			wantErr: false,
 		},
@@ -3947,6 +3946,44 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 			},
 			wantErr: true,
 		},
+
+		// HTML
+		{
+			name: "expression points at not existing HTML node",
+			fields: fields{
+				lastResponse: &http.Response{Body: createHTMLRespBody()},
+			},
+			args: args{
+				dataFormat:   format.HTML,
+				exprTemplate: "//abc",
+				sub:          "John",
+			},
+			wantErr: true,
+		},
+		{
+			name: "expression points at existing HTML node but substring is not present",
+			fields: fields{
+				lastResponse: &http.Response{Body: createHTMLRespBody()},
+			},
+			args: args{
+				dataFormat:   format.HTML,
+				exprTemplate: "//p",
+				sub:          "abc",
+			},
+			wantErr: false,
+		},
+		{
+			name: "expression points at existing HTML node and substring is present",
+			fields: fields{
+				lastResponse: &http.Response{Body: createHTMLRespBody()},
+			},
+			args: args{
+				dataFormat:   format.HTML,
+				exprTemplate: "//p",
+				sub:          "world",
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4097,6 +4134,40 @@ name: abcdef`,
 			expr:           "//name",
 			regExpTemplate: "dd.*",
 		}, wantErr: true},
+		{name: "node value matches provided regExp #4", fields: fields{
+			respBody: `<html>
+  <head>
+    <title>Div Align Attribbute</title>
+  </head>
+  <body>
+    <div align="left">
+      a
+    </div>
+    <div align="right">
+      b
+    </div>
+    <div align="center">
+      c
+    </div>
+    <div align="justify">
+      d
+    </div>
+	<div>
+		<p>Hello world</p>
+	</div>
+	<div>
+		<i>1</i>
+		<i>2</i>
+        <i>3</i>
+	</div>
+  </body>
+</html>`,
+			mockFunc: func() {},
+		}, args: args{
+			df:             format.HTML,
+			expr:           "//p",
+			regExpTemplate: "worl.*",
+		}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4259,6 +4330,40 @@ name: abcdef`,
 			df:             format.XML,
 			expr:           "//name",
 			regExpTemplate: "dd.*",
+		}, wantErr: false},
+		{name: "node value does not match provided regExp #4", fields: fields{
+			respBody: `<html>
+  <head>
+    <title>Div Align Attribbute</title>
+  </head>
+  <body>
+    <div align="left">
+      a
+    </div>
+    <div align="right">
+      b
+    </div>
+    <div align="center">
+      c
+    </div>
+    <div align="justify">
+      d
+    </div>
+	<div>
+		<p>Hello world</p>
+	</div>
+	<div>
+		<i>1</i>
+		<i>2</i>
+        <i>3</i>
+	</div>
+  </body>
+</html>`,
+			mockFunc: func() {},
+		}, args: args{
+			df:             format.HTML,
+			expr:           "//p",
+			regExpTemplate: "World.*",
 		}, wantErr: false},
 	}
 	for _, tt := range tests {
