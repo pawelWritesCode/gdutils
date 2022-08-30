@@ -83,3 +83,12 @@ func IsHTML(b []byte) bool {
 
 	return points >= confidenceLevel
 }
+
+// IsPlainText checks whether bytes are in plain text format.
+func IsPlainText(b []byte) bool {
+	if IsJSON(b) {
+		return false
+	}
+
+	return len(b) > 0
+}
