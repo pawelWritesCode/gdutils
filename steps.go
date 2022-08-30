@@ -501,42 +501,38 @@ func (apiCtx *APIContext) AssertResponseFormatIs(dataFormat format.DataFormat) e
 
 	switch dataFormat {
 	case format.JSON:
-		isJSON := format.IsJSON(body)
-		if isJSON {
+		if format.IsJSON(body) {
 			return nil
 		}
 
 		return fmt.Errorf("response body doesn't have format %s", format.JSON)
 	case format.YAML:
-		isYAML := format.IsYAML(body)
-		if isYAML {
+		if format.IsYAML(body) {
 			return nil
 		}
 
 		return fmt.Errorf("response body doesn't have format %s", format.YAML)
 	case format.XML:
-		isXml := format.IsXML(body)
-		if isXml {
+		if format.IsXML(body) {
 			return nil
 		}
 
 		return fmt.Errorf("response body doesn't have format %s", format.XML)
 	case format.HTML:
-		isHTML := format.IsHTML(body)
-		if isHTML {
+		if format.IsHTML(body) {
 			return nil
 		}
 
 		return fmt.Errorf("response body doesn't have format %s", format.HTML)
 	case format.PlainText:
-		if !(format.IsJSON(body) || format.IsXML(body)) {
+		if format.IsPlainText(body) {
 			return nil
 		}
 
-		return fmt.Errorf("response body is not plain text, it has one of following formats: %s or %s", format.JSON, format.XML)
+		return fmt.Errorf("response body doesn't have format %s", format.PlainText)
 	default:
-		return fmt.Errorf("unknown last response body data format, available formats: %s, %s, %s, %s",
-			format.JSON, format.YAML, format.XML, format.PlainText)
+		return fmt.Errorf("unknown last response body data format, available formats: %s, %s, %s, %s, %s",
+			format.JSON, format.YAML, format.XML, format.HTML, format.PlainText)
 	}
 }
 
@@ -550,43 +546,38 @@ func (apiCtx *APIContext) AssertResponseFormatIsNot(dataFormat format.DataFormat
 
 	switch dataFormat {
 	case format.JSON:
-		isJSON := format.IsJSON(body)
-		if isJSON {
+		if format.IsJSON(body) {
 			return fmt.Errorf("response body has format %s", format.JSON)
 		}
 
 		return nil
 	case format.YAML:
-		isYAML := format.IsYAML(body)
-		if isYAML {
+		if format.IsYAML(body) {
 			return fmt.Errorf("response body has format %s", format.YAML)
 		}
 
 		return nil
 	case format.XML:
-		isXml := format.IsXML(body)
-		if isXml {
+		if format.IsXML(body) {
 			return fmt.Errorf("response body has format %s", format.XML)
 		}
 
 		return nil
 	case format.HTML:
-		isHTML := format.IsHTML(body)
-		if isHTML {
+		if format.IsHTML(body) {
 			return fmt.Errorf("response body has format %s", format.HTML)
 		}
 
 		return nil
-	//This case checks whether last response body is not any of known types - then it assumes it is plain text
 	case format.PlainText:
-		if !(format.IsJSON(body) || format.IsYAML(body) || format.IsXML(body)) {
+		if format.IsPlainText(body) {
 			return fmt.Errorf("response body has format %s", format.PlainText)
 		}
 
 		return nil
 	default:
-		return fmt.Errorf("unknown last response body data format, available formats: %s, %s, %s, %s",
-			format.JSON, format.YAML, format.XML, format.PlainText)
+		return fmt.Errorf("unknown last response body data format, available formats: %s, %s, %s, %s, %s",
+			format.JSON, format.YAML, format.XML, format.HTML, format.PlainText)
 	}
 }
 

@@ -617,7 +617,7 @@ user:
 		// plain text
 		{name: "response body has JSON format but plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(json)}, wantErr: true},
 		{name: "response body has plain text format and plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(plainText)}, wantErr: false},
-		{name: "response body has XML format but plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(xml)}, wantErr: true},
+		{name: "response body has XML format but plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(xml)}, wantErr: false},
 		{name: "response body has YAML format but plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(yaml)}, wantErr: false},
 
 		//HTML
@@ -708,8 +708,8 @@ user:
 		// plain text
 		{name: "response body has JSON format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(json)}, wantErr: false},
 		{name: "response body has plain text format and plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(plainText)}, wantErr: true},
-		{name: "response body has XML format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(xml)}, wantErr: false},
-		{name: "response body has YAML format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(yaml)}, wantErr: false},
+		{name: "response body has XML format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(xml)}, wantErr: true},
+		{name: "response body has YAML format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(yaml)}, wantErr: true},
 
 		//HTML
 		{name: "response body has HTML format and html format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(html)}, wantErr: true},
