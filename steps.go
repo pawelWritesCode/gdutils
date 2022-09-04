@@ -125,7 +125,8 @@ func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate stri
 
 	if apiCtx.Debugger.IsOn() {
 		respBody, _ := apiCtx.GetLastResponseBody()
-		apiCtx.Debugger.Print(fmt.Sprintf("%s %s response body (status code: %d):\n\n%s\n", req.Method, req.URL.String(), resp.StatusCode, respBody))
+		apiCtx.Debugger.Print(fmt.Sprintf("%s %s (%d)", req.Method, req.URL.String(), resp.StatusCode))
+		apiCtx.Debugger.Print(string(respBody))
 	}
 
 	return nil
@@ -353,7 +354,8 @@ func (apiCtx *APIContext) RequestSend(cacheKey string) error {
 
 	if apiCtx.Debugger.IsOn() {
 		respBody, _ := apiCtx.GetLastResponseBody()
-		apiCtx.Debugger.Print(fmt.Sprintf("%s %s response body (status code: %d):\n\n%s\n", req.Method, req.URL.String(), resp.StatusCode, respBody))
+		apiCtx.Debugger.Print(fmt.Sprintf("%s %s (%d)", req.Method, req.URL.String(), resp.StatusCode))
+		apiCtx.Debugger.Print(string(respBody))
 	}
 
 	return nil
@@ -1446,7 +1448,8 @@ func (apiCtx *APIContext) SaveNode(dataFormat format.DataFormat, exprTemplate, c
 	iVal, err := apiCtx.getNode(body, expr, dataFormat, types.Any)
 	if err != nil {
 		if apiCtx.Debugger.IsOn() {
-			apiCtx.Debugger.Print(fmt.Sprintf("last response body:\n\n%s", body))
+			apiCtx.Debugger.Print(fmt.Sprintf("last response body:\n\n"))
+			apiCtx.Debugger.Print(string(body))
 		}
 
 		return err

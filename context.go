@@ -140,7 +140,7 @@ func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext {
 		GO:   types.NewGoTypeMapper(),
 	}
 
-	defaultDebugger := debugger.New(isDebug)
+	defaultDebugger := debugger.NewDefault(isDebug)
 
 	return NewAPIContext(defaultHttpClient, defaultCache, jsonSchemaValidators, pathFinders, formatters, typeMappers, defaultDebugger)
 }
