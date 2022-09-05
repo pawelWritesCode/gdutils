@@ -16,6 +16,7 @@ require (
 
 require (
 	github.com/antchfx/htmlquery v1.2.5 // indirect
+	github.com/antchfx/jsonquery v1.3.0 // indirect
 	github.com/antchfx/xpath v1.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect

@@ -122,7 +122,11 @@ func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext {
 	}
 
 	pathFinders := PathFinders{
-		JSON: pathfinder.NewDynamicJSONPathFinder(pathfinder.NewGJSONFinder(), pathfinder.NewOliveagleJSONFinder()),
+		JSON: pathfinder.NewDynamicJSONPathFinder(
+			pathfinder.NewGJSONFinder(),
+			pathfinder.NewOliveagleJSONFinder(),
+			pathfinder.NewAntchfxJSONQueryFinder(),
+		),
 		YAML: pathfinder.NewGoccyGoYamlFinder(),
 		XML:  pathfinder.NewAntchfxXMLFinder(),
 		HTML: pathfinder.NewAntchfxHTMLFinder(),
