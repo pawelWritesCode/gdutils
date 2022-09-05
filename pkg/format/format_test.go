@@ -72,21 +72,9 @@ func TestIsXML(t *testing.T) {
 	}{
 		{name: "json", args: args{bytes: []byte(`{"name": "abc"}`)}, want: false},
 		{name: "plain text", args: args{bytes: []byte(`abcd efgh`)}, want: false},
-		{name: "xml", args: args{bytes: []byte(`<?xml version="1.0"?>
-<catalog>
-   <book id="bk101">
-      <author>Gambardella, Matthew</author>
-      <title>XML Developer's Guide</title>
-      <genre>Computer</genre>
-      <price>44.95</price>
-      <publish_date>2000-10-01</publish_date>
-      <description>An in-depth look at creating applications 
-      with XML.</description>
-   </book>
-</catalog>`)}, want: true},
 		{name: "yaml", args: args{bytes: []byte(`---
 name: "abc"`)}, want: false},
-		{name: "yaml", args: args{bytes: []byte(`<?xml version='1.0' encoding='us-ascii'?>
+		{name: "xml #1", args: args{bytes: []byte(`<?xml version='1.0' encoding='us-ascii'?>
 
 <!--  A SAMPLE set of slides  -->
 
@@ -111,6 +99,30 @@ name: "abc"`)}, want: false},
 
 </slideshow>
 `)}, want: true},
+		{name: "xml #2", args: args{bytes: []byte(`<?xml version="1.0"?>
+<catalog>
+   <book id="bk101">
+      <author>Gambardella, Matthew</author>
+      <title>XML Developer's Guide</title>
+      <genre>Computer</genre>
+      <price>44.95</price>
+      <publish_date>2000-10-01</publish_date>
+      <description>An in-depth look at creating applications 
+      with XML.</description>
+   </book>
+</catalog>`)}, want: true},
+		{name: "xml #3", args: args{bytes: []byte(`
+<catalog>
+   <book id="bk101">
+      <author>Gambardella, Matthew</author>
+      <title>XML Developer's Guide</title>
+      <genre>Computer</genre>
+      <price>44.95</price>
+      <publish_date>2000-10-01</publish_date>
+      <description>An in-depth look at creating applications 
+      with XML.</description>
+   </book>
+</catalog>`)}, want: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -3,7 +3,6 @@ package format
 import (
 	"bytes"
 	"encoding/json"
-	"encoding/xml"
 	"strings"
 
 	"github.com/goccy/go-yaml"
@@ -59,15 +58,24 @@ func IsYAML(b []byte) bool {
 }
 
 // IsXML checks whether bytes are in XML format.
+// Function does not guarantee that standard xml.Unmarshal will work b, instead
+// it only looks for characteristics of XML formatted data.
 func IsXML(b []byte) bool {
-	var v any
-	err := xml.Unmarshal(b, &v)
-	if err == nil {
+	str := string(b)
+	idx := strings.Index(strings.TrimSpace(str), "<?xml version=")
+	if idx == 0 || idx == 1 {
 		return true
 	}
 
-	idx := strings.Index(strings.TrimSpace(string(b)), "<?xml version=")
-	return idx == 0
+	if !(strings.Contains(str, ">") && strings.Contains(str, "<")) {
+		return false
+	}
+
+	if strings.Count(str, "<") >= (strings.Count(str, "</") + strings.Count(str, "/>")) {
+		return true
+	}
+
+	return false
 }
 
 // IsHTML checks whether bytes are in HTML format.
