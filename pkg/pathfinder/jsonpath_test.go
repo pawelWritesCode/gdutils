@@ -244,6 +244,18 @@ func TestDynamicJSONPathResolver_Find(t *testing.T) {
 			expr:      "store.bicycle",
 			jsonBytes: jsonBytes,
 		}, want: any(map[string]any{"color": "red", "price": float64(19.95)}), wantErr: false},
+		{name: "successful fetch data #4", args: args{
+			expr:      "/store/bicycle",
+			jsonBytes: jsonBytes,
+		}, want: any(map[string]any{"color": "red", "price": float64(19.95)}), wantErr: false},
+		{name: "successful fetch data #1", args: args{
+			expr:      "/store/book/*[1]/category",
+			jsonBytes: jsonBytes,
+		}, want: any("reference"), wantErr: false},
+		{name: "successful fetch data #2", args: args{
+			expr:      "/store/book/*[2]/price",
+			jsonBytes: jsonBytes,
+		}, want: any(float64(12.99)), wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -324,6 +336,68 @@ func TestGJSONFinder_Find(t *testing.T) {
 				return
 			}
 
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Find() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAntchfxJSONQuery_Find(t *testing.T) {
+	type args struct {
+		expr string
+		b    []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    any
+		wantErr bool
+	}{
+		{name: "no expression", args: args{
+			expr: "",
+			b:    []byte("{}"),
+		}, want: nil, wantErr: true},
+		{name: "no jsonb", args: args{
+			expr: "data",
+			b:    []byte(""),
+		}, want: nil, wantErr: true},
+		{name: "expression points to nothing", args: args{
+			expr: "data",
+			b:    []byte(`{"a": "b"}`),
+		}, want: nil, wantErr: true},
+		{name: "successful fetch data #1", args: args{
+			expr: "expensive",
+			b:    jsonBytes,
+		}, want: any(float64(10)), wantErr: false},
+		{name: "successful fetch data #2", args: args{
+			expr: "/store/book/*[1]/price",
+			b:    jsonBytes,
+		}, want: any(8.95), wantErr: false},
+		{name: "successful fetch data #4", args: args{
+			expr: "/store/bicycle",
+			b:    jsonBytes,
+		}, want: any(map[string]any{"color": "red", "price": float64(19.95)}), wantErr: false},
+		{name: "successful fetch data #1", args: args{
+			expr: "/store/book/*[1]/category",
+			b:    jsonBytes,
+		}, want: any("reference"), wantErr: false},
+		{name: "successful fetch data #2", args: args{
+			expr: "/store/book/*[2]/price",
+			b:    jsonBytes,
+		}, want: any(float64(12.99)), wantErr: false},
+		{name: "successful fetch data #3", args: args{
+			expr: "/store/book/*[2]/available",
+			b:    jsonBytes,
+		}, want: any(true), wantErr: false}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := AntchfxJSONQueryFinder{}
+			got, err := a.Find(tt.args.expr, tt.args.b)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Find() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Find() got = %v, want %v", got, tt.want)
 			}
