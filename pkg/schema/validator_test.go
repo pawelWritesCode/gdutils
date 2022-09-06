@@ -9,6 +9,31 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
 )
 
+var document = `{
+  "latitude": 48.858093,
+  "longitude": 2.294694
+}`
+var jsonSchema = `{
+  "$id": "https://example.com/geographical-location.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Longitude and Latitude Values",
+  "description": "A geographical coordinate.",
+  "required": [ "latitude", "longitude" ],
+  "type": "object",
+  "properties": {
+    "latitude": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90
+    },
+    "longitude": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180
+    }
+  }
+}`
+
 type mockedFileValidator struct {
 	mock.Mock
 }
@@ -97,15 +122,9 @@ func TestJSONSchemaValidator_getSource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			jsv := JSONSchemaReferenceValidator{
-				fileValidator: tt.fields.fileValidator,
-				urlValidator:  tt.fields.urlValidator,
-				schemasDir:    tt.fields.schemasDir,
-			}
-
 			tt.fields.mockFunc()
 
-			got, err := jsv.getSource(tt.args.rawSource)
+			got, err := getSource(tt.fields.urlValidator, tt.fields.fileValidator, tt.fields.schemasDir, tt.args.rawSource)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getSource() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -118,30 +137,6 @@ func TestJSONSchemaValidator_getSource(t *testing.T) {
 }
 
 func TestJSONSchemaRawValidator_Validate(t *testing.T) {
-	document := `{
-  "latitude": 48.858093,
-  "longitude": 2.294694
-}`
-	jsonSchema := `{
-  "$id": "https://example.com/geographical-location.schema.json",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Longitude and Latitude Values",
-  "description": "A geographical coordinate.",
-  "required": [ "latitude", "longitude" ],
-  "type": "object",
-  "properties": {
-    "latitude": {
-      "type": "number",
-      "minimum": -90,
-      "maximum": 90
-    },
-    "longitude": {
-      "type": "number",
-      "minimum": -180,
-      "maximum": 180
-    }
-  }
-}`
 
 	type args struct {
 		document   string
@@ -186,7 +181,58 @@ func TestJSONSchemaRawValidator_Validate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			J := JSONSchemaRawValidator{}
+			J := JSONSchemaRawXGValidator{}
+			if err := J.Validate(tt.args.document, tt.args.jsonSchema); (err != nil) != tt.wantErr {
+				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestJSONSchemaRawQriioValidator_Validate(t *testing.T) {
+	type args struct {
+		document   string
+		jsonSchema string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "valid data #1", args: args{
+			document:   document,
+			jsonSchema: jsonSchema,
+		}, wantErr: false},
+		{name: "no document", args: args{
+			document:   "",
+			jsonSchema: jsonSchema,
+		}, wantErr: true},
+		{name: "no json schema", args: args{
+			document:   document,
+			jsonSchema: ``,
+		}, wantErr: true},
+		{name: "invalid json schema", args: args{
+			document: document,
+			jsonSchema: `{
+  "$id": "https://example.com/geographical-location.schema.json",
+  "title": "Longitude and Latitude Values",
+  "description": "A geographical coordinate.",
+  "required": [ "latitude", "longitude" ],
+  "type": "object",
+  "properties": {
+    "latitude": {
+      "type": "string"
+    },
+    "longitude": {
+      "type": "string"
+    }
+  }
+}`,
+		}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			J := JSONSchemaRawQIValidator{}
 			if err := J.Validate(tt.args.document, tt.args.jsonSchema); (err != nil) != tt.wantErr {
 				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
