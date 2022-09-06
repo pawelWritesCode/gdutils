@@ -168,9 +168,9 @@ func TestState_SetTemplateEngine(t *testing.T) {
 func TestState_SetSchemaStringValidator(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 
-	_, isDefault := s.SchemaValidators.StringValidator.(schema.JSONSchemaRawValidator)
+	_, isDefault := s.SchemaValidators.StringValidator.(schema.JSONSchemaRawXGValidator)
 	if !isDefault {
-		t.Errorf("default StringValidator is not schema.JSONSchemaRawValidator")
+		t.Errorf("default StringValidator is not schema.JSONSchemaRawXGValidator")
 	}
 
 	s.SetSchemaStringValidator(newStringValidator{})
@@ -184,9 +184,9 @@ func TestState_SetSchemaStringValidator(t *testing.T) {
 func TestState_SetSchemaReferenceValidator(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 
-	_, isDefault := s.SchemaValidators.ReferenceValidator.(schema.JSONSchemaReferenceValidator)
+	_, isDefault := s.SchemaValidators.ReferenceValidator.(schema.JSONSchemaReferenceXGValidator)
 	if !isDefault {
-		t.Errorf("default ReferenceValidator is not schema.JSONSchemaReferenceValidator")
+		t.Errorf("default ReferenceValidator is not schema.JSONSchemaReferenceXGValidator")
 	}
 
 	s.SetSchemaReferenceValidator(newStringValidator{})

@@ -117,8 +117,8 @@ func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext {
 	defaultHttpClient := &http.Client{Transport: tr}
 
 	jsonSchemaValidators := SchemaValidators{
-		StringValidator:    schema.NewJSONSchemaRawValidator(),
-		ReferenceValidator: schema.NewDefaultJSONSchemaReferenceValidator(jsonSchemaDir),
+		StringValidator:    schema.NewJSONSchemaRawXGValidator(),
+		ReferenceValidator: schema.NewDefaultJSONSchemaReferenceXGValidator(jsonSchemaDir),
 	}
 
 	pathFinders := PathFinders{
