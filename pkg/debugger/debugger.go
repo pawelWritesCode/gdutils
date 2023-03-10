@@ -8,8 +8,7 @@ import (
 	"os"
 
 	"github.com/hokaccha/go-prettyjson"
-
-	"github.com/pawelWritesCode/gdutils/pkg/format"
+	"github.com/pawelWritesCode/df"
 )
 
 // Debugger represents debugger.
@@ -84,7 +83,7 @@ func (d *DebuggerService) Print(info string) {
 func (d *DebuggerService) prepareMessage(info string) string {
 	var output = []byte(info)
 
-	if format.IsJSON([]byte(info)) {
+	if df.IsJSON([]byte(info)) {
 		var rm json.RawMessage
 		_ = json.Unmarshal([]byte(info), &rm)
 
