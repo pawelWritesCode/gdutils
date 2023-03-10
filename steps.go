@@ -20,12 +20,13 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/moul/http2curl"
+	"github.com/pawelWritesCode/df"
 
-	"github.com/pawelWritesCode/gdutils/pkg/format"
+	ch "github.com/pawelWritesCode/charset"
+
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
 	"github.com/pawelWritesCode/gdutils/pkg/osutils"
-	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
 	"github.com/pawelWritesCode/gdutils/pkg/timeutils"
 	"github.com/pawelWritesCode/gdutils/pkg/types"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
@@ -61,24 +62,24 @@ func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate stri
 	}
 
 	var bodyAndHeaders BodyHeaders
-	var dataFormat format.DataFormat
-	if format.IsJSON([]byte(input)) {
-		dataFormat = format.JSON
-	} else if format.IsYAML([]byte(input)) {
-		dataFormat = format.YAML
-	} else if format.IsXML([]byte(input)) {
-		return fmt.Errorf("this method does not support data in format: %s", format.XML)
+	var dataFormat df.DataFormat
+	if df.IsJSON([]byte(input)) {
+		dataFormat = df.JSON
+	} else if df.IsYAML([]byte(input)) {
+		dataFormat = df.YAML
+	} else if df.IsXML([]byte(input)) {
+		return fmt.Errorf("this method does not support data in format: %s", df.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", df.JSON, df.YAML)
 	}
 
 	switch dataFormat {
-	case format.JSON:
+	case df.JSON:
 		err = apiCtx.Formatters.JSON.Deserialize([]byte(input), &bodyAndHeaders)
-	case format.YAML:
+	case df.YAML:
 		err = apiCtx.Formatters.YAML.Deserialize([]byte(input), &bodyAndHeaders)
 	default:
-		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", df.JSON, df.YAML)
 	}
 
 	if err != nil {
@@ -87,12 +88,12 @@ func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate stri
 
 	var reqBody []byte
 	switch dataFormat {
-	case format.JSON:
+	case df.JSON:
 		reqBody, err = apiCtx.Formatters.JSON.Serialize(bodyAndHeaders.Body)
-	case format.YAML:
+	case df.YAML:
 		reqBody, err = apiCtx.Formatters.YAML.Serialize(bodyAndHeaders.Body)
 	default:
-		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", df.JSON, df.YAML)
 	}
 
 	if err != nil {
@@ -159,18 +160,18 @@ func (apiCtx *APIContext) RequestSetHeaders(cacheKey, headersTemplate string) er
 
 	var headersMap map[string]string
 	headersBytes := []byte(headers)
-	if format.IsJSON(headersBytes) {
+	if df.IsJSON(headersBytes) {
 		if err = apiCtx.Formatters.JSON.Deserialize(headersBytes, &headersMap); err != nil {
 			return fmt.Errorf("could not deserialize provided headers, err: %w", err)
 		}
-	} else if format.IsYAML(headersBytes) {
+	} else if df.IsYAML(headersBytes) {
 		if err = apiCtx.Formatters.YAML.Deserialize(headersBytes, &headersMap); err != nil {
 			return fmt.Errorf("could not deserialize provided headers, err: %w", err)
 		}
-	} else if format.IsXML(headersBytes) {
-		return fmt.Errorf("this method does not support data in format: %s", format.XML)
+	} else if df.IsXML(headersBytes) {
+		return fmt.Errorf("this method does not support data in format: %s", df.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", df.JSON, df.YAML)
 	}
 
 	req, err := apiCtx.GetPreparedRequest(cacheKey)
@@ -222,18 +223,18 @@ func (apiCtx *APIContext) RequestSetCookies(cacheKey, cookiesTemplate string) er
 	}
 
 	userCookiesBytes := []byte(userCookies)
-	if format.IsJSON(userCookiesBytes) {
+	if df.IsJSON(userCookiesBytes) {
 		if err = apiCtx.Formatters.JSON.Deserialize(userCookiesBytes, &cookies); err != nil {
 			return fmt.Errorf("could not deserialize provided cookies, err: %w", err)
 		}
-	} else if format.IsYAML(userCookiesBytes) {
+	} else if df.IsYAML(userCookiesBytes) {
 		if err = apiCtx.Formatters.YAML.Deserialize(userCookiesBytes, &cookies); err != nil {
 			return fmt.Errorf("could not deserialize provided cookies, err: %w", err)
 		}
-	} else if format.IsXML(userCookiesBytes) {
-		return fmt.Errorf("this method does not support data in format: %s", format.XML)
+	} else if df.IsXML(userCookiesBytes) {
+		return fmt.Errorf("this method does not support data in format: %s", df.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", df.JSON, df.YAML)
 	}
 
 	for _, cookie := range cookies {
@@ -263,14 +264,14 @@ func (apiCtx *APIContext) RequestSetForm(cacheKey, formTemplate string) error {
 
 	var formKeyVal map[string]string
 	formBytes := []byte(form)
-	if format.IsJSON(formBytes) {
+	if df.IsJSON(formBytes) {
 		err = apiCtx.Formatters.JSON.Deserialize(formBytes, &formKeyVal)
-	} else if format.IsYAML(formBytes) {
+	} else if df.IsYAML(formBytes) {
 		err = apiCtx.Formatters.YAML.Deserialize(formBytes, &formKeyVal)
-	} else if format.IsXML(formBytes) {
-		return fmt.Errorf("this method does not support data in format: %s", format.XML)
+	} else if df.IsXML(formBytes) {
+		return fmt.Errorf("this method does not support data in format: %s", df.XML)
 	} else {
-		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", format.JSON, format.YAML)
+		return fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", df.JSON, df.YAML)
 	}
 
 	if err != nil {
@@ -395,7 +396,7 @@ func (apiCtx *APIContext) GeneratorRandomRunes(charset string) func(from, to int
 			return fmt.Errorf("problem during generating random runes, randomInt err: %w", err)
 		}
 
-		apiCtx.Cache.Save(cacheKey, string(stringutils.RunesFromCharset(randInt, []rune(charset))))
+		apiCtx.Cache.Save(cacheKey, string(ch.RandomRunes(randInt, []rune(charset))))
 
 		return nil
 	}
@@ -427,7 +428,7 @@ func (apiCtx *APIContext) GeneratorRandomSentence(charset string, wordMinLength,
 				return fmt.Errorf("problem during generating random sentence, word randomInt err: %w", err)
 			}
 
-			word := stringutils.RunesFromCharset(lengthOfWord, []rune(charset))
+			word := ch.RandomRunes(lengthOfWord, []rune(charset))
 			if i == numberOfWords-1 {
 				sentence += string(word)
 			} else {
@@ -495,97 +496,97 @@ func (apiCtx *APIContext) AssertStatusCodeIsNot(code int) error {
 
 // AssertResponseFormatIs checks whether last response body has given data format.
 // Available data formats are listed in format package.
-func (apiCtx *APIContext) AssertResponseFormatIs(dataFormat format.DataFormat) error {
+func (apiCtx *APIContext) AssertResponseFormatIs(dataFormat df.DataFormat) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
 	switch dataFormat {
-	case format.JSON:
-		if format.IsJSON(body) {
+	case df.JSON:
+		if df.IsJSON(body) {
 			return nil
 		}
 
-		return fmt.Errorf("response body doesn't have format %s", format.JSON)
-	case format.YAML:
-		if format.IsYAML(body) {
+		return fmt.Errorf("response body doesn't have format %s", df.JSON)
+	case df.YAML:
+		if df.IsYAML(body) {
 			return nil
 		}
 
-		return fmt.Errorf("response body doesn't have format %s", format.YAML)
-	case format.XML:
-		if format.IsXML(body) {
+		return fmt.Errorf("response body doesn't have format %s", df.YAML)
+	case df.XML:
+		if df.IsXML(body) {
 			return nil
 		}
 
-		return fmt.Errorf("response body doesn't have format %s", format.XML)
-	case format.HTML:
-		if format.IsHTML(body) {
+		return fmt.Errorf("response body doesn't have format %s", df.XML)
+	case df.HTML:
+		if df.IsHTML(body) {
 			return nil
 		}
 
-		return fmt.Errorf("response body doesn't have format %s", format.HTML)
-	case format.PlainText:
-		if format.IsPlainText(body) {
+		return fmt.Errorf("response body doesn't have format %s", df.HTML)
+	case df.PlainText:
+		if df.IsPlainText(body) {
 			return nil
 		}
 
-		return fmt.Errorf("response body doesn't have format %s", format.PlainText)
+		return fmt.Errorf("response body doesn't have format %s", df.PlainText)
 	default:
 		return fmt.Errorf("unknown last response body data format, available formats: %s, %s, %s, %s, %s",
-			format.JSON, format.YAML, format.XML, format.HTML, format.PlainText)
+			df.JSON, df.YAML, df.XML, df.HTML, df.PlainText)
 	}
 }
 
 // AssertResponseFormatIsNot checks whether last response body has not given data format.
 // Available data formats are listed in format package.
-func (apiCtx *APIContext) AssertResponseFormatIsNot(dataFormat format.DataFormat) error {
+func (apiCtx *APIContext) AssertResponseFormatIsNot(dataFormat df.DataFormat) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
 	}
 
 	switch dataFormat {
-	case format.JSON:
-		if format.IsJSON(body) {
-			return fmt.Errorf("response body has format %s", format.JSON)
+	case df.JSON:
+		if df.IsJSON(body) {
+			return fmt.Errorf("response body has format %s", df.JSON)
 		}
 
 		return nil
-	case format.YAML:
-		if format.IsYAML(body) {
-			return fmt.Errorf("response body has format %s", format.YAML)
+	case df.YAML:
+		if df.IsYAML(body) {
+			return fmt.Errorf("response body has format %s", df.YAML)
 		}
 
 		return nil
-	case format.XML:
-		if format.IsXML(body) {
-			return fmt.Errorf("response body has format %s", format.XML)
+	case df.XML:
+		if df.IsXML(body) {
+			return fmt.Errorf("response body has format %s", df.XML)
 		}
 
 		return nil
-	case format.HTML:
-		if format.IsHTML(body) {
-			return fmt.Errorf("response body has format %s", format.HTML)
+	case df.HTML:
+		if df.IsHTML(body) {
+			return fmt.Errorf("response body has format %s", df.HTML)
 		}
 
 		return nil
-	case format.PlainText:
-		if format.IsPlainText(body) {
-			return fmt.Errorf("response body has format %s", format.PlainText)
+	case df.PlainText:
+		if df.IsPlainText(body) {
+			return fmt.Errorf("response body has format %s", df.PlainText)
 		}
 
 		return nil
 	default:
 		return fmt.Errorf("unknown last response body data format, available formats: %s, %s, %s, %s, %s",
-			format.JSON, format.YAML, format.XML, format.HTML, format.PlainText)
+			df.JSON, df.YAML, df.XML, df.HTML, df.PlainText)
 	}
 }
 
 // AssertNodeExists checks whether last response body contains given node.
 // expr should be valid according to injected PathFinder for given data format
-func (apiCtx *APIContext) AssertNodeExists(dataFormat format.DataFormat, exprTemplate string) error {
+func (apiCtx *APIContext) AssertNodeExists(dataFormat df.DataFormat, exprTemplate string) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
@@ -610,7 +611,7 @@ func (apiCtx *APIContext) AssertNodeExists(dataFormat format.DataFormat, exprTem
 
 // AssertNodeNotExists checks whether last response body does not contain given node.
 // expr should be valid according to injected PathFinder for given data format
-func (apiCtx *APIContext) AssertNodeNotExists(dataFormat format.DataFormat, exprTemplate string) error {
+func (apiCtx *APIContext) AssertNodeNotExists(dataFormat df.DataFormat, exprTemplate string) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
@@ -639,7 +640,7 @@ func (apiCtx *APIContext) AssertNodeNotExists(dataFormat format.DataFormat, expr
 
 // AssertNodesExist checks whether last request body has keys defined in string separated by comma
 // nodeExprs should be valid according to injected PathFinder expressions separated by comma (,)
-func (apiCtx *APIContext) AssertNodesExist(dataFormat format.DataFormat, expressionsTemplate string) error {
+func (apiCtx *APIContext) AssertNodesExist(dataFormat df.DataFormat, expressionsTemplate string) error {
 	expressions, err := apiCtx.TemplateEngine.Replace(expressionsTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
@@ -681,7 +682,7 @@ func (apiCtx *APIContext) AssertNodesExist(dataFormat format.DataFormat, express
 // AssertNodeIsType checks whether node from last response body is of provided type.
 // available types are listed in types subpackage.
 // expr should be valid according to injected PathResolver.
-func (apiCtx *APIContext) AssertNodeIsType(dataFormat format.DataFormat, exprTemplate string, inType types.DataType) error {
+func (apiCtx *APIContext) AssertNodeIsType(dataFormat df.DataFormat, exprTemplate string, inType types.DataType) error {
 	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'form' template, err: %w", err)
@@ -699,7 +700,7 @@ func (apiCtx *APIContext) AssertNodeIsType(dataFormat format.DataFormat, exprTem
 // AssertNodeIsNotType checks whether node from last response body is of provided type.
 // available types are listed in types subpackage.
 // expr should be valid according to injected PathResolver.
-func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, exprTemplate string, inType types.DataType) error {
+func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat df.DataFormat, exprTemplate string, inType types.DataType) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
@@ -712,7 +713,7 @@ func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, expr
 
 	var iNodeVal any
 	switch dataFormat {
-	case format.JSON:
+	case df.JSON:
 		iNodeVal, err = apiCtx.PathFinders.JSON.Find(expr, body)
 		if err != nil {
 			return fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
@@ -737,7 +738,7 @@ func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, expr
 		}
 
 		return fmt.Errorf("node '%s' has type '%s', but expected not to be", expr, inType)
-	case format.YAML:
+	case df.YAML:
 		iNodeVal, err = apiCtx.PathFinders.YAML.Find(expr, body)
 		if err != nil {
 			return fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
@@ -762,18 +763,18 @@ func (apiCtx *APIContext) AssertNodeIsNotType(dataFormat format.DataFormat, expr
 		}
 
 		return fmt.Errorf("node '%s' has type '%s', but expected not to be", expr, inType)
-	case format.XML:
-		return fmt.Errorf("this method does not support data in format: %s", format.XML)
+	case df.XML:
+		return fmt.Errorf("this method does not support data in format: %s", df.XML)
 	default:
 		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s",
-			dataFormat, format.JSON, format.YAML)
+			dataFormat, df.JSON, df.YAML)
 	}
 }
 
 // AssertNodeIsTypeAndValue compares node value from expression to expected by user dataValue of given by user dataType
 // Available data types are listed in switch section in each case directive.
 // expr should be valid according to injected PathFinder for provided dataFormat.
-func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat, exprTemplate string, dataType types.DataType, dataValue string) error {
+func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat df.DataFormat, exprTemplate string, dataType types.DataType, dataValue string) error {
 	nodeValueReplaced, err := apiCtx.TemplateEngine.Replace(dataValue, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'value' template, err: %w", err)
@@ -803,7 +804,7 @@ func (apiCtx *APIContext) AssertNodeIsTypeAndValue(dataFormat format.DataFormat,
 
 // AssertNodeIsTypeAndHasOneOfValues checks whether node value obtained using exprTemplate matches one of values held by
 // valuesTemplates argument. Values should be separated by comma (,) and may contain template values.
-func (apiCtx *APIContext) AssertNodeIsTypeAndHasOneOfValues(dataFormat format.DataFormat, exprTemplate string, dataType types.DataType, valuesTemplates string) error {
+func (apiCtx *APIContext) AssertNodeIsTypeAndHasOneOfValues(dataFormat df.DataFormat, exprTemplate string, dataType types.DataType, valuesTemplates string) error {
 	values, err := apiCtx.TemplateEngine.Replace(valuesTemplates, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'valuesTemplates' template, err: %w", err)
@@ -849,7 +850,7 @@ func (apiCtx *APIContext) AssertNodeIsTypeAndHasOneOfValues(dataFormat format.Da
 
 // AssertNodeContainsSubString AsserNodeContainsSubString checks whether value of last HTTP response node, obtained using exprTemplate
 // is string type and contains given substring
-func (apiCtx *APIContext) AssertNodeContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error {
+func (apiCtx *APIContext) AssertNodeContainsSubString(dataFormat df.DataFormat, exprTemplate string, subTemplate string) error {
 	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'expr' template, err: %w", err)
@@ -892,7 +893,7 @@ func (apiCtx *APIContext) AssertNodeContainsSubString(dataFormat format.DataForm
 
 // AssertNodeNotContainsSubString AsserNodeNotContainsSubString checks whether value of last HTTP response node, obtained using exprTemplate
 // is string type and doesn't contain given substring
-func (apiCtx *APIContext) AssertNodeNotContainsSubString(dataFormat format.DataFormat, exprTemplate string, subTemplate string) error {
+func (apiCtx *APIContext) AssertNodeNotContainsSubString(dataFormat df.DataFormat, exprTemplate string, subTemplate string) error {
 	expr, err := apiCtx.TemplateEngine.Replace(exprTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'expr' template, err: %w", err)
@@ -935,7 +936,7 @@ func (apiCtx *APIContext) AssertNodeNotContainsSubString(dataFormat format.DataF
 
 // AssertNodeSliceLengthIs checks whether given key is slice and has given length
 // expr should be valid according to injected PathFinder for provided dataFormat
-func (apiCtx *APIContext) AssertNodeSliceLengthIs(dataFormat format.DataFormat, exprTemplate string, length int) error {
+func (apiCtx *APIContext) AssertNodeSliceLengthIs(dataFormat df.DataFormat, exprTemplate string, length int) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
@@ -973,7 +974,7 @@ func (apiCtx *APIContext) AssertNodeSliceLengthIs(dataFormat format.DataFormat, 
 
 // AssertNodeSliceLengthIsNot checks whether given key is slice and has not given length
 // expr should be valid according to injected PathFinder for provided dataFormat
-func (apiCtx *APIContext) AssertNodeSliceLengthIsNot(dataFormat format.DataFormat, exprTemplate string, length int) error {
+func (apiCtx *APIContext) AssertNodeSliceLengthIsNot(dataFormat df.DataFormat, exprTemplate string, length int) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
@@ -1010,7 +1011,7 @@ func (apiCtx *APIContext) AssertNodeSliceLengthIsNot(dataFormat format.DataForma
 }
 
 // AssertNodeMatchesRegExp checks whether last response body node matches provided regExp.
-func (apiCtx *APIContext) AssertNodeMatchesRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error {
+func (apiCtx *APIContext) AssertNodeMatchesRegExp(dataFormat df.DataFormat, exprTemplate, regExpTemplate string) error {
 	regExpString, err := apiCtx.TemplateEngine.Replace(regExpTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'regExp' template, err: %w", err)
@@ -1053,7 +1054,7 @@ func (apiCtx *APIContext) AssertNodeMatchesRegExp(dataFormat format.DataFormat, 
 }
 
 // AssertNodeNotMatchesRegExp checks whether last response body node does not match provided regExp.
-func (apiCtx *APIContext) AssertNodeNotMatchesRegExp(dataFormat format.DataFormat, exprTemplate, regExpTemplate string) error {
+func (apiCtx *APIContext) AssertNodeNotMatchesRegExp(dataFormat df.DataFormat, exprTemplate, regExpTemplate string) error {
 	regExpString, err := apiCtx.TemplateEngine.Replace(regExpTemplate, apiCtx.Cache.All())
 	if err != nil {
 		return fmt.Errorf("template engine has problem with 'regExp' template, err: %w", err)
@@ -1217,12 +1218,12 @@ func (apiCtx *APIContext) AssertResponseMatchesSchemaByString(schema string) err
 }
 
 // AssertNodeMatchesSchemaByString validates last response body JSON node against schema
-func (apiCtx *APIContext) AssertNodeMatchesSchemaByString(dataFormat format.DataFormat, exprTemplate, schemaTemplate string) error {
+func (apiCtx *APIContext) AssertNodeMatchesSchemaByString(dataFormat df.DataFormat, exprTemplate, schemaTemplate string) error {
 	return apiCtx.iValidateNodeWithSchemaGeneral(dataFormat, exprTemplate, schemaTemplate, apiCtx.SchemaValidators.StringValidator)
 }
 
 // AssertNodeMatchesSchemaByReference validates last response body node against schema as provided in referenceTemplate
-func (apiCtx *APIContext) AssertNodeMatchesSchemaByReference(dataFormat format.DataFormat, exprTemplate, referenceTemplate string) error {
+func (apiCtx *APIContext) AssertNodeMatchesSchemaByReference(dataFormat df.DataFormat, exprTemplate, referenceTemplate string) error {
 	return apiCtx.iValidateNodeWithSchemaGeneral(dataFormat, exprTemplate, referenceTemplate, apiCtx.SchemaValidators.ReferenceValidator)
 }
 
@@ -1434,7 +1435,7 @@ func (apiCtx *APIContext) Save(valueTemplate, cacheKey string) error {
 
 // SaveNode saves from last response body node under given cache key.
 // expr should be valid according to injected PathResolver of given data type
-func (apiCtx *APIContext) SaveNode(dataFormat format.DataFormat, exprTemplate, cacheKey string) error {
+func (apiCtx *APIContext) SaveNode(dataFormat df.DataFormat, exprTemplate, cacheKey string) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
@@ -1510,7 +1511,7 @@ func (apiCtx *APIContext) DebugPrintResponseBody() error {
 		}
 	}()
 
-	if format.IsYAML(body) {
+	if df.IsYAML(body) {
 		err = apiCtx.Formatters.YAML.Deserialize(body, &tmp)
 		if err != nil {
 			return nil
@@ -1525,7 +1526,7 @@ func (apiCtx *APIContext) DebugPrintResponseBody() error {
 		return nil
 	}
 
-	if format.IsJSON(body) {
+	if df.IsJSON(body) {
 		err = apiCtx.Formatters.JSON.Deserialize(body, &tmp)
 		if err != nil {
 			return nil
@@ -1540,7 +1541,7 @@ func (apiCtx *APIContext) DebugPrintResponseBody() error {
 		return nil
 	}
 
-	if format.IsXML(body) {
+	if df.IsXML(body) {
 		err = apiCtx.Formatters.XML.Deserialize(body, &tmp)
 		if err != nil {
 			return nil
@@ -1628,7 +1629,7 @@ func (apiCtx *APIContext) GetLastResponseBody() ([]byte, error) {
 }
 
 // iValidateNodeWithSchemaGeneral validates last response body node against schema as provided in reference.
-func (apiCtx *APIContext) iValidateNodeWithSchemaGeneral(dataFormat format.DataFormat, exprTemplate, referenceTemplate string, validator validator.SchemaValidator) error {
+func (apiCtx *APIContext) iValidateNodeWithSchemaGeneral(dataFormat df.DataFormat, exprTemplate, referenceTemplate string, validator validator.SchemaValidator) error {
 	body, err := apiCtx.GetLastResponseBody()
 	if err != nil {
 		return fmt.Errorf("could not obtain last HTTP(s) response body, err: %w", err)
@@ -1650,15 +1651,15 @@ func (apiCtx *APIContext) iValidateNodeWithSchemaGeneral(dataFormat format.DataF
 
 	var node any
 	switch dataFormat {
-	case format.JSON:
+	case df.JSON:
 		node, err = apiCtx.PathFinders.JSON.Find(expr, body)
-	case format.YAML:
+	case df.YAML:
 		node, err = apiCtx.PathFinders.YAML.Find(expr, body)
-	case format.XML:
-		return fmt.Errorf("this method does not support data in format: %s", format.XML)
+	case df.XML:
+		return fmt.Errorf("this method does not support data in format: %s", df.XML)
 	default:
 		return fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
-			dataFormat, format.JSON, format.YAML, format.XML)
+			dataFormat, df.JSON, df.YAML, df.XML)
 	}
 
 	if err != nil {
@@ -1678,7 +1679,7 @@ func (apiCtx *APIContext) iValidateNodeWithSchemaGeneral(dataFormat format.DataF
 }
 
 // getNode returns node value, when dataFormat and dataType matches expectations.
-func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.DataFormat, dataType types.DataType) (any, error) {
+func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat df.DataFormat, dataType types.DataType) (any, error) {
 	if body == nil || len(body) == 0 {
 		return nil, fmt.Errorf("provided nil body")
 	}
@@ -1686,7 +1687,7 @@ func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.Da
 	var iValue any
 	var err error
 	switch dataFormat {
-	case format.JSON:
+	case df.JSON:
 		iValue, err = apiCtx.PathFinders.JSON.Find(expr, body)
 		if err != nil {
 			return nil, fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
@@ -1710,7 +1711,7 @@ func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.Da
 					expr, dataType, tmpRecognizedDataType, recognizedDataType)
 			}
 		}
-	case format.YAML:
+	case df.YAML:
 		iValue, err = apiCtx.PathFinders.YAML.Find(expr, body)
 		if err != nil {
 			return nil, fmt.Errorf("could not find node using provided expression: '%s', err: %w", expr, err)
@@ -1734,7 +1735,7 @@ func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.Da
 					expr, dataType, tmpRecognizedDataType, recognizedDataType)
 			}
 		}
-	case format.XML:
+	case df.XML:
 		iValue, err = apiCtx.PathFinders.XML.Find(expr, body)
 		if err != nil {
 			return nil, fmt.Errorf("node '%s', err: %s", expr, err.Error())
@@ -1747,7 +1748,7 @@ func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.Da
 		if !(dataType.IsValidXMLDataType() || dataType.IsValidGoDataType()) {
 			return nil, fmt.Errorf("%s is not any of XML data types and is not any of Go Data types", dataType)
 		}
-	case format.HTML:
+	case df.HTML:
 		iValue, err = apiCtx.PathFinders.HTML.Find(expr, body)
 		if err != nil {
 			return nil, fmt.Errorf("node '%s', err: %s", expr, err.Error())
@@ -1762,7 +1763,7 @@ func (apiCtx *APIContext) getNode(body []byte, expr string, dataFormat format.Da
 		}
 	default:
 		return nil, fmt.Errorf("provided unknown format: %s, format should be one of : %s, %s, %s",
-			dataFormat, format.JSON, format.YAML, format.XML)
+			dataFormat, df.JSON, df.YAML, df.XML)
 	}
 
 	return iValue, nil

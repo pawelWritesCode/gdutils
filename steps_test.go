@@ -13,13 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pawelWritesCode/charset"
+	"github.com/pawelWritesCode/df"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
-	"github.com/pawelWritesCode/gdutils/pkg/format"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
-	"github.com/pawelWritesCode/gdutils/pkg/stringutils"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
 	"github.com/pawelWritesCode/gdutils/pkg/timeutils"
 	"github.com/pawelWritesCode/gdutils/pkg/types"
@@ -166,7 +166,7 @@ func (m *mockedJsonPathFinder) Find(expr string, jsonBytes []byte) (any, error) 
 }
 
 func ExampleRunesFromCharset() {
-	fmt.Println(stringutils.RunesFromCharset(1, []rune("a")))
+	fmt.Println(charset.RandomRunes(1, []rune("a")))
 	// Output: [97]
 }
 
@@ -586,7 +586,7 @@ user:
 	}
 
 	type args struct {
-		dataFormat format.DataFormat
+		dataFormat df.DataFormat
 	}
 	tests := []struct {
 		name    string
@@ -595,36 +595,36 @@ user:
 		wantErr bool
 	}{
 		// JSON
-		{name: "response body has JSON format and JSON format expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(json)}, wantErr: false},
-		{name: "response body has plain text format but JSON format expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(plainText)}, wantErr: true},
-		{name: "response body has XML format but JSON format expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(xml)}, wantErr: true},
-		{name: "response body has YAML format but JSON format expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(yaml)}, wantErr: true},
-		{name: "response body has HTML format but JSON format expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(html)}, wantErr: true},
+		{name: "response body has JSON format and JSON format expected", args: args{dataFormat: df.JSON}, fields: fields{body: []byte(json)}, wantErr: false},
+		{name: "response body has plain text format but JSON format expected", args: args{dataFormat: df.JSON}, fields: fields{body: []byte(plainText)}, wantErr: true},
+		{name: "response body has XML format but JSON format expected", args: args{dataFormat: df.JSON}, fields: fields{body: []byte(xml)}, wantErr: true},
+		{name: "response body has YAML format but JSON format expected", args: args{dataFormat: df.JSON}, fields: fields{body: []byte(yaml)}, wantErr: true},
+		{name: "response body has HTML format but JSON format expected", args: args{dataFormat: df.JSON}, fields: fields{body: []byte(html)}, wantErr: true},
 
 		// YAML
-		{name: "response body has JSON format but YAML format expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(json)}, wantErr: true},
-		{name: "response body has plain text format but YAML format expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(plainText)}, wantErr: true},
-		{name: "response body has XML format but YAML format expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(xml)}, wantErr: true},
-		{name: "response body has YAML format and YAML format expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(yaml)}, wantErr: false},
-		{name: "response body has HTML format and YAML format expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(html)}, wantErr: true},
+		{name: "response body has JSON format but YAML format expected", args: args{dataFormat: df.YAML}, fields: fields{body: []byte(json)}, wantErr: true},
+		{name: "response body has plain text format but YAML format expected", args: args{dataFormat: df.YAML}, fields: fields{body: []byte(plainText)}, wantErr: true},
+		{name: "response body has XML format but YAML format expected", args: args{dataFormat: df.YAML}, fields: fields{body: []byte(xml)}, wantErr: true},
+		{name: "response body has YAML format and YAML format expected", args: args{dataFormat: df.YAML}, fields: fields{body: []byte(yaml)}, wantErr: false},
+		{name: "response body has HTML format and YAML format expected", args: args{dataFormat: df.YAML}, fields: fields{body: []byte(html)}, wantErr: true},
 
 		// XML
-		{name: "response body has JSON format but XML format expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(json)}, wantErr: true},
-		{name: "response body has plain text format but XML format expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(plainText)}, wantErr: true},
-		{name: "response body has XML format and XML format expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(xml)}, wantErr: false},
-		{name: "response body has YAML format but XML format expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(yaml)}, wantErr: true},
+		{name: "response body has JSON format but XML format expected", args: args{dataFormat: df.XML}, fields: fields{body: []byte(json)}, wantErr: true},
+		{name: "response body has plain text format but XML format expected", args: args{dataFormat: df.XML}, fields: fields{body: []byte(plainText)}, wantErr: true},
+		{name: "response body has XML format and XML format expected", args: args{dataFormat: df.XML}, fields: fields{body: []byte(xml)}, wantErr: false},
+		{name: "response body has YAML format but XML format expected", args: args{dataFormat: df.XML}, fields: fields{body: []byte(yaml)}, wantErr: true},
 
 		// plain text
-		{name: "response body has JSON format but plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(json)}, wantErr: true},
-		{name: "response body has plain text format and plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(plainText)}, wantErr: false},
-		{name: "response body has XML format but plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(xml)}, wantErr: false},
-		{name: "response body has YAML format but plain text format expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(yaml)}, wantErr: false},
+		{name: "response body has JSON format but plain text format expected", args: args{dataFormat: df.PlainText}, fields: fields{body: []byte(json)}, wantErr: true},
+		{name: "response body has plain text format and plain text format expected", args: args{dataFormat: df.PlainText}, fields: fields{body: []byte(plainText)}, wantErr: false},
+		{name: "response body has XML format but plain text format expected", args: args{dataFormat: df.PlainText}, fields: fields{body: []byte(xml)}, wantErr: false},
+		{name: "response body has YAML format but plain text format expected", args: args{dataFormat: df.PlainText}, fields: fields{body: []byte(yaml)}, wantErr: false},
 
 		//HTML
-		{name: "response body has HTML format and html format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(html)}, wantErr: false},
-		{name: "response body has JSON format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(json)}, wantErr: true},
-		{name: "response body has plain text format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(plainText)}, wantErr: true},
-		{name: "response body has YAML format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(yaml)}, wantErr: true},
+		{name: "response body has HTML format and html format expected", args: args{dataFormat: df.HTML}, fields: fields{body: []byte(html)}, wantErr: false},
+		{name: "response body has JSON format but HTML format expected", args: args{dataFormat: df.HTML}, fields: fields{body: []byte(json)}, wantErr: true},
+		{name: "response body has plain text format but HTML format expected", args: args{dataFormat: df.HTML}, fields: fields{body: []byte(plainText)}, wantErr: true},
+		{name: "response body has YAML format but HTML format expected", args: args{dataFormat: df.HTML}, fields: fields{body: []byte(yaml)}, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -646,11 +646,11 @@ func ExampleAPIContext_AssertResponseFormatIs() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader("abc"))})
 
-	err := apiCtx.AssertResponseFormatIs(format.JSON)
+	err := apiCtx.AssertResponseFormatIs(df.JSON)
 	fmt.Println(err)
 
 	// Output:
-	// response body doesn't have format JSON
+	// response body doesn't have format json
 }
 
 func TestAPIContext_AssertResponseFormatIsNot(t *testing.T) {
@@ -679,7 +679,7 @@ user:
 		body []byte
 	}
 	type args struct {
-		dataFormat format.DataFormat
+		dataFormat df.DataFormat
 	}
 	tests := []struct {
 		name    string
@@ -688,34 +688,34 @@ user:
 		wantErr bool
 	}{
 		// JSON
-		{name: "response body has JSON format and JSON format is not expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(json)}, wantErr: true},
-		{name: "response body has plain text format but JSON format is not expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(plainText)}, wantErr: false},
-		{name: "response body has XML format but JSON format is not expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(xml)}, wantErr: false},
-		{name: "response body has YAML format but JSON format is not expected", args: args{dataFormat: format.JSON}, fields: fields{body: []byte(yaml)}, wantErr: false},
+		{name: "response body has JSON format and JSON format is not expected", args: args{dataFormat: df.JSON}, fields: fields{body: []byte(json)}, wantErr: true},
+		{name: "response body has plain text format but JSON format is not expected", args: args{dataFormat: df.JSON}, fields: fields{body: []byte(plainText)}, wantErr: false},
+		{name: "response body has XML format but JSON format is not expected", args: args{dataFormat: df.JSON}, fields: fields{body: []byte(xml)}, wantErr: false},
+		{name: "response body has YAML format but JSON format is not expected", args: args{dataFormat: df.JSON}, fields: fields{body: []byte(yaml)}, wantErr: false},
 
 		// YAML
-		{name: "response body has JSON format but YAML format is not expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(json)}, wantErr: false},
-		{name: "response body has plain text format but YAML format is not expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(plainText)}, wantErr: false},
-		{name: "response body has XML format but YAML format is not expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(xml)}, wantErr: false},
-		{name: "response body has YAML format and YAML format is not expected", args: args{dataFormat: format.YAML}, fields: fields{body: []byte(yaml)}, wantErr: true},
+		{name: "response body has JSON format but YAML format is not expected", args: args{dataFormat: df.YAML}, fields: fields{body: []byte(json)}, wantErr: false},
+		{name: "response body has plain text format but YAML format is not expected", args: args{dataFormat: df.YAML}, fields: fields{body: []byte(plainText)}, wantErr: false},
+		{name: "response body has XML format but YAML format is not expected", args: args{dataFormat: df.YAML}, fields: fields{body: []byte(xml)}, wantErr: false},
+		{name: "response body has YAML format and YAML format is not expected", args: args{dataFormat: df.YAML}, fields: fields{body: []byte(yaml)}, wantErr: true},
 
 		// XML
-		{name: "response body has JSON format but XML format is not expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(json)}, wantErr: false},
-		{name: "response body has plain text format but XML format is not expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(plainText)}, wantErr: false},
-		{name: "response body has XML format and XML format is not expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(xml)}, wantErr: true},
-		{name: "response body has YAML format but XML format is not expected", args: args{dataFormat: format.XML}, fields: fields{body: []byte(yaml)}, wantErr: false},
+		{name: "response body has JSON format but XML format is not expected", args: args{dataFormat: df.XML}, fields: fields{body: []byte(json)}, wantErr: false},
+		{name: "response body has plain text format but XML format is not expected", args: args{dataFormat: df.XML}, fields: fields{body: []byte(plainText)}, wantErr: false},
+		{name: "response body has XML format and XML format is not expected", args: args{dataFormat: df.XML}, fields: fields{body: []byte(xml)}, wantErr: true},
+		{name: "response body has YAML format but XML format is not expected", args: args{dataFormat: df.XML}, fields: fields{body: []byte(yaml)}, wantErr: false},
 
 		// plain text
-		{name: "response body has JSON format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(json)}, wantErr: false},
-		{name: "response body has plain text format and plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(plainText)}, wantErr: true},
-		{name: "response body has XML format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(xml)}, wantErr: true},
-		{name: "response body has YAML format but plain text format is not expected", args: args{dataFormat: format.PlainText}, fields: fields{body: []byte(yaml)}, wantErr: true},
+		{name: "response body has JSON format but plain text format is not expected", args: args{dataFormat: df.PlainText}, fields: fields{body: []byte(json)}, wantErr: false},
+		{name: "response body has plain text format and plain text format is not expected", args: args{dataFormat: df.PlainText}, fields: fields{body: []byte(plainText)}, wantErr: true},
+		{name: "response body has XML format but plain text format is not expected", args: args{dataFormat: df.PlainText}, fields: fields{body: []byte(xml)}, wantErr: true},
+		{name: "response body has YAML format but plain text format is not expected", args: args{dataFormat: df.PlainText}, fields: fields{body: []byte(yaml)}, wantErr: true},
 
 		//HTML
-		{name: "response body has HTML format and html format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(html)}, wantErr: true},
-		{name: "response body has JSON format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(json)}, wantErr: false},
-		{name: "response body has plain text format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(plainText)}, wantErr: false},
-		{name: "response body has YAML format but HTML format expected", args: args{dataFormat: format.HTML}, fields: fields{body: []byte(yaml)}, wantErr: false},
+		{name: "response body has HTML format and html format expected", args: args{dataFormat: df.HTML}, fields: fields{body: []byte(html)}, wantErr: true},
+		{name: "response body has JSON format but HTML format expected", args: args{dataFormat: df.HTML}, fields: fields{body: []byte(json)}, wantErr: false},
+		{name: "response body has plain text format but HTML format expected", args: args{dataFormat: df.HTML}, fields: fields{body: []byte(plainText)}, wantErr: false},
+		{name: "response body has YAML format but HTML format expected", args: args{dataFormat: df.HTML}, fields: fields{body: []byte(yaml)}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -736,11 +736,11 @@ func ExampleAPIContext_AssertResponseFormatIsNot() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader("{}"))})
 
-	err := apiCtx.AssertResponseFormatIsNot(format.JSON)
+	err := apiCtx.AssertResponseFormatIsNot(df.JSON)
 	fmt.Println(err)
 
 	// Output:
-	// response body has format JSON
+	// response body has format json
 }
 
 func TestState_GenerateRandomInt(t *testing.T) {
@@ -811,7 +811,7 @@ func ExampleAPIContext_GenerateFloat64() {
 func TestState_GeneratorRandomRunes(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 
-	rndStringASCII := s.GeneratorRandomRunes(stringutils.CharsetASCII)
+	rndStringASCII := s.GeneratorRandomRunes(charset.ASCII)
 	for i := 0; i < 10; i++ {
 		key := "TEST_" + strconv.Itoa(i)
 		if err := rndStringASCII(5, 10, key); err != nil {
@@ -835,7 +835,7 @@ func TestState_GeneratorRandomRunes(t *testing.T) {
 		}
 	}
 
-	rndStringUnicode := s.GeneratorRandomRunes(stringutils.CharsetUnicode)
+	rndStringUnicode := s.GeneratorRandomRunes(charset.Unicode)
 	for i := 0; i < 10; i++ {
 		key := "TEST_" + strconv.Itoa(i)
 		if err := rndStringUnicode(5, 10, key); err != nil {
@@ -1104,7 +1104,7 @@ users:
 		cacheData map[string]any
 	}
 	type args struct {
-		dataFormat  format.DataFormat
+		dataFormat  df.DataFormat
 		expressions string
 	}
 	tests := []struct {
@@ -1116,82 +1116,82 @@ users:
 		// JSON
 		{name: "missing last response body", fields: fields{}, args: args{}, wantErr: true},
 		{name: "last response body is missing expected key in JSON", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "age",
 		}, wantErr: true},
 		{name: "last response body has expected key #1 - gjson expression", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "users",
 		}, wantErr: false},
 		{name: "last response body has expected key #2 - Oliveagle expression", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "$.users[0]",
 		}, wantErr: false},
 		{name: "last response body has expected key #3 - gjson expression ", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "users.1.name",
 		}, wantErr: false},
 		{name: "last response body has expected key #4 - gjson expression with template value", fields: fields{body: []byte(json), cacheData: map[string]any{
 			"USER_ID": 1,
 		}}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "users.{{.USER_ID}}.name",
 		}, wantErr: false},
 
 		// XML
 		{name: "last response body is missing expected key in XML", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "age",
 		}, wantErr: true},
 		{name: "last response body has expected key #1 - Antchfx expression", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//users",
 		}, wantErr: false},
 		{name: "last response body has expected key #2 - Antchfx expression", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//users//user[1]",
 		}, wantErr: false},
 		{name: "last response body has expected key #3 - Antchfx expression", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//user[2]//name",
 		}, wantErr: false},
 		{name: "last response body has expected key #4 - Antchfx expression with template value", fields: fields{body: []byte(xml), cacheData: map[string]any{
 			"USER_ID": 2,
 		}}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//user[{{.USER_ID}}]//name",
 		}, wantErr: false},
 
 		// YAML
 		{name: "last response body is missing expected key in YAML", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.age",
 		}, wantErr: true},
 		{name: "last response body has expected key #1 - Goccy expression", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.users",
 		}, wantErr: false},
 		{name: "last response body has expected key #2 - Goccy expression", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.users[0].name",
 		}, wantErr: false},
 		{name: "last response body has expected key #3 - Goccy expression with template value", fields: fields{body: []byte(yaml), cacheData: map[string]any{
 			"USER_ID": 0,
 		}}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.users[{{.USER_ID}}].name",
 		}, wantErr: false},
 
 		{name: "last response body is missing expected node in HTML", fields: fields{body: []byte(html)}, args: args{
-			dataFormat:  format.HTML,
+			dataFormat:  df.HTML,
 			expressions: "//strong",
 		}, wantErr: true},
 		{name: "last response body has expected node #1 in HTML", fields: fields{body: []byte(html)}, args: args{
-			dataFormat:  format.HTML,
+			dataFormat:  df.HTML,
 			expressions: "//i",
 		}, wantErr: false},
 		{name: "last response body has expected node #2 in HTML", fields: fields{body: []byte(html)}, args: args{
-			dataFormat:  format.HTML,
+			dataFormat:  df.HTML,
 			expressions: "//div[@align=\"justify\"]",
 		}, wantErr: false},
 	}
@@ -1219,7 +1219,7 @@ func ExampleAPIContext_AssertNodeExists() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader("{}"))})
 
-	err := apiCtx.AssertNodeExists(format.JSON, "user")
+	err := apiCtx.AssertNodeExists(df.JSON, "user")
 	fmt.Println(err)
 
 	// Output:
@@ -1288,7 +1288,7 @@ users:
 		cacheData map[string]any
 	}
 	type args struct {
-		dataFormat  format.DataFormat
+		dataFormat  df.DataFormat
 		expressions string
 	}
 	tests := []struct {
@@ -1300,83 +1300,83 @@ users:
 		// JSON
 		{name: "missing last response body", fields: fields{}, args: args{}, wantErr: true},
 		{name: "last response body is missing expected key in JSON", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "age",
 		}, wantErr: false},
 		{name: "last response body has expected key #1 - gjson expression", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "users",
 		}, wantErr: true},
 		{name: "last response body has expected key #2 - Oliveagle expression", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "$.users[0]",
 		}, wantErr: true},
 		{name: "last response body has expected key #3 - gjson expression ", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "users.1.name",
 		}, wantErr: true},
 		{name: "last response body has expected key #4 - gjson expression with template value", fields: fields{body: []byte(json), cacheData: map[string]any{
 			"USER_ID": 1,
 		}}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "users.{{.USER_ID}}.name",
 		}, wantErr: true},
 
 		// XML
 		{name: "last response body is missing expected key in XML", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "age",
 		}, wantErr: false},
 		{name: "last response body has expected key #1 - Antchfx expression", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//users",
 		}, wantErr: true},
 		{name: "last response body has expected key #2 - Antchfx expression", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//users//user[1]",
 		}, wantErr: true},
 		{name: "last response body has expected key #3 - Antchfx expression", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//user[2]//name",
 		}, wantErr: true},
 		{name: "last response body has expected key #4 - Antchfx expression with template value", fields: fields{body: []byte(xml), cacheData: map[string]any{
 			"USER_ID": 2,
 		}}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//user[{{.USER_ID}}]//name",
 		}, wantErr: true},
 
 		// YAML
 		{name: "last response body is missing expected key in YAML", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.age",
 		}, wantErr: false},
 		{name: "last response body has expected key #1 - Goccy expression", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.users",
 		}, wantErr: true},
 		{name: "last response body has expected key #2 - Goccy expression", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.users[0].name",
 		}, wantErr: true},
 		{name: "last response body has expected key #3 - Goccy expression with template value", fields: fields{body: []byte(yaml), cacheData: map[string]any{
 			"USER_ID": 0,
 		}}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.users[{{.USER_ID}}].name",
 		}, wantErr: true},
 
 		// HTML
 		{name: "last response body is missing expected node in HTML", fields: fields{body: []byte(html)}, args: args{
-			dataFormat:  format.HTML,
+			dataFormat:  df.HTML,
 			expressions: "//strong",
 		}, wantErr: false},
 		{name: "last response body has expected node #1 in HTML", fields: fields{body: []byte(html)}, args: args{
-			dataFormat:  format.HTML,
+			dataFormat:  df.HTML,
 			expressions: "//i",
 		}, wantErr: true},
 		{name: "last response body has expected node #2 in HTML", fields: fields{body: []byte(html)}, args: args{
-			dataFormat:  format.HTML,
+			dataFormat:  df.HTML,
 			expressions: "//div[@align=\"justify\"]",
 		}, wantErr: true},
 	}
@@ -1403,11 +1403,11 @@ func ExampleAPIContext_AssertNodeNotExists() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
 
-	err := apiCtx.AssertNodeNotExists(format.JSON, "user")
+	err := apiCtx.AssertNodeNotExists(df.JSON, "user")
 	fmt.Println(err)
 
 	// Output:
-	// JSON node 'user' exists
+	// json node 'user' exists
 }
 
 func TestState_AssertNodesExist(t *testing.T) {
@@ -1443,7 +1443,7 @@ users:
 		cacheKeys map[string]any
 	}
 	type args struct {
-		dataFormat  format.DataFormat
+		dataFormat  df.DataFormat
 		expressions string
 	}
 	tests := []struct {
@@ -1455,88 +1455,88 @@ users:
 		// JSON
 		{name: "missing last response body", fields: fields{}, args: args{}, wantErr: true},
 		{name: "last response body is missing key", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "age",
 		}, wantErr: true},
 		{name: "last response body has expected key #1 - gjson expression", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "users",
 		}, wantErr: false},
 		{name: "last response body has expected keys #2 - different expressions", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "users, $.users",
 		}, wantErr: false},
 		{name: "last response body has expected keys #3 - gjson expressions", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "users, users.0",
 		}, wantErr: false},
 		{name: "last response body has expected keys #4 - gjson expressions", fields: fields{body: []byte(json)}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "users.0.name, users.1.name",
 		}, wantErr: false},
 		{name: "last response body has expected keys #1 - gjson expressions with template values", fields: fields{body: []byte(json), cacheKeys: map[string]any{
 			"USER1_ID": 0,
 			"USER2_ID": 1,
 		}}, args: args{
-			dataFormat:  format.JSON,
+			dataFormat:  df.JSON,
 			expressions: "users.{{.USER1_ID}}.name, users.{{.USER2_ID}}.name",
 		}, wantErr: false},
 
 		// XML
 		{name: "last response body is missing key", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "age",
 		}, wantErr: true},
 		{name: "last response body has expected key #1 - Antchfx expression", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//users",
 		}, wantErr: false},
 		{name: "last response body has expected keys #2 - Antchfx expressions", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//users, //users",
 		}, wantErr: false},
 		{name: "last response body has expected keys #3 - Antchfx expressions", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//users, //users//user[1]",
 		}, wantErr: false},
 		{name: "last response body has expected keys #4 - Antchfx expressions", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//user[1]//name, //user[2]//name",
 		}, wantErr: false},
 		{name: "last response body has expected keys #5 - Antchfx expressions with template values", fields: fields{body: []byte(xml), cacheKeys: map[string]any{
 			"USER1_ID": 1,
 			"USER2_ID": 2,
 		}}, args: args{
-			dataFormat:  format.XML,
+			dataFormat:  df.XML,
 			expressions: "//user[{{.USER1_ID}}]//name, //user[{{.USER2_ID}}]//name",
 		}, wantErr: false},
 
 		// YAML
 		{name: "last response body is missing yaml key", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.age",
 		}, wantErr: true},
 		{name: "last response body has expected key #1 - Goccy expression", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.users",
 		}, wantErr: false},
 		{name: "last response body has expected keys #2 - Goccy expressions", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.users, $.users",
 		}, wantErr: false},
 		{name: "last response body has expected keys #3 - Goccy expressions", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.users, $.users[0]",
 		}, wantErr: false},
 		{name: "last response body has expected keys #4 - Goccy expressions", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.users[0].name, $.users[1].name",
 		}, wantErr: false},
 		{name: "last response body has expected keys #5 - Goccy expressions with template values", fields: fields{body: []byte(yaml), cacheKeys: map[string]any{
 			"USER1_ID": 0,
 			"USER2_ID": 1,
 		}}, args: args{
-			dataFormat:  format.YAML,
+			dataFormat:  df.YAML,
 			expressions: "$.users[{{.USER1_ID}}].name, $.users[{{.USER2_ID}}].name",
 		}, wantErr: false},
 	}
@@ -1564,7 +1564,7 @@ func ExampleAPIContext_AssertNodesExist() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user":"abc"}`))})
 
-	err := apiCtx.AssertNodesExist(format.JSON, "user, address, roles")
+	err := apiCtx.AssertNodesExist(df.JSON, "user, address, roles")
 	fmt.Println(err)
 
 	// Output:
@@ -1579,7 +1579,7 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 		isDebug      bool
 	}
 	type args struct {
-		df     format.DataFormat
+		df     df.DataFormat
 		node   string
 		goType types.DataType
 	}
@@ -1593,127 +1593,127 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 		{
 			name:    "selected node does not exists",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "abc", goType: types.Null},
+			args:    args{df: df.JSON, node: "abc", goType: types.Null},
 			wantErr: true,
 		},
 		{
 			name:    "selected node value is null - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isPopular", goType: types.String},
+			args:    args{df: df.JSON, node: "isPopular", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is null - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isPopular", goType: types.String},
+			args:    args{df: df.JSON, node: "$.isPopular", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is boolean - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Null},
+			args:    args{df: df.JSON, node: "isHorizontal", goType: types.Null},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is boolean - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Null},
+			args:    args{df: df.JSON, node: "$.isHorizontal", goType: types.Null},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "color", goType: types.Boolean},
+			args:    args{df: df.JSON, node: "color", goType: types.Boolean},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.color", goType: types.Number},
+			args:    args{df: df.JSON, node: "$.color", goType: types.Number},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_1", goType: types.String},
+			args:    args{df: df.JSON, node: "number_1", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #1 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_1", goType: types.String},
+			args:    args{df: df.JSON, node: "$.number_1", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #2 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_2", goType: types.Boolean},
+			args:    args{df: df.JSON, node: "number_2", goType: types.Boolean},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #2 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_2", goType: types.Object},
+			args:    args{df: df.JSON, node: "$.number_2", goType: types.Object},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #3 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_3", goType: types.Array},
+			args:    args{df: df.JSON, node: "number_3", goType: types.Array},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #3 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_3", goType: types.Array},
+			args:    args{df: df.JSON, node: "$.number_3", goType: types.Array},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #4 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_4", goType: types.String},
+			args:    args{df: df.JSON, node: "number_4", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #4 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_4", goType: types.Boolean},
+			args:    args{df: df.JSON, node: "$.number_4", goType: types.Boolean},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #5 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user.height", goType: types.Array},
+			args:    args{df: df.JSON, node: "user.height", goType: types.Array},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #5- - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user.height", goType: types.Object},
+			args:    args{df: df.JSON, node: "$.user.height", goType: types.Object},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is object - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user", goType: types.String},
+			args:    args{df: df.JSON, node: "user", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is object - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user", goType: types.Boolean},
+			args:    args{df: df.JSON, node: "$.user", goType: types.Boolean},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is array - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user.roles", goType: types.Object},
+			args:    args{df: df.JSON, node: "user.roles", goType: types.Object},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is array - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user.roles", goType: types.Boolean},
+			args:    args{df: df.JSON, node: "$.user.roles", goType: types.Boolean},
 			wantErr: false,
 		},
 
@@ -1721,67 +1721,67 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 		{
 			name:    "selected node does not exist",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.abc", goType: types.Null},
+			args:    args{df: df.YAML, node: "$.abc", goType: types.Null},
 			wantErr: true,
 		},
 		{
 			name:    "selected node value is scalar - null #1",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.ray", goType: types.Sequence},
+			args:    args{df: df.YAML, node: "$.ray", goType: types.Sequence},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - null #2",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.nakamoto", goType: types.Mapping},
+			args:    args{df: df.YAML, node: "$.nakamoto", goType: types.Mapping},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - string #1",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.doe", goType: types.Sequence},
+			args:    args{df: df.YAML, node: "$.doe", goType: types.Sequence},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - string #2",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas-fifth-day.calling-birds", goType: types.Sequence},
+			args:    args{df: df.YAML, node: "$.xmas-fifth-day.calling-birds", goType: types.Sequence},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - float",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.pi", goType: types.Mapping},
+			args:    args{df: df.YAML, node: "$.pi", goType: types.Mapping},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - int #1",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.french-hens", goType: types.Mapping},
+			args:    args{df: df.YAML, node: "$.french-hens", goType: types.Mapping},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - int #2",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas-fifth-day.french-hens", goType: types.Mapping},
+			args:    args{df: df.YAML, node: "$.xmas-fifth-day.french-hens", goType: types.Mapping},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - boolean",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas", goType: types.Sequence},
+			args:    args{df: df.YAML, node: "$.xmas", goType: types.Sequence},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is sequence",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.calling-birds", goType: types.Scalar},
+			args:    args{df: df.YAML, node: "$.calling-birds", goType: types.Scalar},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is mapping",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas-fifth-day", goType: types.Scalar},
+			args:    args{df: df.YAML, node: "$.xmas-fifth-day", goType: types.Scalar},
 			wantErr: false,
 		},
 
@@ -1789,85 +1789,85 @@ func TestAPIContext_AssertNodeIsNotType(t *testing.T) {
 		{
 			name:    "selected node value is nil - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isPopular", goType: types.Slice},
+			args:    args{df: df.JSON, node: "isPopular", goType: types.Slice},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is nil - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isPopular", goType: types.String},
+			args:    args{df: df.JSON, node: "$.isPopular", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is int #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_1", goType: types.Float},
+			args:    args{df: df.JSON, node: "number_1", goType: types.Float},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is int #1 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_1", goType: types.Float},
+			args:    args{df: df.JSON, node: "$.number_1", goType: types.Float},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is float - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_3", goType: types.Int},
+			args:    args{df: df.JSON, node: "number_3", goType: types.Int},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is float - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_3", goType: types.String},
+			args:    args{df: df.JSON, node: "$.number_3", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "color", goType: types.Bool},
+			args:    args{df: df.JSON, node: "color", goType: types.Bool},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.color", goType: types.Int},
+			args:    args{df: df.JSON, node: "$.color", goType: types.Int},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is bool - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Slice},
+			args:    args{df: df.JSON, node: "isHorizontal", goType: types.Slice},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is bool - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Map},
+			args:    args{df: df.JSON, node: "$.isHorizontal", goType: types.Map},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is map - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user", goType: types.String},
+			args:    args{df: df.JSON, node: "user", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is map - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user", goType: types.Slice},
+			args:    args{df: df.JSON, node: "$.user", goType: types.Slice},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is slice - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user.roles", goType: types.Bool},
+			args:    args{df: df.JSON, node: "user.roles", goType: types.Bool},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is slice - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user.roles", goType: types.Float},
+			args:    args{df: df.JSON, node: "$.user.roles", goType: types.Float},
 			wantErr: false,
 		},
 	}
@@ -1891,7 +1891,7 @@ func ExampleAPIContext_AssertNodeIsNotType() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user":"abc"}`))})
 
-	err := apiCtx.AssertNodeIsNotType(format.JSON, "user", types.String)
+	err := apiCtx.AssertNodeIsNotType(df.JSON, "user", types.String)
 	fmt.Println(err)
 
 	// Output:
@@ -1905,7 +1905,7 @@ func TestState_AssertNodeIsType(t *testing.T) {
 		isDebug      bool
 	}
 	type args struct {
-		df     format.DataFormat
+		df     df.DataFormat
 		node   string
 		goType types.DataType
 	}
@@ -1919,127 +1919,127 @@ func TestState_AssertNodeIsType(t *testing.T) {
 		{
 			name:    "selected node does not exists",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "abc", goType: types.Null},
+			args:    args{df: df.JSON, node: "abc", goType: types.Null},
 			wantErr: true,
 		},
 		{
 			name:    "selected node value is null - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isPopular", goType: types.Null},
+			args:    args{df: df.JSON, node: "isPopular", goType: types.Null},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is null - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isPopular", goType: types.Null},
+			args:    args{df: df.JSON, node: "$.isPopular", goType: types.Null},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is boolean - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Boolean},
+			args:    args{df: df.JSON, node: "isHorizontal", goType: types.Boolean},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is boolean - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Boolean},
+			args:    args{df: df.JSON, node: "$.isHorizontal", goType: types.Boolean},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "color", goType: types.String},
+			args:    args{df: df.JSON, node: "color", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.color", goType: types.String},
+			args:    args{df: df.JSON, node: "$.color", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_1", goType: types.Number},
+			args:    args{df: df.JSON, node: "number_1", goType: types.Number},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #1 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_1", goType: types.Number},
+			args:    args{df: df.JSON, node: "$.number_1", goType: types.Number},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #2 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_2", goType: types.Number},
+			args:    args{df: df.JSON, node: "number_2", goType: types.Number},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #2 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_2", goType: types.Number},
+			args:    args{df: df.JSON, node: "$.number_2", goType: types.Number},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #3 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_3", goType: types.Number},
+			args:    args{df: df.JSON, node: "number_3", goType: types.Number},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #3 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_3", goType: types.Number},
+			args:    args{df: df.JSON, node: "$.number_3", goType: types.Number},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #4 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_4", goType: types.Number},
+			args:    args{df: df.JSON, node: "number_4", goType: types.Number},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #4 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_4", goType: types.Number},
+			args:    args{df: df.JSON, node: "$.number_4", goType: types.Number},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #5 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user.height", goType: types.Number},
+			args:    args{df: df.JSON, node: "user.height", goType: types.Number},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #5- - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user.height", goType: types.Number},
+			args:    args{df: df.JSON, node: "$.user.height", goType: types.Number},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is object - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user", goType: types.Object},
+			args:    args{df: df.JSON, node: "user", goType: types.Object},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is object - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user", goType: types.Object},
+			args:    args{df: df.JSON, node: "$.user", goType: types.Object},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is array - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user.roles", goType: types.Array},
+			args:    args{df: df.JSON, node: "user.roles", goType: types.Array},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is array - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user.roles", goType: types.Array},
+			args:    args{df: df.JSON, node: "$.user.roles", goType: types.Array},
 			wantErr: false,
 		},
 
@@ -2047,67 +2047,67 @@ func TestState_AssertNodeIsType(t *testing.T) {
 		{
 			name:    "selected node does not exist",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.abc", goType: types.Null},
+			args:    args{df: df.YAML, node: "$.abc", goType: types.Null},
 			wantErr: true,
 		},
 		{
 			name:    "selected node value is scalar - null #1",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.ray", goType: types.Null},
+			args:    args{df: df.YAML, node: "$.ray", goType: types.Null},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - null #2",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.nakamoto", goType: types.Null},
+			args:    args{df: df.YAML, node: "$.nakamoto", goType: types.Null},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - string #1",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.doe", goType: types.Scalar},
+			args:    args{df: df.YAML, node: "$.doe", goType: types.Scalar},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - string #2",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas-fifth-day.calling-birds", goType: types.Scalar},
+			args:    args{df: df.YAML, node: "$.xmas-fifth-day.calling-birds", goType: types.Scalar},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - float",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.pi", goType: types.Scalar},
+			args:    args{df: df.YAML, node: "$.pi", goType: types.Scalar},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - int #1",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.french-hens", goType: types.Scalar},
+			args:    args{df: df.YAML, node: "$.french-hens", goType: types.Scalar},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - int #2",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas-fifth-day.french-hens", goType: types.Scalar},
+			args:    args{df: df.YAML, node: "$.xmas-fifth-day.french-hens", goType: types.Scalar},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - boolean",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas", goType: types.Scalar},
+			args:    args{df: df.YAML, node: "$.xmas", goType: types.Scalar},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is sequence",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.calling-birds", goType: types.Sequence},
+			args:    args{df: df.YAML, node: "$.calling-birds", goType: types.Sequence},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is mapping",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas-fifth-day", goType: types.Mapping},
+			args:    args{df: df.YAML, node: "$.xmas-fifth-day", goType: types.Mapping},
 			wantErr: false,
 		},
 
@@ -2115,85 +2115,85 @@ func TestState_AssertNodeIsType(t *testing.T) {
 		{
 			name:    "selected node value is nil - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isPopular", goType: types.Nil},
+			args:    args{df: df.JSON, node: "isPopular", goType: types.Nil},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is nil - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isPopular", goType: types.Nil},
+			args:    args{df: df.JSON, node: "$.isPopular", goType: types.Nil},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is int #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_1", goType: types.Int},
+			args:    args{df: df.JSON, node: "number_1", goType: types.Int},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is int #1 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_1", goType: types.Int},
+			args:    args{df: df.JSON, node: "$.number_1", goType: types.Int},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is float - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_3", goType: types.Float},
+			args:    args{df: df.JSON, node: "number_3", goType: types.Float},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is float - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_3", goType: types.Float},
+			args:    args{df: df.JSON, node: "$.number_3", goType: types.Float},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "color", goType: types.String},
+			args:    args{df: df.JSON, node: "color", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.color", goType: types.String},
+			args:    args{df: df.JSON, node: "$.color", goType: types.String},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is bool - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Bool},
+			args:    args{df: df.JSON, node: "isHorizontal", goType: types.Bool},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is bool - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Bool},
+			args:    args{df: df.JSON, node: "$.isHorizontal", goType: types.Bool},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is map - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user", goType: types.Map},
+			args:    args{df: df.JSON, node: "user", goType: types.Map},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is map - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user", goType: types.Map},
+			args:    args{df: df.JSON, node: "$.user", goType: types.Map},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is slice - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user.roles", goType: types.Slice},
+			args:    args{df: df.JSON, node: "user.roles", goType: types.Slice},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is slice - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user.roles", goType: types.Slice},
+			args:    args{df: df.JSON, node: "$.user.roles", goType: types.Slice},
 			wantErr: false,
 		},
 	}
@@ -2217,7 +2217,7 @@ func ExampleAPIContext_AssertNodeIsType() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user":"abc"}`))})
 
-	err := apiCtx.AssertNodeIsType(format.JSON, "user", types.Number)
+	err := apiCtx.AssertNodeIsType(df.JSON, "user", types.Number)
 	fmt.Println(err)
 
 	// Output:
@@ -2260,7 +2260,7 @@ data:
 		body []byte
 	}
 	type args struct {
-		dataFormat format.DataFormat
+		dataFormat df.DataFormat
 		expr       string
 		length     int
 	}
@@ -2273,56 +2273,56 @@ data:
 		//JSON
 		{name: "no body", fields: fields{body: nil}, args: args{}, wantErr: true},
 		{name: "expression does not point at slice", fields: fields{body: []byte(json)}, args: args{
-			dataFormat: format.JSON,
+			dataFormat: df.JSON,
 			expr:       "count",
 			length:     0,
 		}, wantErr: true},
 		{name: "expression does point at slice but expected invalid length", fields: fields{body: []byte(json)}, args: args{
-			dataFormat: format.JSON,
+			dataFormat: df.JSON,
 			expr:       "data",
 			length:     1,
 		}, wantErr: true},
 		{name: "expression does point at slice and expected proper length", fields: fields{body: []byte(json)}, args: args{
-			dataFormat: format.JSON,
+			dataFormat: df.JSON,
 			expr:       "data",
 			length:     2,
 		}, wantErr: false},
 
 		//YAML
 		{name: "expression does not point at slice", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat: format.YAML,
+			dataFormat: df.YAML,
 			expr:       "$.count",
 			length:     0,
 		}, wantErr: true},
 		{name: "expression does point at slice but expected invalid length", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat: format.YAML,
+			dataFormat: df.YAML,
 			expr:       "$.data",
 			length:     1,
 		}, wantErr: true},
 		{name: "expression does point at slice and expected proper length", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat: format.YAML,
+			dataFormat: df.YAML,
 			expr:       "$.data",
 			length:     2,
 		}, wantErr: false},
 
 		//XML
 		{name: "expression does not point at slice", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat: format.XML,
+			dataFormat: df.XML,
 			expr:       "//count",
 			length:     0,
 		}, wantErr: true},
 		{name: "expression does point at slice but expected invalid length", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat: format.XML,
+			dataFormat: df.XML,
 			expr:       "//data//name",
 			length:     1,
 		}, wantErr: true},
 		{name: "expression does point at slice and expected proper length #1", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat: format.XML,
+			dataFormat: df.XML,
 			expr:       "//data//name",
 			length:     2,
 		}, wantErr: false},
 		{name: "expression does point at slice and expected proper length #2", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat: format.XML,
+			dataFormat: df.XML,
 			expr:       "//user",
 			length:     2,
 		}, wantErr: false},
@@ -2347,7 +2347,7 @@ func ExampleAPIContext_AssertNodeSliceLengthIs() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user":[]}`))})
 
-	err := apiCtx.AssertNodeSliceLengthIs(format.JSON, "user", 1)
+	err := apiCtx.AssertNodeSliceLengthIs(df.JSON, "user", 1)
 	fmt.Println(err)
 
 	// Output:
@@ -2390,7 +2390,7 @@ data:
 		body []byte
 	}
 	type args struct {
-		dataFormat format.DataFormat
+		dataFormat df.DataFormat
 		expr       string
 		length     int
 	}
@@ -2403,56 +2403,56 @@ data:
 		//JSON
 		{name: "no body", fields: fields{body: nil}, args: args{}, wantErr: true},
 		{name: "expression does not point at slice", fields: fields{body: []byte(json)}, args: args{
-			dataFormat: format.JSON,
+			dataFormat: df.JSON,
 			expr:       "count",
 			length:     0,
 		}, wantErr: true},
 		{name: "expression does point at slice and expected invalid length", fields: fields{body: []byte(json)}, args: args{
-			dataFormat: format.JSON,
+			dataFormat: df.JSON,
 			expr:       "data",
 			length:     1,
 		}, wantErr: false},
 		{name: "expression does point at slice but expected proper length", fields: fields{body: []byte(json)}, args: args{
-			dataFormat: format.JSON,
+			dataFormat: df.JSON,
 			expr:       "data",
 			length:     2,
 		}, wantErr: true},
 
 		//YAML
 		{name: "expression does not point at slice", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat: format.YAML,
+			dataFormat: df.YAML,
 			expr:       "$.count",
 			length:     0,
 		}, wantErr: true},
 		{name: "expression does point at slice and expected invalid length", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat: format.YAML,
+			dataFormat: df.YAML,
 			expr:       "$.data",
 			length:     1,
 		}, wantErr: false},
 		{name: "expression does point at slice but expected proper length", fields: fields{body: []byte(yaml)}, args: args{
-			dataFormat: format.YAML,
+			dataFormat: df.YAML,
 			expr:       "$.data",
 			length:     2,
 		}, wantErr: true},
 
 		//XML
 		{name: "expression does not point at slice", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat: format.XML,
+			dataFormat: df.XML,
 			expr:       "//count",
 			length:     0,
 		}, wantErr: true},
 		{name: "expression does point at slice and expected invalid length", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat: format.XML,
+			dataFormat: df.XML,
 			expr:       "//data//name",
 			length:     1,
 		}, wantErr: false},
 		{name: "expression does point at slice but expected proper length #1", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat: format.XML,
+			dataFormat: df.XML,
 			expr:       "//data//name",
 			length:     2,
 		}, wantErr: true},
 		{name: "expression does point at slice but expected proper length #2", fields: fields{body: []byte(xml)}, args: args{
-			dataFormat: format.XML,
+			dataFormat: df.XML,
 			expr:       "//user",
 			length:     2,
 		}, wantErr: true},
@@ -2477,7 +2477,7 @@ func ExampleAPIContext_AssertNodeSliceLengthIsNot() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user":[]}`))})
 
-	err := apiCtx.AssertNodeSliceLengthIsNot(format.JSON, "user", 0)
+	err := apiCtx.AssertNodeSliceLengthIsNot(df.JSON, "user", 0)
 	fmt.Println(err)
 
 	// Output:
@@ -2491,7 +2491,7 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 		isDebug      bool
 	}
 	type args struct {
-		df     format.DataFormat
+		df     df.DataFormat
 		node   string
 		goType types.DataType
 		val    string
@@ -2506,91 +2506,91 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 		{
 			name:    "selected node does not exists",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "abc", goType: types.Null, val: "abc"},
+			args:    args{df: df.JSON, node: "abc", goType: types.Null, val: "abc"},
 			wantErr: true,
 		},
 		{
 			name:    "selected node value is boolean - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Boolean, val: "false"},
+			args:    args{df: df.JSON, node: "isHorizontal", goType: types.Boolean, val: "false"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is boolean - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Boolean, val: "false"},
+			args:    args{df: df.JSON, node: "$.isHorizontal", goType: types.Boolean, val: "false"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "color", goType: types.String, val: "purple"},
+			args:    args{df: df.JSON, node: "color", goType: types.String, val: "purple"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.color", goType: types.String, val: "purple"},
+			args:    args{df: df.JSON, node: "$.color", goType: types.String, val: "purple"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_1", goType: types.Number, val: "210"},
+			args:    args{df: df.JSON, node: "number_1", goType: types.Number, val: "210"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #1 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_1", goType: types.Number, val: "210"},
+			args:    args{df: df.JSON, node: "$.number_1", goType: types.Number, val: "210"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #2 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_2", goType: types.Number, val: "-210"},
+			args:    args{df: df.JSON, node: "number_2", goType: types.Number, val: "-210"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #2 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_2", goType: types.Number, val: "-210"},
+			args:    args{df: df.JSON, node: "$.number_2", goType: types.Number, val: "-210"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #3 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_3", goType: types.Number, val: "21.05"},
+			args:    args{df: df.JSON, node: "number_3", goType: types.Number, val: "21.05"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #3 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_3", goType: types.Number, val: "21.05"},
+			args:    args{df: df.JSON, node: "$.number_3", goType: types.Number, val: "21.05"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #4 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_4", goType: types.Number, val: "1.0E+2"},
+			args:    args{df: df.JSON, node: "number_4", goType: types.Number, val: "1.0E+2"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #4 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_4", goType: types.Number, val: "1.0E+2"},
+			args:    args{df: df.JSON, node: "$.number_4", goType: types.Number, val: "1.0E+2"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #5 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "user.height", goType: types.Number, val: "180"},
+			args:    args{df: df.JSON, node: "user.height", goType: types.Number, val: "180"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is number #5- - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.user.height", goType: types.Number, val: "180"},
+			args:    args{df: df.JSON, node: "$.user.height", goType: types.Number, val: "180"},
 			wantErr: false,
 		},
 
@@ -2598,43 +2598,43 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 		{
 			name:    "selected node does not exist",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.abc", goType: types.Null},
+			args:    args{df: df.YAML, node: "$.abc", goType: types.Null},
 			wantErr: true,
 		},
 		{
 			name:    "selected node value is scalar - string #1",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.doe", goType: types.Scalar, val: "a deer, a female deer"},
+			args:    args{df: df.YAML, node: "$.doe", goType: types.Scalar, val: "a deer, a female deer"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - string #2",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas-fifth-day.calling-birds", goType: types.Scalar, val: "four"},
+			args:    args{df: df.YAML, node: "$.xmas-fifth-day.calling-birds", goType: types.Scalar, val: "four"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - float",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.pi", goType: types.Scalar, val: "3.14159"},
+			args:    args{df: df.YAML, node: "$.pi", goType: types.Scalar, val: "3.14159"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - int #1",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.french-hens", goType: types.Scalar, val: "3"},
+			args:    args{df: df.YAML, node: "$.french-hens", goType: types.Scalar, val: "3"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - int #2",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas-fifth-day.french-hens", goType: types.Scalar, val: "3"},
+			args:    args{df: df.YAML, node: "$.xmas-fifth-day.french-hens", goType: types.Scalar, val: "3"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is scalar - boolean",
 			fields:  fields{lastResponse: &http.Response{Body: createYamlRespBody()}},
-			args:    args{df: format.YAML, node: "$.xmas", goType: types.Scalar, val: "true"},
+			args:    args{df: df.YAML, node: "$.xmas", goType: types.Scalar, val: "true"},
 			wantErr: false,
 		},
 
@@ -2642,49 +2642,49 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 		{
 			name:    "selected node value is int #1 - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_1", goType: types.Int, val: "210"},
+			args:    args{df: df.JSON, node: "number_1", goType: types.Int, val: "210"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is int #1 - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_1", goType: types.Int, val: "210"},
+			args:    args{df: df.JSON, node: "$.number_1", goType: types.Int, val: "210"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is float - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "number_3", goType: types.Float, val: "21.05"},
+			args:    args{df: df.JSON, node: "number_3", goType: types.Float, val: "21.05"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is float - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.number_3", goType: types.Float, val: "21.05"},
+			args:    args{df: df.JSON, node: "$.number_3", goType: types.Float, val: "21.05"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "color", goType: types.String, val: "purple"},
+			args:    args{df: df.JSON, node: "color", goType: types.String, val: "purple"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is string - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.color", goType: types.String, val: "purple"},
+			args:    args{df: df.JSON, node: "$.color", goType: types.String, val: "purple"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is bool - gjson",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "isHorizontal", goType: types.Bool, val: "false"},
+			args:    args{df: df.JSON, node: "isHorizontal", goType: types.Bool, val: "false"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is bool - oliveagle",
 			fields:  fields{lastResponse: &http.Response{Body: createRespBody()}},
-			args:    args{df: format.JSON, node: "$.isHorizontal", goType: types.Bool, val: "false"},
+			args:    args{df: df.JSON, node: "$.isHorizontal", goType: types.Bool, val: "false"},
 			wantErr: false,
 		},
 
@@ -2692,31 +2692,31 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 		{
 			name:    "selected node does not exist",
 			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
-			args:    args{df: format.XML, node: "//abc", goType: types.Nil, val: "true"},
+			args:    args{df: df.XML, node: "//abc", goType: types.Nil, val: "true"},
 			wantErr: true,
 		},
 		{
 			name:    "selected node value is string ",
 			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
-			args:    args{df: format.XML, node: "//description", goType: types.String, val: "Weather info"},
+			args:    args{df: df.XML, node: "//description", goType: types.String, val: "Weather info"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is boolean ",
 			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
-			args:    args{df: format.XML, node: "//isHot", goType: types.Boolean, val: "true"},
+			args:    args{df: df.XML, node: "//isHot", goType: types.Boolean, val: "true"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is float ",
 			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
-			args:    args{df: format.XML, node: "//weather//degrees", goType: types.Float, val: "67.5"},
+			args:    args{df: df.XML, node: "//weather//degrees", goType: types.Float, val: "67.5"},
 			wantErr: false,
 		},
 		{
 			name:    "selected node value is integer ",
 			fields:  fields{lastResponse: &http.Response{Body: createXMLRespBody()}},
-			args:    args{df: format.XML, node: "//weather//humidity", goType: types.Integer, val: "95"},
+			args:    args{df: df.XML, node: "//weather//humidity", goType: types.Integer, val: "95"},
 			wantErr: false,
 		},
 
@@ -2724,19 +2724,19 @@ func TestAPIContext_AssertNodeIsTypeAndValue(t *testing.T) {
 		{
 			name:    "selected HTML node does not exist",
 			fields:  fields{lastResponse: &http.Response{Body: createHTMLRespBody()}},
-			args:    args{df: format.HTML, node: "//strong", goType: types.String, val: "true"},
+			args:    args{df: df.HTML, node: "//strong", goType: types.String, val: "true"},
 			wantErr: true,
 		},
 		{
 			name:    "selected HTML node exist but its value is different",
 			fields:  fields{lastResponse: &http.Response{Body: createHTMLRespBody()}},
-			args:    args{df: format.HTML, node: "//i[2]", goType: types.String, val: "3"},
+			args:    args{df: df.HTML, node: "//i[2]", goType: types.String, val: "3"},
 			wantErr: true,
 		},
 		{
 			name:    "selected HTML node exist and its value is correct",
 			fields:  fields{lastResponse: &http.Response{Body: createHTMLRespBody()}},
-			args:    args{df: format.HTML, node: "//i[2]", goType: types.String, val: "2"},
+			args:    args{df: df.HTML, node: "//i[2]", goType: types.String, val: "2"},
 			wantErr: false,
 		},
 	}
@@ -2760,7 +2760,7 @@ func ExampleAPIContext_AssertNodeIsTypeAndValue() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
 
-	err := apiCtx.AssertNodeIsTypeAndValue(format.JSON, "user", types.String, "def")
+	err := apiCtx.AssertNodeIsTypeAndValue(df.JSON, "user", types.String, "def")
 	fmt.Println(err)
 
 	// Output:
@@ -2773,7 +2773,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 		cacheData    map[string]any
 	}
 	type args struct {
-		dataFormat      format.DataFormat
+		dataFormat      df.DataFormat
 		exprTemplate    string
 		dataType        types.DataType
 		valuesTemplates string
@@ -2791,7 +2791,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.user.name",
 				dataType:        types.String,
 				valuesTemplates: "{{.NOT_EXISTING_VALUE}}",
@@ -2805,7 +2805,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.user.{{.PROPERTY}}",
 				dataType:        types.String,
 				valuesTemplates: "abc",
@@ -2819,7 +2819,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.user.name",
 				dataType:        types.String,
 				valuesTemplates: "abc",
@@ -2833,7 +2833,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.abc",
 				dataType:        types.String,
 				valuesTemplates: "abc",
@@ -2847,7 +2847,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.color",
 				dataType:        types.Number,
 				valuesTemplates: "abc",
@@ -2861,7 +2861,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.color",
 				dataType:        types.String,
 				valuesTemplates: "purple",
@@ -2875,7 +2875,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.color",
 				dataType:        types.String,
 				valuesTemplates: "red, purple",
@@ -2889,7 +2889,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.user.name",
 				dataType:        types.String,
 				valuesTemplates: "Ivo, John, Kristine",
@@ -2903,7 +2903,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.number_1",
 				dataType:        types.Number,
 				valuesTemplates: "210, 20, -30",
@@ -2917,7 +2917,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.isHorizontal",
 				dataType:        types.Boolean,
 				valuesTemplates: "true, false",
@@ -2931,7 +2931,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.number_2",
 				dataType:        types.Int,
 				valuesTemplates: "1, 2, -3",
@@ -2945,7 +2945,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.user.roles[0]",
 				dataType:        types.String,
 				valuesTemplates: "a, b",
@@ -2959,7 +2959,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.JSON,
+				dataFormat:      df.JSON,
 				exprTemplate:    "$.isHorizontal",
 				dataType:        types.Boolean,
 				valuesTemplates: "true",
@@ -2975,7 +2975,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.YAML,
+				dataFormat:      df.YAML,
 				exprTemplate:    "$.abc",
 				dataType:        types.Scalar,
 				valuesTemplates: "abc",
@@ -2989,7 +2989,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.YAML,
+				dataFormat:      df.YAML,
 				exprTemplate:    "$.pi",
 				dataType:        types.Mapping,
 				valuesTemplates: "abc",
@@ -3003,7 +3003,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.YAML,
+				dataFormat:      df.YAML,
 				exprTemplate:    "$.xmas-fifth-day.calling-birds",
 				dataType:        types.Scalar,
 				valuesTemplates: "four",
@@ -3017,7 +3017,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.YAML,
+				dataFormat:      df.YAML,
 				exprTemplate:    "$.xmas-fifth-day.calling-birds",
 				dataType:        types.String,
 				valuesTemplates: "three, four",
@@ -3031,7 +3031,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.YAML,
+				dataFormat:      df.YAML,
 				exprTemplate:    "$.xmas-fifth-day.calling-birds",
 				dataType:        types.String,
 				valuesTemplates: "one, four, three",
@@ -3045,7 +3045,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.YAML,
+				dataFormat:      df.YAML,
 				exprTemplate:    "$.pi",
 				dataType:        types.Scalar,
 				valuesTemplates: "3, 3.14, 3.14159",
@@ -3059,7 +3059,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.YAML,
+				dataFormat:      df.YAML,
 				exprTemplate:    "$.xmas",
 				dataType:        types.Scalar,
 				valuesTemplates: "true, false",
@@ -3073,7 +3073,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.YAML,
+				dataFormat:      df.YAML,
 				exprTemplate:    "$.french-hens",
 				dataType:        types.Scalar,
 				valuesTemplates: "1, 2, -3",
@@ -3087,7 +3087,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.YAML,
+				dataFormat:      df.YAML,
 				exprTemplate:    "$.doe",
 				dataType:        types.String,
 				valuesTemplates: "a, b",
@@ -3101,7 +3101,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.YAML,
+				dataFormat:      df.YAML,
 				exprTemplate:    "$.xmas",
 				dataType:        types.Scalar,
 				valuesTemplates: "false",
@@ -3116,7 +3116,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.XML,
+				dataFormat:      df.XML,
 				exprTemplate:    "//abc",
 				dataType:        types.String,
 				valuesTemplates: "abc",
@@ -3130,7 +3130,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.XML,
+				dataFormat:      df.XML,
 				exprTemplate:    "//date",
 				dataType:        types.Mapping,
 				valuesTemplates: "abc",
@@ -3144,7 +3144,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.XML,
+				dataFormat:      df.XML,
 				exprTemplate:    "//description",
 				dataType:        types.String,
 				valuesTemplates: "Weather info",
@@ -3158,7 +3158,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.XML,
+				dataFormat:      df.XML,
 				exprTemplate:    "//description",
 				dataType:        types.String,
 				valuesTemplates: "three, Weather info",
@@ -3172,7 +3172,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.XML,
+				dataFormat:      df.XML,
 				exprTemplate:    "//description",
 				dataType:        types.String,
 				valuesTemplates: "one, four, Weather info",
@@ -3186,7 +3186,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.XML,
+				dataFormat:      df.XML,
 				exprTemplate:    "//humidity",
 				dataType:        types.Int,
 				valuesTemplates: "3, 95, 15, 32",
@@ -3200,7 +3200,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.XML,
+				dataFormat:      df.XML,
 				exprTemplate:    "//degrees",
 				dataType:        types.Float,
 				valuesTemplates: "10.5, 67.5,13,34",
@@ -3214,7 +3214,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.XML,
+				dataFormat:      df.XML,
 				exprTemplate:    "//description",
 				dataType:        types.String,
 				valuesTemplates: "a, b, c",
@@ -3228,7 +3228,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.XML,
+				dataFormat:      df.XML,
 				exprTemplate:    "//degrees",
 				dataType:        types.Int,
 				valuesTemplates: "1,2,3",
@@ -3242,7 +3242,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.XML,
+				dataFormat:      df.XML,
 				exprTemplate:    "//isHot",
 				dataType:        types.Boolean,
 				valuesTemplates: "false",
@@ -3258,7 +3258,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.HTML,
+				dataFormat:      df.HTML,
 				exprTemplate:    "//abc",
 				dataType:        types.String,
 				valuesTemplates: "abc",
@@ -3272,7 +3272,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.HTML,
+				dataFormat:      df.HTML,
 				exprTemplate:    "//p",
 				dataType:        types.Int,
 				valuesTemplates: "abc",
@@ -3286,7 +3286,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.HTML,
+				dataFormat:      df.HTML,
 				exprTemplate:    "//i",
 				dataType:        types.Int,
 				valuesTemplates: "2,3,4",
@@ -3300,7 +3300,7 @@ func TestAPIContext_AssertNodeIsTypeAndHasOneOfValues(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:      format.HTML,
+				dataFormat:      df.HTML,
 				exprTemplate:    "//i",
 				dataType:        types.Int,
 				valuesTemplates: "2,3,1,4",
@@ -3332,7 +3332,7 @@ func ExampleAPIContext_AssertNodeIsTypeAndHasOneOfValues() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
 
-	err := apiCtx.AssertNodeIsTypeAndHasOneOfValues(format.JSON, "user", types.String, "def, ghi")
+	err := apiCtx.AssertNodeIsTypeAndHasOneOfValues(df.JSON, "user", types.String, "def, ghi")
 	fmt.Println(err)
 
 	// Output:
@@ -3345,7 +3345,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 		cacheData    map[string]any
 	}
 	type args struct {
-		dataFormat   format.DataFormat
+		dataFormat   df.DataFormat
 		exprTemplate string
 		sub          string
 	}
@@ -3362,7 +3362,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.{{.USER_PROPERTY}}",
 				sub:          "John",
 			},
@@ -3374,7 +3374,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: nil,
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.{{.USER_PROPERTY}}",
 				sub:          "John",
 			},
@@ -3387,7 +3387,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.abc",
 				sub:          "John",
 			},
@@ -3399,7 +3399,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.number_1",
 				sub:          "John",
 			},
@@ -3411,7 +3411,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.name",
 				sub:          "Ivo",
 			},
@@ -3423,7 +3423,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.name",
 				sub:          "Jo",
 			},
@@ -3436,7 +3436,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"USER_PROPERTY": "name"},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.{{.USER_PROPERTY}}",
 				sub:          "Jo",
 			},
@@ -3449,7 +3449,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"USER_PROPERTY": "name", "USER_NAME_FIRST_LETTER": "J"},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.{{.USER_PROPERTY}}",
 				sub:          "{{.USER_NAME_FIRST_LETTER}}",
 			},
@@ -3463,7 +3463,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.abc",
 				sub:          "John",
 			},
@@ -3475,7 +3475,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.pi",
 				sub:          "John",
 			},
@@ -3487,7 +3487,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.doe",
 				sub:          "Ivo",
 			},
@@ -3499,7 +3499,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.doe",
 				sub:          "deer",
 			},
@@ -3512,7 +3512,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"PROPERTY": "doe"},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.{{.PROPERTY}}",
 				sub:          "deer",
 			},
@@ -3525,7 +3525,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"PROPERTY": "doe", "PROPERTY_SUBSTRING": "deer"},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.{{.PROPERTY}}",
 				sub:          "{{.PROPERTY_SUBSTRING}}",
 			},
@@ -3539,7 +3539,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
 			},
 			args: args{
-				dataFormat:   format.XML,
+				dataFormat:   df.XML,
 				exprTemplate: "//abc",
 				sub:          "John",
 			},
@@ -3551,7 +3551,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
 			},
 			args: args{
-				dataFormat:   format.XML,
+				dataFormat:   df.XML,
 				exprTemplate: "//date",
 				sub:          "John",
 			},
@@ -3563,7 +3563,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
 			},
 			args: args{
-				dataFormat:   format.XML,
+				dataFormat:   df.XML,
 				exprTemplate: "//description",
 				sub:          "Ivo",
 			},
@@ -3575,7 +3575,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
 			},
 			args: args{
-				dataFormat:   format.XML,
+				dataFormat:   df.XML,
 				exprTemplate: "//description",
 				sub:          "Weather",
 			},
@@ -3588,7 +3588,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"PROPERTY": "description"},
 			},
 			args: args{
-				dataFormat:   format.XML,
+				dataFormat:   df.XML,
 				exprTemplate: "//{{.PROPERTY}}",
 				sub:          "Weather",
 			},
@@ -3601,7 +3601,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"PROPERTY": "description", "PROPERTY_SUBSTRING": "Weather"},
 			},
 			args: args{
-				dataFormat:   format.XML,
+				dataFormat:   df.XML,
 				exprTemplate: "//{{.PROPERTY}}",
 				sub:          "{{.PROPERTY_SUBSTRING}}",
 			},
@@ -3615,7 +3615,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: createHTMLRespBody()},
 			},
 			args: args{
-				dataFormat:   format.HTML,
+				dataFormat:   df.HTML,
 				exprTemplate: "//abc",
 				sub:          "John",
 			},
@@ -3627,7 +3627,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: createHTMLRespBody()},
 			},
 			args: args{
-				dataFormat:   format.HTML,
+				dataFormat:   df.HTML,
 				exprTemplate: "//p",
 				sub:          "abc",
 			},
@@ -3639,7 +3639,7 @@ func TestAPIContext_AsserNodeContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: createHTMLRespBody()},
 			},
 			args: args{
-				dataFormat:   format.HTML,
+				dataFormat:   df.HTML,
 				exprTemplate: "//p",
 				sub:          "world",
 			},
@@ -3670,7 +3670,7 @@ func ExampleAPIContext_AssertNodeContainsSubString() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
 
-	err := apiCtx.AssertNodeContainsSubString(format.JSON, "user", "abcd")
+	err := apiCtx.AssertNodeContainsSubString(df.JSON, "user", "abcd")
 	fmt.Println(err)
 
 	// Output:
@@ -3683,7 +3683,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 		cacheData    map[string]any
 	}
 	type args struct {
-		dataFormat   format.DataFormat
+		dataFormat   df.DataFormat
 		exprTemplate string
 		sub          string
 	}
@@ -3700,7 +3700,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				cacheData:    nil,
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.{{.USER_PROPERTY}}",
 				sub:          "John",
 			},
@@ -3712,7 +3712,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: nil,
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.{{.USER_PROPERTY}}",
 				sub:          "John",
 			},
@@ -3725,7 +3725,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.abc",
 				sub:          "John",
 			},
@@ -3737,7 +3737,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.number_1",
 				sub:          "John",
 			},
@@ -3749,7 +3749,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.name",
 				sub:          "Ivo",
 			},
@@ -3761,7 +3761,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigJson))},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.name",
 				sub:          "Jo",
 			},
@@ -3774,7 +3774,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"USER_PROPERTY": "name"},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.{{.USER_PROPERTY}}",
 				sub:          "Jo",
 			},
@@ -3787,7 +3787,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"USER_PROPERTY": "name", "USER_NAME_FIRST_LETTER": "J"},
 			},
 			args: args{
-				dataFormat:   format.JSON,
+				dataFormat:   df.JSON,
 				exprTemplate: "$.user.{{.USER_PROPERTY}}",
 				sub:          "{{.USER_NAME_FIRST_LETTER}}",
 			},
@@ -3801,7 +3801,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.abc",
 				sub:          "John",
 			},
@@ -3813,7 +3813,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.pi",
 				sub:          "John",
 			},
@@ -3825,7 +3825,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.doe",
 				sub:          "Ivo",
 			},
@@ -3837,7 +3837,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigYaml))},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.doe",
 				sub:          "deer",
 			},
@@ -3850,7 +3850,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"PROPERTY": "doe"},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.{{.PROPERTY}}",
 				sub:          "deer",
 			},
@@ -3863,7 +3863,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"PROPERTY": "doe", "PROPERTY_SUBSTRING": "deer"},
 			},
 			args: args{
-				dataFormat:   format.YAML,
+				dataFormat:   df.YAML,
 				exprTemplate: "$.{{.PROPERTY}}",
 				sub:          "{{.PROPERTY_SUBSTRING}}",
 			},
@@ -3877,7 +3877,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
 			},
 			args: args{
-				dataFormat:   format.XML,
+				dataFormat:   df.XML,
 				exprTemplate: "//abc",
 				sub:          "John",
 			},
@@ -3890,7 +3890,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 		//		lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
 		//	},
 		//	args: args{
-		//		dataFormat:   format.XML,
+		//		dataFormat:   df.XML,
 		//		exprTemplate: "//degrees",
 		//		sub:          "John",
 		//	},
@@ -3902,7 +3902,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
 			},
 			args: args{
-				dataFormat:   format.XML,
+				dataFormat:   df.XML,
 				exprTemplate: "//description",
 				sub:          "Ivo",
 			},
@@ -3914,7 +3914,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: io.NopCloser(bytes.NewBufferString(bigXML))},
 			},
 			args: args{
-				dataFormat:   format.XML,
+				dataFormat:   df.XML,
 				exprTemplate: "//description",
 				sub:          "Weather",
 			},
@@ -3927,7 +3927,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"PROPERTY": "description"},
 			},
 			args: args{
-				dataFormat:   format.XML,
+				dataFormat:   df.XML,
 				exprTemplate: "//{{.PROPERTY}}",
 				sub:          "Weather",
 			},
@@ -3940,7 +3940,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				cacheData:    map[string]any{"PROPERTY": "description", "PROPERTY_SUBSTRING": "Weather"},
 			},
 			args: args{
-				dataFormat:   format.XML,
+				dataFormat:   df.XML,
 				exprTemplate: "//{{.PROPERTY}}",
 				sub:          "{{.PROPERTY_SUBSTRING}}",
 			},
@@ -3954,7 +3954,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: createHTMLRespBody()},
 			},
 			args: args{
-				dataFormat:   format.HTML,
+				dataFormat:   df.HTML,
 				exprTemplate: "//abc",
 				sub:          "John",
 			},
@@ -3966,7 +3966,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: createHTMLRespBody()},
 			},
 			args: args{
-				dataFormat:   format.HTML,
+				dataFormat:   df.HTML,
 				exprTemplate: "//p",
 				sub:          "abc",
 			},
@@ -3978,7 +3978,7 @@ func TestAPIContext_AsserNodeNotContainsSubString(t *testing.T) {
 				lastResponse: &http.Response{Body: createHTMLRespBody()},
 			},
 			args: args{
-				dataFormat:   format.HTML,
+				dataFormat:   df.HTML,
 				exprTemplate: "//p",
 				sub:          "world",
 			},
@@ -4009,7 +4009,7 @@ func ExampleAPIContext_AssertNodeNotContainsSubString() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
 
-	err := apiCtx.AssertNodeNotContainsSubString(format.JSON, "user", "a")
+	err := apiCtx.AssertNodeNotContainsSubString(df.JSON, "user", "a")
 	fmt.Println(err)
 
 	// Output:
@@ -4028,7 +4028,7 @@ func TestState_AssertNodeMatchesRegExp(t *testing.T) {
 		mockFunc       func()
 	}
 	type args struct {
-		df             format.DataFormat
+		df             df.DataFormat
 		expr           string
 		regExpTemplate string
 	}
@@ -4051,7 +4051,7 @@ func TestState_AssertNodeMatchesRegExp(t *testing.T) {
 					Return("", errors.New("err")).Once()
 			},
 		}, args: args{
-			df:             format.JSON,
+			df:             df.JSON,
 			expr:           "",
 			regExpTemplate: "abc",
 		}, wantErr: true},
@@ -4071,7 +4071,7 @@ func TestState_AssertNodeMatchesRegExp(t *testing.T) {
 					Return(any(""), errors.New("err")).Once()
 			},
 		}, args: args{
-			df:             format.JSON,
+			df:             df.JSON,
 			expr:           "xxx",
 			regExpTemplate: "abc",
 		}, wantErr: true},
@@ -4081,7 +4081,7 @@ func TestState_AssertNodeMatchesRegExp(t *testing.T) {
 }`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.JSON,
+			df:             df.JSON,
 			expr:           "name",
 			regExpTemplate: "dd.*",
 		}, wantErr: true},
@@ -4092,7 +4092,7 @@ func TestState_AssertNodeMatchesRegExp(t *testing.T) {
 }`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.JSON,
+			df:             df.JSON,
 			expr:           "name",
 			regExpTemplate: "abc.*",
 		}, wantErr: false},
@@ -4102,7 +4102,7 @@ func TestState_AssertNodeMatchesRegExp(t *testing.T) {
 name: abcdef`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.YAML,
+			df:             df.YAML,
 			expr:           "$.name",
 			regExpTemplate: "dd.*",
 		}, wantErr: true},
@@ -4112,7 +4112,7 @@ name: abcdef`,
 name: abcdef`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.YAML,
+			df:             df.YAML,
 			expr:           "$.name",
 			regExpTemplate: "abc.*",
 		}, wantErr: false},
@@ -4121,7 +4121,7 @@ name: abcdef`,
 <name>abcdef</name>`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.XML,
+			df:             df.XML,
 			expr:           "//name",
 			regExpTemplate: "abc.*",
 		}, wantErr: false},
@@ -4130,7 +4130,7 @@ name: abcdef`,
 <name>abcdef</name>`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.XML,
+			df:             df.XML,
 			expr:           "//name",
 			regExpTemplate: "dd.*",
 		}, wantErr: true},
@@ -4164,7 +4164,7 @@ name: abcdef`,
 </html>`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.HTML,
+			df:             df.HTML,
 			expr:           "//p",
 			regExpTemplate: "worl.*",
 		}, wantErr: false},
@@ -4206,7 +4206,7 @@ func ExampleAPIContext_AssertNodeMatchesRegExp() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
 
-	err := apiCtx.AssertNodeMatchesRegExp(format.JSON, "user", `ac.*`)
+	err := apiCtx.AssertNodeMatchesRegExp(df.JSON, "user", `ac.*`)
 	fmt.Println(err)
 
 	// Output:
@@ -4225,7 +4225,7 @@ func TestAPIContext_AssertNodeNotMatchesRegExp(t *testing.T) {
 		mockFunc       func()
 	}
 	type args struct {
-		df             format.DataFormat
+		df             df.DataFormat
 		expr           string
 		regExpTemplate string
 	}
@@ -4248,7 +4248,7 @@ func TestAPIContext_AssertNodeNotMatchesRegExp(t *testing.T) {
 					Return("", errors.New("err")).Once()
 			},
 		}, args: args{
-			df:             format.JSON,
+			df:             df.JSON,
 			expr:           "",
 			regExpTemplate: "abc",
 		}, wantErr: true},
@@ -4268,7 +4268,7 @@ func TestAPIContext_AssertNodeNotMatchesRegExp(t *testing.T) {
 					Return(any(""), errors.New("err")).Once()
 			},
 		}, args: args{
-			df:             format.JSON,
+			df:             df.JSON,
 			expr:           "xxx",
 			regExpTemplate: "abc",
 		}, wantErr: true},
@@ -4278,7 +4278,7 @@ func TestAPIContext_AssertNodeNotMatchesRegExp(t *testing.T) {
 }`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.JSON,
+			df:             df.JSON,
 			expr:           "name",
 			regExpTemplate: "dd.*",
 		}, wantErr: false},
@@ -4289,7 +4289,7 @@ func TestAPIContext_AssertNodeNotMatchesRegExp(t *testing.T) {
 }`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.JSON,
+			df:             df.JSON,
 			expr:           "name",
 			regExpTemplate: "abc.*",
 		}, wantErr: true},
@@ -4299,7 +4299,7 @@ func TestAPIContext_AssertNodeNotMatchesRegExp(t *testing.T) {
 name: abcdef`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.YAML,
+			df:             df.YAML,
 			expr:           "$.name",
 			regExpTemplate: "dd.*",
 		}, wantErr: false},
@@ -4309,7 +4309,7 @@ name: abcdef`,
 name: abcdef`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.YAML,
+			df:             df.YAML,
 			expr:           "$.name",
 			regExpTemplate: "abc.*",
 		}, wantErr: true},
@@ -4318,7 +4318,7 @@ name: abcdef`,
 <name>abcdef</name>`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.XML,
+			df:             df.XML,
 			expr:           "//name",
 			regExpTemplate: "abc.*",
 		}, wantErr: true},
@@ -4327,7 +4327,7 @@ name: abcdef`,
 <name>abcdef</name>`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.XML,
+			df:             df.XML,
 			expr:           "//name",
 			regExpTemplate: "dd.*",
 		}, wantErr: false},
@@ -4361,7 +4361,7 @@ name: abcdef`,
 </html>`,
 			mockFunc: func() {},
 		}, args: args{
-			df:             format.HTML,
+			df:             df.HTML,
 			expr:           "//p",
 			regExpTemplate: "World.*",
 		}, wantErr: false},
@@ -4402,7 +4402,7 @@ func ExampleAPIContext_AssertNodeNotMatchesRegExp() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
 
-	err := apiCtx.AssertNodeNotMatchesRegExp(format.JSON, "user", `ab.*`)
+	err := apiCtx.AssertNodeNotMatchesRegExp(df.JSON, "user", `ab.*`)
 	fmt.Println(err)
 
 	// Output:
@@ -4741,7 +4741,7 @@ user:
 	}
 
 	type args struct {
-		df         format.DataFormat
+		df         df.DataFormat
 		expr       string
 		jsonSchema string
 	}
@@ -4753,17 +4753,17 @@ user:
 	}{
 		//unsuccessful examples:
 		{name: "no response body", fields: fields{response: nil}, args: args{
-			df:         format.JSON,
+			df:         df.JSON,
 			expr:       "",
 			jsonSchema: "",
 		}, wantErr: true},
 		{name: "resolver could not resolve json path", fields: fields{response: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{}`))}}, args: args{
-			df:         format.JSON,
+			df:         df.JSON,
 			expr:       "",
 			jsonSchema: "",
 		}, wantErr: true},
 		{name: "invalid json schema", fields: fields{response: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(jsonData))}}, args: args{
-			df:   format.JSON,
+			df:   df.JSON,
 			expr: "data",
 			jsonSchema: `{
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4780,7 +4780,7 @@ user:
 
 		// Successful examples:
 		{name: "node value is valid according to provided JSON schema #1", fields: fields{response: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(jsonData))}}, args: args{
-			df:   format.JSON,
+			df:   df.JSON,
 			expr: "data",
 			jsonSchema: `{
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4801,7 +4801,7 @@ user:
 }`,
 		}, wantErr: false},
 		{name: "node value is valid according to provided JSON schema #2", fields: fields{response: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(jsonData))}}, args: args{
-			df:   format.JSON,
+			df:   df.JSON,
 			expr: "count",
 			jsonSchema: `{
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4812,7 +4812,7 @@ user:
 		}, wantErr: false},
 
 		{name: "yaml node value is valid according to provided JSON schema #1", fields: fields{response: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(yamlData))}}, args: args{
-			df:   format.YAML,
+			df:   df.YAML,
 			expr: "$.user.name",
 			jsonSchema: `{
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4822,7 +4822,7 @@ user:
 }`,
 		}, wantErr: false},
 		{name: "yaml node value is valid according to provided JSON schema #2", fields: fields{response: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(yamlData))}}, args: args{
-			df:   format.YAML,
+			df:   df.YAML,
 			expr: "$.user",
 			jsonSchema: `{
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5227,7 +5227,7 @@ func TestState_SaveNode(t *testing.T) {
 		isDebug      bool
 	}
 	type args struct {
-		df           format.DataFormat
+		df           df.DataFormat
 		node         string
 		variableName string
 	}
@@ -5242,7 +5242,7 @@ func TestState_SaveNode(t *testing.T) {
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "abc"
 }`))},
-		}, args: args{df: format.JSON, node: "token", variableName: "TOKEN"}, wantErr: true},
+		}, args: args{df: df.JSON, node: "token", variableName: "TOKEN"}, wantErr: true},
 		{name: "invalid node #2", fields: fields{
 			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
@@ -5251,7 +5251,7 @@ func TestState_SaveNode(t *testing.T) {
 		"last_name": "b"
 	}
 }`))},
-		}, args: args{df: format.JSON, node: "last_name", variableName: "LAST_NAME"}, wantErr: true},
+		}, args: args{df: df.JSON, node: "last_name", variableName: "LAST_NAME"}, wantErr: true},
 		{name: "valid node #1", fields: fields{
 			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
@@ -5260,7 +5260,7 @@ func TestState_SaveNode(t *testing.T) {
 		"last_name": "b"
 	}
 }`))},
-		}, args: args{df: format.JSON, node: "user.last_name", variableName: "LAST_NAME"}, wantErr: false},
+		}, args: args{df: df.JSON, node: "user.last_name", variableName: "LAST_NAME"}, wantErr: false},
 		{name: "valid node #2", fields: fields{
 			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
@@ -5269,7 +5269,7 @@ func TestState_SaveNode(t *testing.T) {
 		"last_name": "b"
 	}
 }`))},
-		}, args: args{df: format.JSON, node: "$.user", variableName: "USER"}, wantErr: false},
+		}, args: args{df: df.JSON, node: "$.user", variableName: "USER"}, wantErr: false},
 
 		//YAML
 		{name: "invalid node #1", fields: fields{
@@ -5277,7 +5277,7 @@ func TestState_SaveNode(t *testing.T) {
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`{
 	"user": "abc"
 }`))},
-		}, args: args{df: format.YAML, node: "$.token", variableName: "TOKEN"}, wantErr: true},
+		}, args: args{df: df.YAML, node: "$.token", variableName: "TOKEN"}, wantErr: true},
 		{name: "invalid node #2", fields: fields{
 			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
@@ -5286,7 +5286,7 @@ user:
    name: four
    last_name: b
 `))},
-		}, args: args{df: format.YAML, node: "$.last_name", variableName: "LAST_NAME"}, wantErr: true},
+		}, args: args{df: df.YAML, node: "$.last_name", variableName: "LAST_NAME"}, wantErr: true},
 		{name: "valid node #1", fields: fields{
 			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
@@ -5295,7 +5295,7 @@ user:
    name: four
    last_name: b
 `))},
-		}, args: args{df: format.YAML, node: "$.user.last_name", variableName: "LAST_NAME"}, wantErr: false},
+		}, args: args{df: df.YAML, node: "$.user.last_name", variableName: "LAST_NAME"}, wantErr: false},
 		{name: "valid node #2", fields: fields{
 			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`
@@ -5304,7 +5304,7 @@ user:
    name: four
    last_name: b
 `))},
-		}, args: args{df: format.YAML, node: "$.user", variableName: "USER"}, wantErr: false},
+		}, args: args{df: df.YAML, node: "$.user", variableName: "USER"}, wantErr: false},
 
 		//XML
 		{name: "invalid node #1", fields: fields{
@@ -5314,7 +5314,7 @@ user:
 	<name>abc</name>
 	<lastName>xxx</lastName>
 </user>`))},
-		}, args: args{df: format.XML, node: "//token", variableName: "TOKEN"}, wantErr: true},
+		}, args: args{df: df.XML, node: "//token", variableName: "TOKEN"}, wantErr: true},
 		{name: "invalid node #2", fields: fields{
 			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
@@ -5322,7 +5322,7 @@ user:
 	<name>abc</name>
 	<lastName>xxx</lastName>
 </user>`))},
-		}, args: args{df: format.XML, node: "//lastname", variableName: "LAST_NAME"}, wantErr: true},
+		}, args: args{df: df.XML, node: "//lastname", variableName: "LAST_NAME"}, wantErr: true},
 		{name: "valid node #1", fields: fields{
 			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
@@ -5330,7 +5330,7 @@ user:
 	<name>abc</name>
 	<lastName>xxx</lastName>
 </user>`))},
-		}, args: args{df: format.XML, node: "//lastName", variableName: "LAST_NAME"}, wantErr: false},
+		}, args: args{df: df.XML, node: "//lastName", variableName: "LAST_NAME"}, wantErr: false},
 		{name: "valid node #2", fields: fields{
 			cache: cache.NewConcurrentCache(),
 			lastResponse: &http.Response{Body: ioutil.NopCloser(bytes.NewBufferString(`<?xml version="1.0"?>
@@ -5338,7 +5338,7 @@ user:
 	<name>abc</name>
 	<lastName>xxx</lastName>
 </user>`))},
-		}, args: args{df: format.XML, node: "//user[1]//name", variableName: "USER"}, wantErr: false},
+		}, args: args{df: df.XML, node: "//user[1]//name", variableName: "USER"}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5368,7 +5368,7 @@ func ExampleAPIContext_SaveNode() {
 	// we simply mock last HTTP(s) request's response
 	apiCtx.Cache.Save(httpcache.LastHTTPResponseCacheKey, &http.Response{Body: io.NopCloser(strings.NewReader(`{"user": "abc"}`))})
 
-	err := apiCtx.SaveNode(format.JSON, "user", "USER_NAME")
+	err := apiCtx.SaveNode(df.JSON, "user", "USER_NAME")
 	if err != nil {
 		fmt.Println(err)
 
