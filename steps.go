@@ -19,10 +19,9 @@ import (
 	"time"
 
 	"github.com/goccy/go-yaml"
-	"github.com/moul/http2curl"
-	"github.com/pawelWritesCode/df"
-
 	ch "github.com/pawelWritesCode/charset"
+	"github.com/pawelWritesCode/df"
+	"moul.io/http2curl/v2"
 
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
