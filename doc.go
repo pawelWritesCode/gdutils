@@ -12,22 +12,22 @@
 //
 // No matter which way you choose, you can inject your custom services afterwards with one of available setters:
 //
-//	func (apiCtx *APIContext) SetDebugger(d debugger.Debugger)
-//	func (apiCtx *APIContext) SetCache(c cache.Cache)
-//	func (apiCtx *APIContext) SetRequestDoer(r httpctx.RequestDoer)
-//	func (apiCtx *APIContext) SetTemplateEngine(t template.Engine)
+//	func (apiCtx *APIContext) SetDebugger(d debuggable)
+//	func (apiCtx *APIContext) SetCache(c cacheable)
+//	func (apiCtx *APIContext) SetRequestDoer(r requestDoer)
+//	func (apiCtx *APIContext) SetTemplateEngine(t templateEngine)
 //	func (apiCtx *APIContext) SetSchemaStringValidator(j validator.SchemaValidator)
 //	func (apiCtx *APIContext) SetSchemaReferenceValidator(j validator.SchemaValidator)
-//	func (apiCtx *APIContext) SetJSONPathFinder(r pathfinder.PathFinder)
-//	func (apiCtx *APIContext) SetJSONFormatter(jf formatter.Formatter)
-//	func (apiCtx *APIContext) SetXMLPathFinder(r pathfinder.PathFinder)
-//	func (apiCtx *APIContext) SetXMLFormatter(xf formatter.Formatter)
-//	func (apiCtx *APIContext) SetYAMLFormatter(yd formatter.Formatter)
-//	func (apiCtx *APIContext) SetYAMLPathFinder(r pathfinder.PathFinder)
-//	func (apiCtx *APIContext) SetHTMLPathFinder(r pathfinder.PathFinder)
-//	func (apiCtx *APIContext) SetJSONTypeMapper(c types.Checker)
-//	func (apiCtx *APIContext) SetYAMLTypeMapper(c types.Checker)
-//	func (apiCtx *APIContext) SetGoTypeMapper(c types.Checker)
+//	func (apiCtx *APIContext) SetJSONPathFinder(r pathFinder)
+//	func (apiCtx *APIContext) SetJSONFormatter(jf serializable)
+//	func (apiCtx *APIContext) SetXMLPathFinder(r pathFinder)
+//	func (apiCtx *APIContext) SetXMLFormatter(xf serializable)
+//	func (apiCtx *APIContext) SetYAMLPathFinder(r pathFinder)
+//	func (apiCtx *APIContext) SetYAMLFormatter(yd serializable)
+//	func (apiCtx *APIContext) SetHTMLPathFinder(r pathFinder)
+//	func (apiCtx *APIContext) SetJSONTypeMapper(c typeMapper)
+//	func (apiCtx *APIContext) SetYAMLTypeMapper(c typeMapper)
+//	func (apiCtx *APIContext) SetGoTypeMapper(c typeMapper)
 //
 // Those services will be used in utility methods and can be accessed directly if needed (to use in any custom methods).
 // For example, if you want to use your own debugger - because default one is not suitable for you, create your own struct,

@@ -32,12 +32,6 @@ const (
 	Any DataType = "any"
 )
 
-// Mapper is entity that has ability to map data's type into corresponding DataType of given format.
-type Mapper interface {
-	// Map maps data type.
-	Map(data any) DataType
-}
-
 // IsValidJSONDataType checks whether is valid JSON data type.
 func (dt DataType) IsValidJSONDataType() bool {
 	dts := []DataType{Null, Array, Object, Number, Boolean, String}

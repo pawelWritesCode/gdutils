@@ -17,12 +17,6 @@ var (
 	ErrMissingStorageValue = errors.New("missing storage value")
 )
 
-// Engine is entity that has ability to work with templates.
-type Engine interface {
-	// Replace replaces template values using provided storage.
-	Replace(templateValue string, storage map[string]any) (string, error)
-}
-
 // TemplateManager is entity that has ability to manage templates.
 type TemplateManager struct{}
 
