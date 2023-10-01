@@ -6,10 +6,10 @@ import (
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
 	"github.com/pawelWritesCode/gdutils/pkg/debugger"
-	"github.com/pawelWritesCode/gdutils/pkg/formatter"
 	"github.com/pawelWritesCode/gdutils/pkg/osutils"
 	"github.com/pawelWritesCode/gdutils/pkg/pathfinder"
 	"github.com/pawelWritesCode/gdutils/pkg/schema"
+	"github.com/pawelWritesCode/gdutils/pkg/serializer"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
 	"github.com/pawelWritesCode/gdutils/pkg/types"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
@@ -35,8 +35,8 @@ type APIContext struct {
 	// PathFinders are entities that has ability to obtain data from different data formats.
 	PathFinders PathFinders
 
-	// Formatters are entities that has ability to format data in particular format.
-	Formatters Formatters
+	// Serializers are entities that has ability to serialize and deserialize data in particular format.
+	Serializers Serializers
 
 	// TypeMappers are entities that has ability to map underlying data type into different format data type.
 	TypeMappers TypeMappers
@@ -45,8 +45,8 @@ type APIContext struct {
 	fileRecognizer fileRecognizer
 }
 
-// Formatters is container for entities that know how to serialize and deserialize data.
-type Formatters struct {
+// Serializers is container for entities that know how to serialize and deserialize data.
+type Serializers struct {
 	// JSON is entity that has ability to serialize and deserialize JSON bytes.
 	JSON serializable
 
@@ -131,10 +131,10 @@ func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext {
 		HTML: pathfinder.NewAntchfxHTMLFinder(),
 	}
 
-	formatters := Formatters{
-		JSON: formatter.NewJSONFormatter(),
-		YAML: formatter.NewYAMLFormatter(),
-		XML:  formatter.NewXMLFormatter(),
+	serializers := Serializers{
+		JSON: serializer.NewJSONFormatter(),
+		YAML: serializer.NewYAMLFormatter(),
+		XML:  serializer.NewXMLFormatter(),
 	}
 
 	typeMappers := TypeMappers{
@@ -145,13 +145,11 @@ func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext {
 
 	defaultDebugger := debugger.NewDefault(isDebug)
 
-	return NewAPIContext(defaultHttpClient, defaultCache, jsonSchemaValidators, pathFinders, formatters, typeMappers, defaultDebugger)
+	return NewAPIContext(defaultHttpClient, defaultCache, jsonSchemaValidators, pathFinders, serializers, typeMappers, defaultDebugger)
 }
 
 // NewAPIContext returns *APIContext
-func NewAPIContext(cli *http.Client, c cacheable, jv SchemaValidators, p PathFinders, f Formatters, t TypeMappers, d debuggable) *APIContext {
-	fileRecognizer := osutils.NewOSFileRecognizer("file://", osutils.NewFileValidator())
-
+func NewAPIContext(cli *http.Client, c cacheable, jv SchemaValidators, p PathFinders, s Serializers, t TypeMappers, d debuggable) *APIContext {
 	return &APIContext{
 		Debugger:         d,
 		Cache:            c,
@@ -159,9 +157,9 @@ func NewAPIContext(cli *http.Client, c cacheable, jv SchemaValidators, p PathFin
 		TemplateEngine:   template.New(),
 		SchemaValidators: jv,
 		PathFinders:      p,
-		Formatters:       f,
+		Serializers:      s,
 		TypeMappers:      t,
-		fileRecognizer:   fileRecognizer,
+		fileRecognizer:   osutils.NewOSFileRecognizer("file://", osutils.NewFileValidator()),
 	}
 }
 
@@ -221,19 +219,19 @@ func (apiCtx *APIContext) SetHTMLPathFinder(r pathFinder) {
 	apiCtx.PathFinders.HTML = r
 }
 
-// SetJSONFormatter sets new JSON formatter for APIContext.
-func (apiCtx *APIContext) SetJSONFormatter(jf serializable) {
-	apiCtx.Formatters.JSON = jf
+// SetJSONSerializer sets new JSON serializer for APIContext.
+func (apiCtx *APIContext) SetJSONSerializer(jf serializable) {
+	apiCtx.Serializers.JSON = jf
 }
 
-// SetYAMLFormatter sets new YAML formatter for APIContext.
-func (apiCtx *APIContext) SetYAMLFormatter(yd serializable) {
-	apiCtx.Formatters.YAML = yd
+// SetYAMLSerializer sets new YAML serializer for APIContext.
+func (apiCtx *APIContext) SetYAMLSerializer(yd serializable) {
+	apiCtx.Serializers.YAML = yd
 }
 
-// SetXMLFormatter sets new XML formatter for APIContext.
-func (apiCtx *APIContext) SetXMLFormatter(xf serializable) {
-	apiCtx.Formatters.XML = xf
+// SetXMLSerializer sets new XML serializer for APIContext.
+func (apiCtx *APIContext) SetXMLSerializer(xf serializable) {
+	apiCtx.Serializers.XML = xf
 }
 
 // SetJSONTypeMapper sets new type mapper for JSON.

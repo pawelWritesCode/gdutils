@@ -8,7 +8,7 @@
 //
 // Second, more customisable returns *APIContext with provided services:
 //
-//	func NewAPIContext(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, f Formatters, t TypeMappers, d debugger.Debugger) *APIContext
+//	func NewAPIContext(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, f Serializers, t TypeMappers, d debugger.Debugger) *APIContext
 //
 // No matter which way you choose, you can inject your custom services afterwards with one of available setters:
 //
@@ -19,11 +19,11 @@
 //	func (apiCtx *APIContext) SetSchemaStringValidator(j validator.SchemaValidator)
 //	func (apiCtx *APIContext) SetSchemaReferenceValidator(j validator.SchemaValidator)
 //	func (apiCtx *APIContext) SetJSONPathFinder(r pathFinder)
-//	func (apiCtx *APIContext) SetJSONFormatter(jf serializable)
+//	func (apiCtx *APIContext) SetJSONSerializer(jf serializable)
 //	func (apiCtx *APIContext) SetXMLPathFinder(r pathFinder)
-//	func (apiCtx *APIContext) SetXMLFormatter(xf serializable)
+//	func (apiCtx *APIContext) SetXMLSerializer(xf serializable)
 //	func (apiCtx *APIContext) SetYAMLPathFinder(r pathFinder)
-//	func (apiCtx *APIContext) SetYAMLFormatter(yd serializable)
+//	func (apiCtx *APIContext) SetYAMLSerializer(yd serializable)
 //	func (apiCtx *APIContext) SetHTMLPathFinder(r pathFinder)
 //	func (apiCtx *APIContext) SetJSONTypeMapper(c typeMapper)
 //	func (apiCtx *APIContext) SetYAMLTypeMapper(c typeMapper)

@@ -74,9 +74,9 @@ func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate stri
 
 	switch dataFormat {
 	case df.JSON:
-		err = apiCtx.Formatters.JSON.Deserialize([]byte(input), &bodyAndHeaders)
+		err = apiCtx.Serializers.JSON.Deserialize([]byte(input), &bodyAndHeaders)
 	case df.YAML:
-		err = apiCtx.Formatters.YAML.Deserialize([]byte(input), &bodyAndHeaders)
+		err = apiCtx.Serializers.YAML.Deserialize([]byte(input), &bodyAndHeaders)
 	default:
 		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", df.JSON, df.YAML)
 	}
@@ -88,9 +88,9 @@ func (apiCtx *APIContext) RequestSendWithBodyAndHeaders(method, urlTemplate stri
 	var reqBody []byte
 	switch dataFormat {
 	case df.JSON:
-		reqBody, err = apiCtx.Formatters.JSON.Serialize(bodyAndHeaders.Body)
+		reqBody, err = apiCtx.Serializers.JSON.Serialize(bodyAndHeaders.Body)
 	case df.YAML:
-		reqBody, err = apiCtx.Formatters.YAML.Serialize(bodyAndHeaders.Body)
+		reqBody, err = apiCtx.Serializers.YAML.Serialize(bodyAndHeaders.Body)
 	default:
 		err = fmt.Errorf("could not recognize data format. Check your data, maybe you have typo somewhere or syntax error. Supported formats are: %s, %s", df.JSON, df.YAML)
 	}
@@ -160,11 +160,11 @@ func (apiCtx *APIContext) RequestSetHeaders(cacheKey, headersTemplate string) er
 	var headersMap map[string]string
 	headersBytes := []byte(headers)
 	if df.IsJSON(headersBytes) {
-		if err = apiCtx.Formatters.JSON.Deserialize(headersBytes, &headersMap); err != nil {
+		if err = apiCtx.Serializers.JSON.Deserialize(headersBytes, &headersMap); err != nil {
 			return fmt.Errorf("could not deserialize provided headers, err: %w", err)
 		}
 	} else if df.IsYAML(headersBytes) {
-		if err = apiCtx.Formatters.YAML.Deserialize(headersBytes, &headersMap); err != nil {
+		if err = apiCtx.Serializers.YAML.Deserialize(headersBytes, &headersMap); err != nil {
 			return fmt.Errorf("could not deserialize provided headers, err: %w", err)
 		}
 	} else if df.IsXML(headersBytes) {
@@ -223,11 +223,11 @@ func (apiCtx *APIContext) RequestSetCookies(cacheKey, cookiesTemplate string) er
 
 	userCookiesBytes := []byte(userCookies)
 	if df.IsJSON(userCookiesBytes) {
-		if err = apiCtx.Formatters.JSON.Deserialize(userCookiesBytes, &cookies); err != nil {
+		if err = apiCtx.Serializers.JSON.Deserialize(userCookiesBytes, &cookies); err != nil {
 			return fmt.Errorf("could not deserialize provided cookies, err: %w", err)
 		}
 	} else if df.IsYAML(userCookiesBytes) {
-		if err = apiCtx.Formatters.YAML.Deserialize(userCookiesBytes, &cookies); err != nil {
+		if err = apiCtx.Serializers.YAML.Deserialize(userCookiesBytes, &cookies); err != nil {
 			return fmt.Errorf("could not deserialize provided cookies, err: %w", err)
 		}
 	} else if df.IsXML(userCookiesBytes) {
@@ -264,9 +264,9 @@ func (apiCtx *APIContext) RequestSetForm(cacheKey, formTemplate string) error {
 	var formKeyVal map[string]string
 	formBytes := []byte(form)
 	if df.IsJSON(formBytes) {
-		err = apiCtx.Formatters.JSON.Deserialize(formBytes, &formKeyVal)
+		err = apiCtx.Serializers.JSON.Deserialize(formBytes, &formKeyVal)
 	} else if df.IsYAML(formBytes) {
-		err = apiCtx.Formatters.YAML.Deserialize(formBytes, &formKeyVal)
+		err = apiCtx.Serializers.YAML.Deserialize(formBytes, &formKeyVal)
 	} else if df.IsXML(formBytes) {
 		return fmt.Errorf("this method does not support data in format: %s", df.XML)
 	} else {
@@ -1031,7 +1031,7 @@ func (apiCtx *APIContext) AssertNodeMatchesRegExp(dataFormat df.DataFormat, expr
 		return fmt.Errorf("node '%s', err: %s", expr, err.Error())
 	}
 
-	jsonValue, err := apiCtx.Formatters.JSON.Serialize(iValue)
+	jsonValue, err := apiCtx.Serializers.JSON.Serialize(iValue)
 	if err != nil {
 		return fmt.Errorf("problem during serialization, err: %w", err)
 	}
@@ -1074,7 +1074,7 @@ func (apiCtx *APIContext) AssertNodeNotMatchesRegExp(dataFormat df.DataFormat, e
 		return fmt.Errorf("node '%s', err: %s", expr, err.Error())
 	}
 
-	jsonValue, err := apiCtx.Formatters.JSON.Serialize(iValue)
+	jsonValue, err := apiCtx.Serializers.JSON.Serialize(iValue)
 	if err != nil {
 		return fmt.Errorf("problem during serialization, err: %w", err)
 	}
@@ -1511,7 +1511,7 @@ func (apiCtx *APIContext) DebugPrintResponseBody() error {
 	}()
 
 	if df.IsYAML(body) {
-		err = apiCtx.Formatters.YAML.Deserialize(body, &tmp)
+		err = apiCtx.Serializers.YAML.Deserialize(body, &tmp)
 		if err != nil {
 			return nil
 		}
@@ -1526,7 +1526,7 @@ func (apiCtx *APIContext) DebugPrintResponseBody() error {
 	}
 
 	if df.IsJSON(body) {
-		err = apiCtx.Formatters.JSON.Deserialize(body, &tmp)
+		err = apiCtx.Serializers.JSON.Deserialize(body, &tmp)
 		if err != nil {
 			return nil
 		}
@@ -1541,7 +1541,7 @@ func (apiCtx *APIContext) DebugPrintResponseBody() error {
 	}
 
 	if df.IsXML(body) {
-		err = apiCtx.Formatters.XML.Deserialize(body, &tmp)
+		err = apiCtx.Serializers.XML.Deserialize(body, &tmp)
 		if err != nil {
 			return nil
 		}
@@ -1665,7 +1665,7 @@ func (apiCtx *APIContext) iValidateNodeWithSchemaGeneral(dataFormat df.DataForma
 		return err
 	}
 
-	jsonNode, err := apiCtx.Formatters.JSON.Serialize(node)
+	jsonNode, err := apiCtx.Serializers.JSON.Serialize(node)
 	if err != nil {
 		return fmt.Errorf("problem during formatting data to JSON, err: %w", err)
 	}
