@@ -7,9 +7,9 @@ import (
 
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
 	"github.com/pawelWritesCode/gdutils/pkg/debugger"
-	"github.com/pawelWritesCode/gdutils/pkg/formatter"
 	"github.com/pawelWritesCode/gdutils/pkg/pathfinder"
 	"github.com/pawelWritesCode/gdutils/pkg/schema"
+	"github.com/pawelWritesCode/gdutils/pkg/serializer"
 	"github.com/pawelWritesCode/gdutils/pkg/template"
 )
 
@@ -25,13 +25,13 @@ type newStringValidator struct{}
 
 type newPathFinder struct{}
 
-type newFormatter struct{}
+type newSerializer struct{}
 
-func (n newFormatter) Deserialize(data []byte, v any) error {
+func (n newSerializer) Deserialize(data []byte, v any) error {
 	panic("implement me")
 }
 
-func (n newFormatter) Serialize(v any) ([]byte, error) {
+func (n newSerializer) Serialize(v any) ([]byte, error) {
 	panic("implement me")
 }
 
@@ -245,50 +245,50 @@ func TestState_SetXMLPathFinder(t *testing.T) {
 	}
 }
 
-func TestState_SetJSONFormatter(t *testing.T) {
+func TestState_SetJSONSerializer(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 
-	_, isDefault := s.Formatters.JSON.(formatter.JSONFormatter)
+	_, isDefault := s.Serializers.JSON.(serializer.JSON)
 	if !isDefault {
 		t.Errorf("default JSON Formatter is not formatter.JSONFormatter")
 	}
 
-	s.SetJSONFormatter(newFormatter{})
+	s.SetJSONSerializer(newSerializer{})
 
-	_, isNewFormatter := s.Formatters.JSON.(newFormatter)
+	_, isNewFormatter := s.Serializers.JSON.(newSerializer)
 	if !isNewFormatter {
-		t.Errorf("SetJSONFormatter does not work properly")
+		t.Errorf("SetJSONSerializer does not work properly")
 	}
 }
 
-func TestState_SetYAMLFormatter(t *testing.T) {
+func TestState_SetYAMLSerializer(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 
-	_, isDefault := s.Formatters.YAML.(formatter.YAMLFormatter)
+	_, isDefault := s.Serializers.YAML.(serializer.YAML)
 	if !isDefault {
 		t.Errorf("default JSON Formatter is not formatter.YAMLFormatter")
 	}
 
-	s.SetYAMLFormatter(newFormatter{})
+	s.SetYAMLSerializer(newSerializer{})
 
-	_, isNewFormatter := s.Formatters.YAML.(newFormatter)
+	_, isNewFormatter := s.Serializers.YAML.(newSerializer)
 	if !isNewFormatter {
-		t.Errorf("SetYAMLFormatter does not work properly")
+		t.Errorf("SetYAMLSerializer does not work properly")
 	}
 }
 
-func TestState_SetXMLFormatter(t *testing.T) {
+func TestState_SetXMLSerializer(t *testing.T) {
 	s := NewDefaultAPIContext(false, "")
 
-	_, isDefault := s.Formatters.XML.(formatter.XMLFormatter)
+	_, isDefault := s.Serializers.XML.(serializer.XML)
 	if !isDefault {
 		t.Errorf("default XML Formatter is not formatter.XMLFormatter")
 	}
 
-	s.SetXMLFormatter(newFormatter{})
+	s.SetXMLSerializer(newSerializer{})
 
-	_, isNewFormatter := s.Formatters.XML.(newFormatter)
+	_, isNewFormatter := s.Serializers.XML.(newSerializer)
 	if !isNewFormatter {
-		t.Errorf("SetXMLFormatter does not work properly")
+		t.Errorf("SetXMLSerializer does not work properly")
 	}
 }

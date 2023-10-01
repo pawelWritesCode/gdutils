@@ -413,7 +413,7 @@ func TestState_RequestSetCookies(t *testing.T) {
 			s := NewDefaultAPIContext(false, "")
 
 			if tt.wantErr {
-				s.SetJSONFormatter(mFormatter)
+				s.SetJSONSerializer(mFormatter)
 				s.SetTemplateEngine(mTemplateEngine)
 			}
 			tt.fields.mockFunc()
