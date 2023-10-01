@@ -8,12 +8,8 @@ import (
 
 	"github.com/antchfx/jsonquery"
 	"github.com/oliveagle/jsonpath"
-	"github.com/pawelWritesCode/qjson"
 	"github.com/tidwall/gjson"
 )
-
-// QJSONFinder represents implementation of JSON path from https://github.com/pawelWritesCode/qjson library
-type QJSONFinder struct{}
 
 // OliveagleJSONFinder represents implementation of JSON path from https://github.com/oliveagle/jsonpath library
 type OliveagleJSONFinder struct{}
@@ -33,10 +29,6 @@ type DynamicJSONPathFinder struct {
 	antchfxJSONQuery    AntchfxJSONQueryFinder
 }
 
-func NewQJSONFinder() QJSONFinder {
-	return QJSONFinder{}
-}
-
 func NewOliveagleJSONFinder() OliveagleJSONFinder {
 	return OliveagleJSONFinder{}
 }
@@ -51,11 +43,6 @@ func NewAntchfxJSONQueryFinder() AntchfxJSONQueryFinder {
 
 func NewDynamicJSONPathFinder(gjson GJSONFinder, oliveagleJSONFinder OliveagleJSONFinder, antchfxJSONQuery AntchfxJSONQueryFinder) *DynamicJSONPathFinder {
 	return &DynamicJSONPathFinder{gjson: gjson, oliveagleJSONFinder: oliveagleJSONFinder, antchfxJSONQuery: antchfxJSONQuery}
-}
-
-// Find obtains data from jsonBytes according to given expr valid with pawelWritesCode/qjson library
-func (Q QJSONFinder) Find(expr string, jsonBytes []byte) (any, error) {
-	return qjson.Resolve(expr, jsonBytes)
 }
 
 // Find obtains data from jsonBytes according to given expr.

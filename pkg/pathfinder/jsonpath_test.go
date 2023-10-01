@@ -47,61 +47,6 @@ var jsonBytes = []byte(`{
     "expensive": 10
 }`)
 
-func TestQJSONFinder_Find(t *testing.T) {
-	type args struct {
-		expr      string
-		jsonBytes []byte
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    any
-		wantErr bool
-	}{
-		{name: "no expression", args: args{
-			expr:      "",
-			jsonBytes: []byte(""),
-		}, want: nil, wantErr: true},
-		{name: "no jsonBytes", args: args{
-			expr:      "data",
-			jsonBytes: []byte(""),
-		}, want: nil, wantErr: true},
-		{name: "expression points to nothing", args: args{
-			expr:      "data",
-			jsonBytes: jsonBytes,
-		}, want: nil, wantErr: true},
-		{name: "successful fetch data #1", args: args{
-			expr:      "store.book[0].category",
-			jsonBytes: jsonBytes,
-		}, want: any("reference"), wantErr: false},
-		{name: "successful fetch data #2", args: args{
-			expr:      "store.book[1].price",
-			jsonBytes: jsonBytes,
-		}, want: any(float64(12.99)), wantErr: false},
-		{name: "successful fetch data #3", args: args{
-			expr:      "store.book[2].available",
-			jsonBytes: jsonBytes,
-		}, want: any(true), wantErr: false},
-		{name: "successful fetch data #4", args: args{
-			expr:      "store.bicycle",
-			jsonBytes: jsonBytes,
-		}, want: any(map[string]any{"color": "red", "price": float64(19.95)}), wantErr: false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			Q := QJSONFinder{}
-			got, err := Q.Find(tt.args.expr, tt.args.jsonBytes)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Find() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Find() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestOliveagleJSONFInder_Find(t *testing.T) {
 	type args struct {
 		expr      string
