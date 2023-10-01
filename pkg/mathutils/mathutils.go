@@ -4,7 +4,6 @@ package mathutils
 import (
 	"fmt"
 	"math/rand"
-	"time"
 )
 
 // RandomInt returns random int from provided range.
@@ -14,8 +13,17 @@ func RandomInt(from, to int) (int, error) {
 		return 0, fmt.Errorf("could not generate random int because %d is less than %d", from, to)
 	}
 
-	rand.Seed(time.Now().UnixNano())
 	return rand.Intn(to-from+1) + from, nil
+}
+
+// MustRandomInt returns random int from provided range.
+// "from" should be less or equal than "to" otherwise function will panic
+func MustRandomInt(from, to int) int {
+	if to < from {
+		panic("'from' should be less or equal than 'to'")
+	}
+
+	return rand.Intn(to-from+1) + from
 }
 
 // RandomFloat64 returns random float from provided range.
@@ -25,4 +33,14 @@ func RandomFloat64(from, to float64) (float64, error) {
 	}
 
 	return from + rand.Float64()*(to-from), nil
+}
+
+// MustRandomFloat64 returns random float from provided range.
+// "from" should be less or equal than "to" otherwise function will panic
+func MustRandomFloat64(from, to float64) float64 {
+	if to < from {
+		panic("'from' should be less or equal than 'to'")
+	}
+
+	return from + rand.Float64()*(to-from)
 }
