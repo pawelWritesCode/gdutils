@@ -9,15 +9,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Formatter describes ability to serialize and deserialize data
-type Formatter interface {
-	// Deserialize deserializes data on v
-	Deserialize(data []byte, v any) error
-
-	// Serialize serializes v
-	Serialize(v any) ([]byte, error)
-}
-
 // JSONFormatter is entity that has ability to work with JSON format
 type JSONFormatter struct{}
 

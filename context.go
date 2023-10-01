@@ -7,7 +7,6 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
 	"github.com/pawelWritesCode/gdutils/pkg/debugger"
 	"github.com/pawelWritesCode/gdutils/pkg/formatter"
-	"github.com/pawelWritesCode/gdutils/pkg/httpctx"
 	"github.com/pawelWritesCode/gdutils/pkg/osutils"
 	"github.com/pawelWritesCode/gdutils/pkg/pathfinder"
 	"github.com/pawelWritesCode/gdutils/pkg/schema"
@@ -19,16 +18,16 @@ import (
 // APIContext holds utility services for working with HTTP(s) API.
 type APIContext struct {
 	// Debugger represents debugger.
-	Debugger debugger.Debugger
+	Debugger debuggable
 
 	// Cache is storage for data.
-	Cache cache.Cache
+	Cache cacheable
 
 	// RequestDoer is service that has ability to send HTTP(s) requests.
-	RequestDoer httpctx.RequestDoer
+	RequestDoer requestDoer
 
 	// TemplateEngine is entity that has ability to work with template values.
-	TemplateEngine template.Engine
+	TemplateEngine templateEngine
 
 	// SchemaValidators holds validators available to validate data against schemas.
 	SchemaValidators SchemaValidators
@@ -43,19 +42,19 @@ type APIContext struct {
 	TypeMappers TypeMappers
 
 	// fileRecognizer is entity that has ability to recognize file reference.
-	fileRecognizer osutils.FileRecognizer
+	fileRecognizer fileRecognizer
 }
 
 // Formatters is container for entities that know how to serialize and deserialize data.
 type Formatters struct {
 	// JSON is entity that has ability to serialize and deserialize JSON bytes.
-	JSON formatter.Formatter
+	JSON serializable
 
 	// YAML is entity that has ability to serialize and deserialize YAML bytes.
-	YAML formatter.Formatter
+	YAML serializable
 
 	// XML is entity that has ability to serialize and deserialize XML bytes.
-	XML formatter.Formatter
+	XML serializable
 }
 
 // SchemaValidators is container for JSON schema validators.
@@ -71,28 +70,28 @@ type SchemaValidators struct {
 // PathFinders is container for different data types pathfinders.
 type PathFinders struct {
 	// JSON is entity that has ability to obtain data from bytes in JSON format.
-	JSON pathfinder.PathFinder
+	JSON pathFinder
 
 	// YAML is entity that has ability to obtain data from bytes in YAML format.
-	YAML pathfinder.PathFinder
+	YAML pathFinder
 
 	// XML is entity that has ability to obtain data from bytes in XML format.
-	XML pathfinder.PathFinder
+	XML pathFinder
 
 	// HTML is entity that has ability to obtain data from bytes in HTML format.
-	HTML pathfinder.PathFinder
+	HTML pathFinder
 }
 
 // TypeMappers is container for different data format mappers
 type TypeMappers struct {
 	// JSON is entity that has ability to map underlying data type into JSON data type
-	JSON types.Mapper
+	JSON typeMapper
 
 	// YAML is entity that has ability to map underlying data type into YAML data type
-	YAML types.Mapper
+	YAML typeMapper
 
 	// GO is entity that has ability to map underlying data type into GO-like data type
-	GO types.Mapper
+	GO typeMapper
 }
 
 type CustomTransport struct {
@@ -150,7 +149,7 @@ func NewDefaultAPIContext(isDebug bool, jsonSchemaDir string) *APIContext {
 }
 
 // NewAPIContext returns *APIContext
-func NewAPIContext(cli *http.Client, c cache.Cache, jv SchemaValidators, p PathFinders, f Formatters, t TypeMappers, d debugger.Debugger) *APIContext {
+func NewAPIContext(cli *http.Client, c cacheable, jv SchemaValidators, p PathFinders, f Formatters, t TypeMappers, d debuggable) *APIContext {
 	fileRecognizer := osutils.NewOSFileRecognizer("file://", osutils.NewFileValidator())
 
 	return &APIContext{
@@ -173,22 +172,22 @@ func (apiCtx *APIContext) ResetState(isDebug bool) {
 }
 
 // SetDebugger sets new debugger for APIContext.
-func (apiCtx *APIContext) SetDebugger(d debugger.Debugger) {
+func (apiCtx *APIContext) SetDebugger(d debuggable) {
 	apiCtx.Debugger = d
 }
 
-// SetCache sets new Cache for APIContext.
-func (apiCtx *APIContext) SetCache(c cache.Cache) {
+// SetCache sets new cacheable for APIContext.
+func (apiCtx *APIContext) SetCache(c cacheable) {
 	apiCtx.Cache = c
 }
 
 // SetRequestDoer sets new RequestDoer for APIContext.
-func (apiCtx *APIContext) SetRequestDoer(r httpctx.RequestDoer) {
+func (apiCtx *APIContext) SetRequestDoer(r requestDoer) {
 	apiCtx.RequestDoer = r
 }
 
 // SetTemplateEngine sets new template Engine for APIContext.
-func (apiCtx *APIContext) SetTemplateEngine(t template.Engine) {
+func (apiCtx *APIContext) SetTemplateEngine(t templateEngine) {
 	apiCtx.TemplateEngine = t
 }
 
@@ -203,51 +202,51 @@ func (apiCtx *APIContext) SetSchemaReferenceValidator(j validator.SchemaValidato
 }
 
 // SetJSONPathFinder sets new JSON pathfinder for APIContext.
-func (apiCtx *APIContext) SetJSONPathFinder(r pathfinder.PathFinder) {
+func (apiCtx *APIContext) SetJSONPathFinder(r pathFinder) {
 	apiCtx.PathFinders.JSON = r
 }
 
 // SetYAMLPathFinder sets new YAML pathfinder for APIContext.
-func (apiCtx *APIContext) SetYAMLPathFinder(r pathfinder.PathFinder) {
+func (apiCtx *APIContext) SetYAMLPathFinder(r pathFinder) {
 	apiCtx.PathFinders.YAML = r
 }
 
 // SetXMLPathFinder sets new XML pathfinder for APIContext.
-func (apiCtx *APIContext) SetXMLPathFinder(r pathfinder.PathFinder) {
+func (apiCtx *APIContext) SetXMLPathFinder(r pathFinder) {
 	apiCtx.PathFinders.XML = r
 }
 
 // SetHTMLPathFinder sets new HTML pathfinder for APIContext.
-func (apiCtx *APIContext) SetHTMLPathFinder(r pathfinder.PathFinder) {
+func (apiCtx *APIContext) SetHTMLPathFinder(r pathFinder) {
 	apiCtx.PathFinders.HTML = r
 }
 
 // SetJSONFormatter sets new JSON formatter for APIContext.
-func (apiCtx *APIContext) SetJSONFormatter(jf formatter.Formatter) {
+func (apiCtx *APIContext) SetJSONFormatter(jf serializable) {
 	apiCtx.Formatters.JSON = jf
 }
 
 // SetYAMLFormatter sets new YAML formatter for APIContext.
-func (apiCtx *APIContext) SetYAMLFormatter(yd formatter.Formatter) {
+func (apiCtx *APIContext) SetYAMLFormatter(yd serializable) {
 	apiCtx.Formatters.YAML = yd
 }
 
 // SetXMLFormatter sets new XML formatter for APIContext.
-func (apiCtx *APIContext) SetXMLFormatter(xf formatter.Formatter) {
+func (apiCtx *APIContext) SetXMLFormatter(xf serializable) {
 	apiCtx.Formatters.XML = xf
 }
 
 // SetJSONTypeMapper sets new type mapper for JSON.
-func (apiCtx *APIContext) SetJSONTypeMapper(c types.Mapper) {
+func (apiCtx *APIContext) SetJSONTypeMapper(c typeMapper) {
 	apiCtx.TypeMappers.JSON = c
 }
 
 // SetYAMLTypeMapper sets new type mapper for YAML.
-func (apiCtx *APIContext) SetYAMLTypeMapper(c types.Mapper) {
+func (apiCtx *APIContext) SetYAMLTypeMapper(c typeMapper) {
 	apiCtx.TypeMappers.YAML = c
 }
 
 // SetGoTypeMapper sets new type mapper for Go.
-func (apiCtx *APIContext) SetGoTypeMapper(c types.Mapper) {
+func (apiCtx *APIContext) SetGoTypeMapper(c typeMapper) {
 	apiCtx.TypeMappers.GO = c
 }

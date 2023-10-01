@@ -8,12 +8,6 @@ import (
 	v "github.com/pawelWritesCode/gdutils/pkg/validator"
 )
 
-// FileRecognizer describes entity that has ability to find file reference in input
-type FileRecognizer interface {
-	// Recognize recognizes file reference in provided input
-	Recognize(input string) (FileReference, bool)
-}
-
 // FileValidator has ability to validate whether path points at any file on user OS
 type FileValidator struct{}
 

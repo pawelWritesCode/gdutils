@@ -20,7 +20,6 @@ import (
 	"github.com/pawelWritesCode/gdutils/pkg/cache"
 	"github.com/pawelWritesCode/gdutils/pkg/httpcache"
 	"github.com/pawelWritesCode/gdutils/pkg/mathutils"
-	"github.com/pawelWritesCode/gdutils/pkg/template"
 	"github.com/pawelWritesCode/gdutils/pkg/timeutils"
 	"github.com/pawelWritesCode/gdutils/pkg/types"
 	"github.com/pawelWritesCode/gdutils/pkg/validator"
@@ -4017,7 +4016,7 @@ func TestState_AssertNodeMatchesRegExp(t *testing.T) {
 
 	type fields struct {
 		cacheKeys      map[string]any
-		templateEngine template.Engine
+		templateEngine templateEngine
 		pathResolvers  PathFinders
 		respBody       string
 		mockFunc       func()
@@ -4214,7 +4213,7 @@ func TestAPIContext_AssertNodeNotMatchesRegExp(t *testing.T) {
 
 	type fields struct {
 		cacheKeys      map[string]any
-		templateEngine template.Engine
+		templateEngine templateEngine
 		pathResolvers  PathFinders
 		respBody       string
 		mockFunc       func()
@@ -4902,7 +4901,7 @@ func TestState_AssertResponseCookieValueIs(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 
 	type fields struct {
-		TemplateEngine template.Engine
+		TemplateEngine templateEngine
 		response       *http.Response
 		mockFunc       func()
 	}
@@ -4964,7 +4963,7 @@ func TestState_AssertResponseCookieExists(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 
 	type fields struct {
-		TemplateEngine template.Engine
+		TemplateEngine templateEngine
 		response       *http.Response
 		mockFunc       func()
 	}
@@ -5013,7 +5012,7 @@ func TestAPIContext_AssertResponseCookieValueMatchesRegExp(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 
 	type fields struct {
-		TemplateEngine template.Engine
+		TemplateEngine templateEngine
 		response       *http.Response
 		mockFunc       func()
 	}
@@ -5075,7 +5074,7 @@ func TestAPIContext_AssertResponseCookieNotExists(t *testing.T) {
 	mTemplateEngine := new(mockedTemplateEngine)
 
 	type fields struct {
-		TemplateEngine template.Engine
+		TemplateEngine templateEngine
 		response       *http.Response
 		mockFunc       func()
 	}
@@ -5217,7 +5216,7 @@ func ExampleAPIContext_Save() {
 
 func TestState_SaveNode(t *testing.T) {
 	type fields struct {
-		cache        cache.Cache
+		cache        cacheable
 		lastResponse *http.Response
 		isDebug      bool
 	}
